@@ -14,7 +14,7 @@ import { AuthService } from '../../services/auth.service';
         <div class="kid-card-content">
           <h1>
             <i class="fas fa-door-open text-yellow"></i>
-            ¡Bienvenido!
+            ¡Bienvenido a tu EscuelaMAK!
             <i class="fas fa-door-open text-yellow"></i>
           </h1>
           <form (ngSubmit)="onSubmit()" #loginForm="ngForm" class="login-form">
