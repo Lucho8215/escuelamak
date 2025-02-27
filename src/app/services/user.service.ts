@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Observable, of, throwError } from 'rxjs';
+import { Observable, of } from 'rxjs';
 import { delay } from 'rxjs/operators';
 import { User, UserRole } from '../models/user.model';
 
@@ -59,7 +59,7 @@ export class UserService {
   updateUser(user: User): Observable<User> {
     const index = this.users.findIndex(u => u.id === user.id);
     if (index === -1) {
-      return throwError(() => new Error('Usuario no encontrado'));
+      throw new Error('Usuario no encontrado');
     }
 
     this.users[index] = { ...user };
@@ -69,7 +69,7 @@ export class UserService {
   updatePassword(userId: string, newPassword: string): Observable<void> {
     const user = this.users.find(u => u.id === userId);
     if (!user) {
-      return throwError(() => new Error('Usuario no encontrado'));
+      throw new Error('Usuario no encontrado');
     }
 
     user.password = newPassword;

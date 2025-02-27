@@ -29,6 +29,7 @@ export interface CourseEnrollment {
   id: string;
   courseId: string;
   studentId: string;
+  classId: string; // Agregado para vincular la inscripción con una clase específica
   enrollmentDate: Date;
   status: 'active' | 'completed' | 'cancelled';
 }

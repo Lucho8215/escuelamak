@@ -66,6 +66,15 @@ import { AuthService } from '../../services/auth.service';
             <a routerLink="/course-management" class="btn btn-kid">¡Gestionar Cursos!</a>
           </div>
         </div>
+
+        <div class="kid-card database-card">
+          <div class="kid-card-content">
+            <i class="fas fa-database card-icon"></i>
+            <h3>¡Estado de Conexión!</h3>
+            <p>Verifica la conexión con Supabase</p>
+            <a routerLink="/supabase-test" class="btn btn-kid">¡Verificar!</a>
+          </div>
+        </div>
       </div>
     </div>
   `,
@@ -100,6 +109,10 @@ import { AuthService } from '../../services/auth.service';
 
     .btn-logout i {
       font-size: 1.1rem;
+    }
+
+    .database-card .kid-card-content {
+      background: linear-gradient(135deg, #4A90E2 0%, #357ABD 100%);
     }
   `]
 })

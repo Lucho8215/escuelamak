@@ -9,6 +9,7 @@ import { ReviewComponent } from './app/components/review/review.component';
 import { SettingsComponent } from './app/components/settings/settings.component';
 import { UserManagementComponent } from './app/components/user-management/user-management.component';
 import { CourseManagementComponent } from './app/components/course-management/course-management.component';
+import { SupabaseTestComponent } from './app/components/supabase-test/supabase-test.component';
 import { provideHttpClient } from '@angular/common/http';
 
 @Component({
@@ -30,7 +31,8 @@ const routes: Routes = [
   { path: 'review', component: ReviewComponent },
   { path: 'settings', component: SettingsComponent },
   { path: 'user-management', component: UserManagementComponent },
-  { path: 'course-management', component: CourseManagementComponent }
+  { path: 'course-management', component: CourseManagementComponent },
+  { path: 'supabase-test', component: SupabaseTestComponent }
 ];
 
 bootstrapApplication(App, {

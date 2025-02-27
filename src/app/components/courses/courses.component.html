@@ -1,0 +1,79 @@
+<div class="module-container">
+  <a routerLink="/dashboard" class="btn btn-back">
+    <i class="fas fa-arrow-left"></i> Volver al Panel
+  </a>
+  
+  <h1>
+    <i class="fas fa-magic text-purple"></i>
+    Aventuras Matemáticas
+    <i class="fas fa-magic text-purple"></i>
+  </h1>
+
+  <!-- Lista de Cursos -->
+  <div class="card-grid">
+    <div class="kid-card" *ngFor="let course of courses">
+      <div class="kid-card-content">
+        <i class="fas fa-book-open card-icon"></i>
+        <h3>{{course.title}}</h3>
+        <p>{{course.description}}</p>
+        <div class="course-details">
+          <p><strong>Categoría:</strong> {{course.category === 'education' ? 'Educación' : 'Matemáticas'}}</p>
+          <p><strong>Duración:</strong> {{course.duration}} horas</p>
+          <p><strong>Precio:</strong> ${{course.price}}</p>
+        </div>
+        <button class="btn btn-kid" (click)="viewCourseDetails(course)">¡Ver Detalles!</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Detalles del Curso -->
+  <div class="modal" *ngIf="selectedCourse">
+    <div class="modal-content kid-card">
+      <div class="kid-card-content">
+        <h2>{{selectedCourse.title}}</h2>
+        <p>{{selectedCourse.description}}</p>
+
+        <div class="course-details">
+          <p><strong>Categoría:</strong> {{selectedCourse.category === 'education' ? 'Educación' : 'Matemáticas'}}</p>
+          <p><strong>Duración:</strong> {{selectedCourse.duration}} horas</p>
+          <p><strong>Precio:</strong> ${{selectedCourse.price}}</p>
+        </div>
+
+        <div *ngIf="selectedCourse.videoUrl" class="video-preview">
+          <h3>Video Introductorio</h3>
+          <iframe 
+            [src]="selectedCourse.videoUrl | safe" 
+            frameborder="0" 
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+            allowfullscreen>
+          </iframe>
+        </div>
+
+        <!-- Lista de Clases -->
+        <div class="classes-list">
+          <h3>Clases Disponibles</h3>
+          <div *ngFor="let class of classes" class="class-item kid-card">
+            <div class="kid-card-content">
+              <h4>{{class.name}}</h4>
+              <div class="class-details">
+                <p>Clase #{{class.classNumber}}</p>
+                <p>Estudiantes: {{class.enrollmentCount}}/{{class.maxStudents}}</p>
+                <p>Inicio: {{class.startDate | date:'shortDate'}}</p>
+                <p>Fin: {{class.endDate | date:'shortDate'}}</p>
+              </div>
+              <button 
+                class="btn btn-kid"
+                (click)="enrollInClass(class)"
+                [disabled]="class.enrollmentCount >= class.maxStudents || class.status === 'closed'"
+              >
+                {{class.enrollmentCount >= class.maxStudents ? 'Clase Llena' : '¡Inscribirse!'}}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <button class="btn btn-kid btn-secondary" (click)="closeModal()">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>

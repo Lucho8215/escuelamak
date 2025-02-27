@@ -1,49 +1,80 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { CourseService } from '../../services/course.service';
+import { AuthService } from '../../services/auth.service';
+import { Course, Class, CourseEnrollment } from '../../models/course.model';
+import { SafePipe } from '../../pipes/safe.pipe';
 
 @Component({
   selector: 'app-courses',
   standalone: true,
-  imports: [CommonModule, RouterModule],
-  template: `
-    <div class="module-container">
-      <a routerLink="/dashboard" class="btn btn-back">
-        <i class="fas fa-arrow-left"></i> Volver al Panel
-      </a>
-      
-      <h1>
-        <i class="fas fa-magic text-purple"></i>
-        Aventuras Matemáticas
-        <i class="fas fa-magic text-purple"></i>
-      </h1>
-      <div class="card-grid">
-        <div class="kid-card numbers-card">
-          <div class="kid-card-content">
-            <i class="fas fa-dice card-icon"></i>
-            <h3>¡Números Mágicos!</h3>
-            <p>Aprende a contar y jugar con números</p>
-            <button class="btn btn-kid">¡Empezar Aventura!</button>
-          </div>
-        </div>
-        <div class="kid-card shapes-card">
-          <div class="kid-card-content">
-            <i class="fas fa-shapes card-icon"></i>
-            <h3>¡Formas Divertidas!</h3>
-            <p>Descubre círculos, cuadrados y más</p>
-            <button class="btn btn-kid">¡Jugar con Formas!</button>
-          </div>
-        </div>
-        <div class="kid-card games-card">
-          <div class="kid-card-content">
-            <i class="fas fa-puzzle-piece card-icon"></i>
-            <h3>¡Juegos Matemáticos!</h3>
-            <p>Resuelve puzzles y gana estrellas</p>
-            <button class="btn btn-kid">¡A Jugar!</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  `
+  imports: [CommonModule, RouterModule, SafePipe],
+  templateUrl: './courses.component.html',
+  styleUrls: ['./courses.component.css']
 })
-export class CoursesComponent {}
+export class CoursesComponent implements OnInit {
+  courses: Course[] = [];
+  classes: Class[] = [];
+  selectedCourse: Course | null = null;
+
+  constructor(
+    private courseService: CourseService,
+    private authService: AuthService
+  ) {}
+
+  async ngOnInit() {
+    await this.loadCourses();
+  }
+
+  async loadCourses() {
+    try {
+      const courses = await this.courseService.getCourses();
+      this.courses = courses.filter(course => course.isVisible);
+    } catch (error) {
+      console.error('Error al cargar los cursos:', error);
+    }
+  }
+
+  async viewCourseDetails(course: Course) {
+    this.selectedCourse = course;
+    await this.loadCourseClasses(course.id);
+  }
+
+  async loadCourseClasses(courseId: string) {
+    try {
+      this.classes = await this.courseService.getClasses(courseId);
+    } catch (error) {
+      console.error('Error al cargar las clases:', error);
+    }
+  }
+
+  async enrollInClass(classData: Class) {
+    if (!this.authService.getCurrentUser()) {
+      alert('Por favor, inicia sesión para inscribirte en una clase');
+      return;
+    }
+
+    const enrollment: Omit<CourseEnrollment, 'id'> = {
+      courseId: this.selectedCourse!.id,
+      studentId: this.authService.getCurrentUser()!.id,
+      classId: classData.id,
+      status: 'active',
+      enrollmentDate: new Date()
+    };
+
+    try {
+      await this.courseService.enrollStudent(enrollment);
+      alert('¡Te has inscrito exitosamente!');
+      await this.loadCourseClasses(this.selectedCourse!.id);
+    } catch (error) {
+      console.error('Error al inscribirse:', error);
+      alert('Hubo un error al inscribirte. Por favor, intenta de nuevo.');
+    }
+  }
+
+  closeModal() {
+    this.selectedCourse = null;
+    this.classes = [];
+  }
+}

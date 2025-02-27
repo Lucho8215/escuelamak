@@ -11,19 +11,31 @@ export class CourseService {
   private supabase: SupabaseClient;
   private retryCount = 3;
   private retryDelay = 1000;
-  private timeoutDuration = 15000; // 15 segundos de timeout
+  private timeoutDuration = 30000; // 30 segundos de timeout
 
   constructor() {
     this.supabase = createClient(environment.supabaseUrl, environment.supabaseKey, {
       auth: {
         persistSession: true,
-        autoRefreshToken: true
+        autoRefreshToken: true,
+        detectSessionInUrl: true
+      },
+      realtime: {
+        params: {
+          eventsPerSecond: 10
+        }
       },
       db: {
         schema: 'public'
       },
       global: {
-        headers: { 'x-custom-timeout': this.timeoutDuration.toString() }
+        headers: { 'x-custom-timeout': this.timeoutDuration.toString() },
+        fetch: (url, options = {}) => {
+          return fetch(url, {
+            ...options,
+            signal: AbortSignal.timeout(this.timeoutDuration)
+          });
+        }
       }
     });
   }
@@ -103,6 +115,18 @@ export class CourseService {
   }
 
   // Cursos
+  async getCourses(): Promise<Course[]> {
+    return this.retryOperation(async () => {
+      const { data, error } = await this.supabase
+        .from('courses')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return this.transformToCamelCase(data || []);
+    });
+  }
+
   async createCourse(course: Omit<Course, 'id' | 'createdAt' | 'updatedAt'>): Promise<Course> {
     return this.retryOperation(async () => {
       const snakeCaseData = this.transformToSnakeCase({
@@ -152,19 +176,20 @@ export class CourseService {
     });
   }
 
-  async getCourses(): Promise<Course[]> {
+  // Clases
+  async getClasses(courseId: string): Promise<Class[]> {
     return this.retryOperation(async () => {
       const { data, error } = await this.supabase
-        .from('courses')
+        .from('classes')
         .select('*')
-        .order('created_at', { ascending: false });
+        .eq('course_id', courseId)
+        .order('class_number', { ascending: true });
 
       if (error) throw error;
       return this.transformToCamelCase(data || []);
     });
   }
 
-  // Clases
   async createClass(classData: Omit<Class, 'id'>): Promise<Class> {
     return this.retryOperation(async () => {
       const snakeCaseData = this.transformToSnakeCase(classData);
@@ -204,19 +229,6 @@ export class CourseService {
         .eq('id', id);
 
       if (error) throw error;
-    });
-  }
-
-  async getClasses(courseId: string): Promise<Class[]> {
-    return this.retryOperation(async () => {
-      const { data, error } = await this.supabase
-        .from('classes')
-        .select('*')
-        .eq('course_id', courseId)
-        .order('class_number', { ascending: true });
-
-      if (error) throw error;
-      return this.transformToCamelCase(data || []);
     });
   }
 
