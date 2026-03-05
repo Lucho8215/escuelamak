@@ -1,4 +1,4 @@
-import { Routes } from '@angular/router';
+﻿import { Routes } from '@angular/router';
 import { LoginComponent } from './components/login/login.component';
 import { DashboardComponent } from './components/dashboard/dashboard.component';
 import { CoursesComponent } from './components/courses/courses.component';
@@ -10,7 +10,7 @@ import { CourseManagementComponent } from './components/course-management/course
 import { SupabaseTestComponent } from './components/supabase-test/supabase-test.component';
 import { QuizManagementComponent } from './components/quiz-management/quiz-management.component';
 import { QuizTakingComponent } from './components/quiz-taking/quiz-taking.component';
-
+import { ClassManagementComponent } from './components/class-management/class-management.component';
 export const routes: Routes = [
   { path: '', redirectTo: '/login', pathMatch: 'full' },
   { path: 'login', component: LoginComponent },
@@ -23,5 +23,7 @@ export const routes: Routes = [
   { path: 'course-management', component: CourseManagementComponent },
   { path: 'supabase-test', component: SupabaseTestComponent },
   { path: 'quiz-management', component: QuizManagementComponent },
-  { path: 'quiz/:id', component: QuizTakingComponent }
+  { path: 'quiz/:id', component: QuizTakingComponent },
+  { path: 'class-management', component: ClassManagementComponent },
+  { path: '**', redirectTo: '/login' }
 ];

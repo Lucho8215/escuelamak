@@ -22,14 +22,29 @@ export interface Class {
   maxStudents: number;
   startDate: Date;
   endDate: Date;
-  enrolledStudents: string[]; // IDs de estudiantes
+  enrolledStudents: string[];
+  courseTitle?: string;
+  teacherName?: string;
 }
 
 export interface CourseEnrollment {
   id: string;
   courseId: string;
   studentId: string;
-  classId: string; // Agregado para vincular la inscripción con una clase específica
+  classId: string;
   enrollmentDate: Date;
   status: 'active' | 'completed' | 'cancelled';
+  studentName?: string;
+  studentEmail?: string;
+}
+
+export interface Lesson {
+  id: string;
+  classId: string;
+  title: string;
+  description?: string;
+  order: number;
+  isCompleted: boolean;
+  videoUrl?: string;
+  createdAt: Date;
 }

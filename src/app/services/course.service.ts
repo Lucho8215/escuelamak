@@ -179,24 +179,40 @@ export class CourseService {
   // Clases
   async getClasses(courseId: string): Promise<Class[]> {
     return this.retryOperation(async () => {
-      const { data, error } = await this.supabase
+      let query = this.supabase
         .from('classes')
         .select('*')
-        .eq('course_id', courseId)
         .order('class_number', { ascending: true });
-
+      if (courseId && courseId.trim() !== '') {
+        query = query.eq('course_id', courseId);
+      }
+      const { data, error } = await query;
       if (error) throw error;
       return this.transformToCamelCase(data || []);
     });
+  
+
   }
 
-  async createClass(classData: Omit<Class, 'id'>): Promise<Class> {
+async createClass(classData: Omit<Class, 'id'>): Promise<Class> {
     return this.retryOperation(async () => {
-      const snakeCaseData = this.transformToSnakeCase(classData);
+      const raw: any = {
+        course_id: classData.courseId || null,
+        name: classData.name || '',
+        title: classData.name || '',
+        teacher_id: classData.teacherId && classData.teacherId.trim() !== '' ? classData.teacherId : null,
+        status: classData.status || 'open',
+        class_number: classData.classNumber || 1,
+        enrollment_count: classData.enrollmentCount || 0,
+        max_students: classData.maxStudents || 30,
+        start_date: classData.startDate || null,
+        end_date: classData.endDate || null,
+        enrolled_students: classData.enrolledStudents || []
+      };
 
       const { data, error } = await this.supabase
         .from('classes')
-        .insert([snakeCaseData])
+        .insert([raw])
         .select()
         .single();
 
@@ -204,6 +220,7 @@ export class CourseService {
       return this.transformToCamelCase(data);
     });
   }
+
 
   async updateClass(id: string, classData: Partial<Class>): Promise<Class> {
     return this.retryOperation(async () => {
@@ -251,15 +268,81 @@ export class CourseService {
     });
   }
 
-  async getEnrollments(courseId: string): Promise<CourseEnrollment[]> {
+async getEnrollments(classId: string): Promise<CourseEnrollment[]> {
     return this.retryOperation(async () => {
       const { data, error } = await this.supabase
-        .from('course_enrollments')
+        .from('enrollment_details')
         .select('*')
-        .eq('course_id', courseId);
+        .eq('class_id', classId)
+        .order('enrollment_date', { ascending: false });
 
       if (error) throw error;
       return this.transformToCamelCase(data || []);
     });
   }
+
+  async getStudents(): Promise<any[]> {
+    return this.retryOperation(async () => {
+      const { data, error } = await this.supabase
+        .from('app_users')
+        .select('id, name, email, role')
+        .eq('role', ['student','alumno','teacher','profesor'])
+        .order('name', { ascending: true });
+
+      if (error) throw error;
+      return data || [];
+    });
+  }
+
+  async enrollStudentToClass(studentId: string, classId: string, courseId: string): Promise<any> {
+    return this.retryOperation(async () => {
+      const { data, error } = await this.supabase
+        .from('course_enrollments')
+        .insert([{
+          student_id: studentId,
+          class_id: classId,
+          course_id: courseId,
+          status: 'active',
+          enrollment_date: new Date().toISOString()
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Actualizar contador
+      await this.supabase
+        .from('classes')
+        .update({ enrollment_count: (await this.supabase.from('classes').select('enrollment_count').eq('id', classId).single()).data?.enrollment_count + 1 })
+        .eq('id', classId);
+
+      return data;
+    });
+  }
+
+  async removeEnrollment(enrollmentId: string, classId: string): Promise<void> {
+    return this.retryOperation(async () => {
+      const { error } = await this.supabase
+        .from('course_enrollments')
+        .delete()
+        .eq('id', enrollmentId);
+
+      if (error) throw error;
+
+      // Actualizar contador
+      const { data: cls } = await this.supabase
+        .from('classes')
+        .select('enrollment_count')
+        .eq('id', classId)
+        .single();
+
+      if (cls && cls.enrollment_count > 0) {
+        await this.supabase
+          .from('classes')
+          .update({ enrollment_count: cls.enrollment_count - 1 })
+          .eq('id', classId);
+      }
+    });
+  }
+
 }

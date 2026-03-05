@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+﻿import { Component } from '@angular/core';
 import { bootstrapApplication } from '@angular/platform-browser';
 import { provideRouter, RouterOutlet, Routes } from '@angular/router';
 import { LoginComponent } from './app/components/login/login.component';
@@ -10,18 +10,17 @@ import { SettingsComponent } from './app/components/settings/settings.component'
 import { UserManagementComponent } from './app/components/user-management/user-management.component';
 import { CourseManagementComponent } from './app/components/course-management/course-management.component';
 import { SupabaseTestComponent } from './app/components/supabase-test/supabase-test.component';
+import { QuizManagementComponent } from './app/components/quiz-management/quiz-management.component';
+import { QuizTakingComponent } from './app/components/quiz-taking/quiz-taking.component';
+import { ClassManagementComponent } from './app/components/class-management/class-management.component';
 import { provideHttpClient } from '@angular/common/http';
-
 @Component({
   selector: 'app-root',
   standalone: true,
   imports: [RouterOutlet],
-  template: `
-    <router-outlet></router-outlet>
-  `
+  template: `<router-outlet></router-outlet>`
 })
 export class App {}
-
 const routes: Routes = [
   { path: '', redirectTo: '/login', pathMatch: 'full' },
   { path: 'login', component: LoginComponent },
@@ -32,9 +31,12 @@ const routes: Routes = [
   { path: 'settings', component: SettingsComponent },
   { path: 'user-management', component: UserManagementComponent },
   { path: 'course-management', component: CourseManagementComponent },
-  { path: 'supabase-test', component: SupabaseTestComponent }
+  { path: 'supabase-test', component: SupabaseTestComponent },
+  { path: 'quiz-management', component: QuizManagementComponent },
+  { path: 'quiz/:id', component: QuizTakingComponent },
+  { path: 'class-management', component: ClassManagementComponent },
+  { path: '**', redirectTo: '/login' }
 ];
-
 bootstrapApplication(App, {
   providers: [
     provideRouter(routes),

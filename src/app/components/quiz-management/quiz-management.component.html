@@ -1,0 +1,170 @@
+<div class="module-container">
+  <a routerLink="/dashboard" class="btn btn-back">
+    <i class="fas fa-arrow-left"></i> Volver al Panel
+  </a>
+
+  <h1>
+    <i class="fas fa-question-circle text-purple"></i>
+    Gestion de Cuestionarios
+  </h1>
+
+  <div class="kid-card">
+    <div class="kid-card-content">
+      <h2>{{ editingQuiz ? 'Editar Cuestionario' : 'Crear Cuestionario' }}</h2>
+
+      <form (ngSubmit)="saveQuiz()" #quizForm="ngForm">
+
+        <div class="form-group">
+          <label>Titulo del Cuestionario</label>
+          <input type="text" [(ngModel)]="newQuiz.title"
+            name="title" required class="kid-input"
+            placeholder="Ej: Sumas del 1 al 10">
+        </div>
+
+        <div class="form-group">
+          <label>Descripcion</label>
+          <textarea [(ngModel)]="newQuiz.description"
+            name="description" required class="kid-input" rows="3"
+            placeholder="Describe el cuestionario..."></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Categoria</label>
+            <select [(ngModel)]="newQuiz.category" name="category" class="kid-input">
+              <option value="mathematics">Matematicas</option>
+              <option value="education">Educacion</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Dificultad</label>
+            <select [(ngModel)]="newQuiz.difficulty" name="difficulty" class="kid-input">
+              <option value="easy">Facil</option>
+              <option value="medium">Medio</option>
+              <option value="hard">Dificil</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Tiempo (minutos)</label>
+            <input type="number" [(ngModel)]="newQuiz.timeLimit"
+              name="timeLimit" required class="kid-input" min="1">
+          </div>
+          <div class="form-group">
+            <label>Puntaje minimo (%)</label>
+            <input type="number" [(ngModel)]="newQuiz.passingScore"
+              name="passingScore" required class="kid-input" min="1" max="100">
+          </div>
+        </div>
+
+        <div class="questions-section">
+          <h3>Preguntas ({{ newQuiz.questions?.length || 0 }})</h3>
+          <div class="question-list">
+            <div *ngFor="let question of newQuiz.questions; let i = index"
+                 class="question-item kid-card">
+              <div class="kid-card-content">
+                <h4>Pregunta {{ i + 1 }}</h4>
+                <div class="form-group">
+                  <input type="text" [(ngModel)]="question.text"
+                    [name]="'question-' + i" required class="kid-input"
+                    placeholder="Escribe la pregunta aqui...">
+                </div>
+                <div class="options-list">
+                  <label>Opciones</label>
+                  <div *ngFor="let option of question.options; let j = index"
+                       class="option-item">
+                    <input type="radio"
+                      [name]="'correct-' + i"
+                      [value]="j"
+                      [(ngModel)]="question.correctAnswer">
+                    <input type="text"
+                      [(ngModel)]="question.options[j]"
+                      [name]="'option-' + i + '-' + j"
+                      required class="kid-input"
+                      [placeholder]="'Opcion ' + (j+1)">
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label>Explicacion (opcional)</label>
+                  <textarea [(ngModel)]="question.explanation"
+                    [name]="'explanation-' + i"
+                    class="kid-input" rows="2"
+                    placeholder="Explica la respuesta correcta..."></textarea>
+                </div>
+                <div class="form-group">
+                  <label>Puntos</label>
+                  <input type="number" [(ngModel)]="question.points"
+                    [name]="'points-' + i" required class="kid-input" min="1">
+                </div>
+                <button type="button" class="btn btn-kid btn-danger"
+                  (click)="removeQuestion(i)">
+                  <i class="fas fa-trash"></i> Eliminar
+                </button>
+              </div>
+            </div>
+          </div>
+          <button type="button" class="btn btn-kid" (click)="addQuestion()">
+            <i class="fas fa-plus"></i> Agregar Pregunta
+          </button>
+        </div>
+
+        <div class="button-group">
+          <button type="submit" class="btn btn-kid"
+            [disabled]="!quizForm.form.valid || loading">
+            <i class="fas fa-save"></i>
+            {{ loading ? 'Guardando...' : (editingQuiz ? 'Guardar Cambios' : 'Crear Cuestionario') }}
+          </button>
+          <button type="button" class="btn btn-kid btn-secondary"
+            (click)="resetForm()">Cancelar</button>
+        </div>
+
+        <div *ngIf="successMessage" class="success-message">
+          <i class="fas fa-check-circle"></i> {{successMessage}}
+        </div>
+        <div *ngIf="errorMessage" class="error-message">
+          <i class="fas fa-times-circle"></i> {{errorMessage}}
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+  <div class="quiz-list">
+    <h2>Cuestionarios ({{quizzes.length}})</h2>
+    <div *ngIf="quizzes.length === 0" class="kid-card">
+      <div class="kid-card-content" style="text-align:center;">
+        <i class="fas fa-inbox" style="font-size:3rem; color:#ccc;"></i>
+        <p>No hay cuestionarios creados aun</p>
+      </div>
+    </div>
+    <div *ngFor="let quiz of quizzes" class="kid-card">
+      <div class="kid-card-content">
+        <h3>{{quiz.title}}</h3>
+        <p>{{quiz.description}}</p>
+        <div class="quiz-details">
+          <p><strong>Categoria:</strong> {{quiz.category}}</p>
+          <p><strong>Dificultad:</strong> {{quiz.difficulty}}</p>
+          <p><strong>Preguntas:</strong> {{quiz.questions ? quiz.questions.length : 0}}</p>
+          <p><strong>Tiempo:</strong> {{quiz.timeLimit}} min</p>
+          <p><strong>Estado:</strong>
+            <span [style.color]="quiz.isEnabled ? '#40c057' : '#ff6b6b'">
+              {{quiz.isEnabled ? 'Habilitado' : 'Deshabilitado'}}
+            </span>
+          </p>
+        </div>
+        <div class="button-group">
+          <button class="btn btn-kid" (click)="editQuiz(quiz)">
+            <i class="fas fa-edit"></i> Editar
+          </button>
+          <button class="btn btn-kid" (click)="toggleQuiz(quiz)">
+            <i class="fas" [class.fa-eye]="!quiz.isEnabled"
+               [class.fa-eye-slash]="quiz.isEnabled"></i>
+            {{quiz.isEnabled ? 'Deshabilitar' : 'Habilitar'}}
+          </button>
+          <button class="btn btn-kid btn-danger" (click)="deleteQuiz(quiz.id)">
+            <i class="fas fa-trash"></i> Eliminar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

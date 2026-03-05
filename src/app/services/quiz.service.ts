@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Observable, from, throwError } from 'rxjs';
-import { map, catchError } from 'rxjs/operators';
+import { map, catchError, switchMap } from 'rxjs/operators';
 import { Quiz, Question, QuizAttempt } from '../models/quiz.model';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { environment } from '../../environments/environment';
@@ -15,15 +15,12 @@ export class QuizService {
     environment.supabaseKey
   );
 
-  // ─── Obtener todos los quizzes ───────────────────────────────────────────
+  // ─── Obtener todos los quizzes con sus preguntas ─────────────────────────
   getQuizzes(): Observable<Quiz[]> {
     return from(
       this.supabase
         .from('quizzes')
-        .select(`
-          *,
-          questions (*)
-        `)
+        .select(`*, questions (*)`)
         .order('created_at', { ascending: false })
     ).pipe(
       map(({ data, error }) => {
@@ -34,15 +31,12 @@ export class QuizService {
     );
   }
 
-  // ─── Obtener un quiz por ID ──────────────────────────────────────────────
+  // ─── Obtener un quiz por ID con sus preguntas ────────────────────────────
   getQuiz(id: string): Observable<Quiz | undefined> {
     return from(
       this.supabase
         .from('quizzes')
-        .select(`
-          *,
-          questions (*)
-        `)
+        .select(`*, questions (*)`)
         .eq('id', id)
         .single()
     ).pipe(
@@ -54,9 +48,10 @@ export class QuizService {
     );
   }
 
-  // ─── Crear un quiz nuevo ─────────────────────────────────────────────────
+  // ─── Crear quiz y guardar preguntas en Supabase ──────────────────────────
   createQuiz(quiz: Omit<Quiz, 'id' | 'createdAt' | 'updatedAt'>): Observable<Quiz> {
     return from(
+      // Paso 1: Crear el quiz
       this.supabase
         .from('quizzes')
         .insert([{
@@ -72,17 +67,45 @@ export class QuizService {
         .select()
         .single()
     ).pipe(
-      map(({ data, error }) => {
+      switchMap(({ data, error }) => {
         if (error) throw new Error(error.message);
-        return this.mapToQuiz(data);
+        const quizId = data.id;
+
+        // Paso 2: Guardar las preguntas si existen
+        if (!quiz.questions || quiz.questions.length === 0) {
+          return from(Promise.resolve({ ...data, questions: [] }));
+        }
+
+        const questionsToInsert = quiz.questions.map((q, index) => ({
+          quiz_id:        quizId,
+          text:           q.text,
+          options:        JSON.stringify(q.options),
+          correct_answer: q.correctAnswer,
+          explanation:    q.explanation || '',
+          points:         q.points || 10,
+          order_number:   index + 1
+        }));
+
+        return from(
+          this.supabase
+            .from('questions')
+            .insert(questionsToInsert)
+            .select()
+            .then(({ data: qData, error: qError }) => {
+              if (qError) throw new Error(qError.message);
+              return { ...data, questions: qData || [] };
+            })
+        );
       }),
+      map((data: any) => this.mapToQuiz(data)),
       catchError(error => throwError(() => new Error(error.message)))
     );
   }
 
-  // ─── Actualizar un quiz ──────────────────────────────────────────────────
+  // ─── Actualizar quiz y sus preguntas ─────────────────────────────────────
   updateQuiz(id: string, quiz: Partial<Quiz>): Observable<Quiz> {
     return from(
+      // Paso 1: Actualizar el quiz
       this.supabase
         .from('quizzes')
         .update({
@@ -99,10 +122,41 @@ export class QuizService {
         .select()
         .single()
     ).pipe(
-      map(({ data, error }) => {
+      switchMap(({ data, error }) => {
         if (error) throw new Error(error.message);
-        return this.mapToQuiz(data);
+
+        if (!quiz.questions || quiz.questions.length === 0) {
+          return from(Promise.resolve({ ...data, questions: [] }));
+        }
+
+        // Paso 2: Borrar preguntas viejas y guardar las nuevas
+        return from(
+          this.supabase
+            .from('questions')
+            .delete()
+            .eq('quiz_id', id)
+            .then(async () => {
+              const questionsToInsert = quiz.questions!.map((q, index) => ({
+                quiz_id:        id,
+                text:           q.text,
+                options:        JSON.stringify(q.options),
+                correct_answer: q.correctAnswer,
+                explanation:    q.explanation || '',
+                points:         q.points || 10,
+                order_number:   index + 1
+              }));
+
+              const { data: qData, error: qError } = await this.supabase
+                .from('questions')
+                .insert(questionsToInsert)
+                .select();
+
+              if (qError) throw new Error(qError.message);
+              return { ...data, questions: qData || [] };
+            })
+        );
       }),
+      map((data: any) => this.mapToQuiz(data)),
       catchError(error => throwError(() => new Error(error.message)))
     );
   }
@@ -134,7 +188,10 @@ export class QuizService {
           if (error || !data) throw new Error('Quiz no encontrado');
           const { data: updated, error: updateError } = await this.supabase
             .from('quizzes')
-            .update({ is_enabled: !data.is_enabled, updated_at: new Date().toISOString() })
+            .update({
+              is_enabled: !data.is_enabled,
+              updated_at: new Date().toISOString()
+            })
             .eq('id', id)
             .select(`*, questions (*)`)
             .single();
@@ -147,16 +204,16 @@ export class QuizService {
     );
   }
 
-  // ─── Guardar intento de alumno ───────────────────────────────────────────
+  // ─── Guardar resultado del alumno ────────────────────────────────────────
   saveAttempt(attempt: Omit<QuizAttempt, 'id'>): Observable<QuizAttempt> {
     return from(
       this.supabase
         .from('quiz_attempts')
         .insert([{
           quiz_id:      attempt.quizId,
-          student_id:   attempt.userId,        // en BD usamos student_id
+          student_id:   attempt.userId,
           score:        attempt.score,
-          answers:      attempt.answers,
+          answers:      JSON.stringify(attempt.answers),
           started_at:   attempt.startedAt,
           completed_at: attempt.completedAt,
           passed:       attempt.status === 'completed' && attempt.score >= 60
@@ -171,11 +228,28 @@ export class QuizService {
           quizId:      data.quiz_id,
           userId:      data.student_id,
           score:       data.score,
-          answers:     data.answers || [],
+          answers:     JSON.parse(data.answers || '[]'),
           startedAt:   new Date(data.started_at),
           completedAt: data.completed_at ? new Date(data.completed_at) : undefined,
           status:      data.passed ? 'completed' : 'in-progress'
         } as QuizAttempt;
+      }),
+      catchError(error => throwError(() => new Error(error.message)))
+    );
+  }
+
+  // ─── Obtener resultados de un alumno ─────────────────────────────────────
+  getStudentAttempts(userId: string): Observable<any[]> {
+    return from(
+      this.supabase
+        .from('quiz_attempts')
+        .select(`*, quizzes (title, passing_score)`)
+        .eq('student_id', userId)
+        .order('completed_at', { ascending: false })
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) throw new Error(error.message);
+        return data || [];
       }),
       catchError(error => throwError(() => new Error(error.message)))
     );

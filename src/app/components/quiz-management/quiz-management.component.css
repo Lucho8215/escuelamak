@@ -1,0 +1,15 @@
+
+.form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
+.questions-section { margin: 2rem 0; }
+.question-list { display: grid; gap: 1rem; margin: 1rem 0; }
+.question-item { background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 10px; }
+.options-list { display: grid; gap: 0.5rem; margin: 1rem 0; }
+.option-item { display: flex; align-items: center; gap: 1rem; }
+.option-item input[type="radio"] { width: 20px; height: 20px; cursor: pointer; }
+.quiz-details { margin: 1rem 0; }
+.quiz-details p { margin: 0.5rem 0; }
+.button-group { display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap; }
+.btn-danger { background-color: #ff6b6b !important; }
+.quiz-list { margin-top: 2rem; display: grid; gap: 1rem; }
+.success-message { margin-top: 1rem; padding: 1rem; background: rgba(64,192,87,0.3); border-radius: 10px; color: white; }
+.error-message { margin-top: 1rem; padding: 1rem; background: rgba(255,107,107,0.3); border-radius: 10px; color: white; }
