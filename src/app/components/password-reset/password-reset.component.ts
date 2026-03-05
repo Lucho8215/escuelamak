@@ -203,7 +203,7 @@ export class PasswordResetComponent {
         this.successMessage = '¡Se han enviado las instrucciones a tu correo!';
         this.isLoading = false;
       },
-      error: (error) => {
+      error: (error: { message: string; }) => {
         this.errorMessage = error.message || 'Error al procesar la solicitud';
         this.isLoading = false;
       }
@@ -214,7 +214,7 @@ export class PasswordResetComponent {
   private verifyToken() {
     this.isLoading = true;
     this.authService.verifyResetToken(this.token).subscribe({
-      next: (isValid) => {
+      next: (isValid: any) => {
         if (isValid) {
           this.showResetForm = true;
         } else {
@@ -223,7 +223,7 @@ export class PasswordResetComponent {
         }
         this.isLoading = false;
       },
-      error: (error) => {
+      error: (error: { message: string; }) => {
         this.errorMessage = error.message;
         this.isLoading = false;
         setTimeout(() => this.router.navigate(['/login']), 3000);
@@ -253,7 +253,7 @@ export class PasswordResetComponent {
         this.isLoading = false;
         setTimeout(() => this.router.navigate(['/login']), 3000);
       },
-      error: (error) => {
+      error: (error: { message: string; }) => {
         this.errorMessage = error.message;
         this.isLoading = false;
       }

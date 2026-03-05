@@ -96,12 +96,12 @@ import { AuthService } from '../../services/auth.service';
     }
 
     .error-message {
-      color: #ff6b6b;
+      color:rgb(24, 81, 204);
       margin-top: 1rem;
       text-align: center;
       font-family: 'Comic Sans MS', cursive;
       padding: 1rem;
-      background: rgba(255, 0, 0, 0.1);
+      background: rgba(255, 0, 0, 0.68);
       border-radius: 10px;
       display: flex;
       align-items: center;

@@ -2,14 +2,13 @@
   <a routerLink="/dashboard" class="btn btn-back">
     <i class="fas fa-arrow-left"></i> Volver al Panel
   </a>
-  
+
   <h1>
     <i class="fas fa-magic text-purple"></i>
-    Aventuras Matemáticas
+    Aventuras Matematicas
     <i class="fas fa-magic text-purple"></i>
   </h1>
 
-  <!-- Lista de Cursos -->
   <div class="card-grid">
     <div class="kid-card" *ngFor="let course of courses">
       <div class="kid-card-content">
@@ -17,56 +16,58 @@
         <h3>{{course.title}}</h3>
         <p>{{course.description}}</p>
         <div class="course-details">
-          <p><strong>Categoría:</strong> {{course.category === 'education' ? 'Educación' : 'Matemáticas'}}</p>
-          <p><strong>Duración:</strong> {{course.duration}} horas</p>
+          <p><strong>Categoria:</strong> {{course.category}}</p>
+          <p><strong>Duracion:</strong> {{course.duration}} horas</p>
           <p><strong>Precio:</strong> ${{course.price}}</p>
         </div>
-        <button class="btn btn-kid" (click)="viewCourseDetails(course)">¡Ver Detalles!</button>
+        <button class="btn btn-kid" (click)="viewCourseDetails(course)">Ver Detalles</button>
       </div>
     </div>
   </div>
 
-  <!-- Modal de Detalles del Curso -->
   <div class="modal" *ngIf="selectedCourse">
     <div class="modal-content kid-card">
       <div class="kid-card-content">
         <h2>{{selectedCourse.title}}</h2>
         <p>{{selectedCourse.description}}</p>
-
         <div class="course-details">
-          <p><strong>Categoría:</strong> {{selectedCourse.category === 'education' ? 'Educación' : 'Matemáticas'}}</p>
-          <p><strong>Duración:</strong> {{selectedCourse.duration}} horas</p>
+          <p><strong>Categoria:</strong> {{selectedCourse.category}}</p>
+          <p><strong>Duracion:</strong> {{selectedCourse.duration}} horas</p>
           <p><strong>Precio:</strong> ${{selectedCourse.price}}</p>
         </div>
 
         <div *ngIf="selectedCourse.videoUrl" class="video-preview">
           <h3>Video Introductorio</h3>
-          <iframe 
-            [src]="selectedCourse.videoUrl | safe" 
-            frameborder="0" 
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+          <iframe
+            [src]="selectedCourse.videoUrl | safe"
+            width="100%"
+            height="315"
+            frameborder="0"
             allowfullscreen>
           </iframe>
         </div>
 
-        <!-- Lista de Clases -->
+        <div *ngIf="!selectedCourse.videoUrl" class="video-preview">
+          <p style="text-align:center; color:#999;">Sin video introductorio</p>
+        </div>
+
         <div class="classes-list">
           <h3>Clases Disponibles</h3>
-          <div *ngFor="let class of classes" class="class-item kid-card">
+          <div *ngIf="classes.length === 0" style="text-align:center; padding:1rem; color:#999;">
+            No hay clases disponibles aun
+          </div>
+          <div *ngFor="let clase of classes" class="class-item kid-card">
             <div class="kid-card-content">
-              <h4>{{class.name}}</h4>
+              <h4>{{clase.name}}</h4>
               <div class="class-details">
-                <p>Clase #{{class.classNumber}}</p>
-                <p>Estudiantes: {{class.enrollmentCount}}/{{class.maxStudents}}</p>
-                <p>Inicio: {{class.startDate | date:'shortDate'}}</p>
-                <p>Fin: {{class.endDate | date:'shortDate'}}</p>
+                <p>Clase: {{clase.classNumber}}</p>
+                <p>Estudiantes: {{clase.enrollmentCount}}/{{clase.maxStudents}}</p>
               </div>
-              <button 
+              <button
                 class="btn btn-kid"
-                (click)="enrollInClass(class)"
-                [disabled]="class.enrollmentCount >= class.maxStudents || class.status === 'closed'"
-              >
-                {{class.enrollmentCount >= class.maxStudents ? 'Clase Llena' : '¡Inscribirse!'}}
+                (click)="enrollInClass(clase)"
+                [disabled]="clase.enrollmentCount >= clase.maxStudents || clase.status === 'closed'">
+                Inscribirse
               </button>
             </div>
           </div>

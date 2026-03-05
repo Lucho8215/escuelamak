@@ -19,7 +19,7 @@
   margin: 2rem;
 }
 
-.button-group {
+.button-group {   
   display: flex;
   gap: 1rem;
   margin-top: 1rem;

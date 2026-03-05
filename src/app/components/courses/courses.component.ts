@@ -49,7 +49,7 @@ export class CoursesComponent implements OnInit {
     }
   }
 
-  async enrollInClass(classData: Class) {
+  async enrollInClass(clase: Class) {
     if (!this.authService.getCurrentUser()) {
       alert('Por favor, inicia sesión para inscribirte en una clase');
       return;
@@ -58,7 +58,7 @@ export class CoursesComponent implements OnInit {
     const enrollment: Omit<CourseEnrollment, 'id'> = {
       courseId: this.selectedCourse!.id,
       studentId: this.authService.getCurrentUser()!.id,
-      classId: classData.id,
+      classId: clase.id,
       status: 'active',
       enrollmentDate: new Date()
     };
