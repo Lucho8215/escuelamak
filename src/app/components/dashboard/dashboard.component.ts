@@ -1,4 +1,4 @@
-﻿import { Component, OnInit } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
@@ -82,6 +82,23 @@ import { User, UserRole } from '../../models/user.model';
             <h3>Gestion de Clases</h3>
             <p>Clases, alumnos, inscripciones y lecciones</p>
             <a routerLink='/class-management' class='btn btn-kid'>Ver Clases</a>
+            <div class="kid-card params-card" *ngIf="authService.hasPermission('manage_permissions')">
+  <div class="kid-card-content">
+    <i class="fas fa-sliders-h card-icon"></i>
+    <h3>⚙️ Parámetros</h3>
+    <p>Usuarios, clases, temas y permisos</p>
+    <a routerLink="/parameters" class="btn btn-kid">Configurar</a>
+  </div>
+</div>
+
+          </div>
+        </div>
+              <div class="kid-card params-card" *ngIf="authService.hasPermission('manage_permissions')">
+          <div class="kid-card-content">
+            <i class="fas fa-sliders-h card-icon"></i>
+            <h3>⚙️ Parámetros</h3>
+            <p>Usuarios, clases, temas y permisos</p>
+            <a routerLink="/parameters" class="btn btn-kid">Configurar</a>
           </div>
         </div>
       </div>
