@@ -1,9 +1,0 @@
-﻿$vercel = @'
-{
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
-  ]
-}
-'@
-$vercel | Out-File -FilePath "C:\Users\LUISMORENO\source\repos\escuelamak\vercel.json" -Encoding UTF8
-Write-Host "✅ vercel.json simplificado"
