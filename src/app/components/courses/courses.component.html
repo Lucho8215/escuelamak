@@ -1,4 +1,4 @@
-<div class="module-container">
+﻿<div class="module-container">
   <a routerLink="/dashboard" class="btn btn-back">
     <i class="fas fa-arrow-left"></i> Volver al Panel
   </a>
@@ -59,22 +59,3 @@
           <div *ngFor="let clase of classes" class="class-item kid-card">
             <div class="kid-card-content">
               <h4>{{clase.name}}</h4>
-              <div class="class-details">
-                <p>Clase: {{clase.classNumber}}</p>
-                <p>Estudiantes: {{clase.enrollmentCount}}/{{clase.maxStudents}}</p>
-              </div>
-              <button
-                class="btn btn-kid"
-                (click)="enrollInClass(clase)"
-                [disabled]="clase.enrollmentCount >= clase.maxStudents || clase.status === 'closed'">
-                Inscribirse
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <button class="btn btn-kid btn-secondary" (click)="closeModal()">Cerrar</button>
-      </div>
-    </div>
-  </div>
-</div>

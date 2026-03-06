@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+﻿import { Injectable } from '@angular/core';
 import { Observable, of } from 'rxjs';
 import { Course, Class, CourseEnrollment } from '../models/course.model';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
@@ -190,9 +190,28 @@ export class CourseService {
       if (error) throw error;
       return this.transformToCamelCase(data || []);
     });
-  
-
   }
+  async toggleLessonAssignment(lessonId: string, studentId: string) {
+  // 1. Buscamos si ya existe el permiso
+  const { data: existing } = await this.supabase
+    .from('student_lesson_assignments')
+    .select('*')
+    .match({ lesson_id: lessonId, student_id: studentId })
+    .single();
+
+  if (existing) {
+    // 2. Si existe, lo borramos (quitar acceso)
+    return await this.supabase
+      .from('student_lesson_assignments')
+      .delete()
+      .match({ lesson_id: lessonId, student_id: studentId });
+  } else {
+    // 3. Si no existe, lo creamos (dar acceso)
+    return await this.supabase
+      .from('student_lesson_assignments')
+      .insert([{ lesson_id: lessonId, student_id: studentId }]);
+  }
+}
 
 async createClass(classData: Omit<Class, 'id'>): Promise<Class> {
     return this.retryOperation(async () => {
@@ -280,13 +299,31 @@ async getEnrollments(classId: string): Promise<CourseEnrollment[]> {
       return this.transformToCamelCase(data || []);
     });
   }
+// Asignar una lecciÃ³n a un alumno especÃ­fico
+async assignLessonToStudent(lessonId: string, studentId: string) {
+  return await this.supabase
+    .from('student_lesson_assignments')
+    .insert([{ lesson_id: lessonId, student_id: studentId }]);
+}
+
+// Obtener quÃ© alumnos tienen asignada una lecciÃ³n
+async getLessonAssignments(lessonId: string): Promise<any[]> {
+    return this.retryOperation(async () => {
+      const { data, error } = await this.supabase
+        .from('student_lesson_assignments')
+        .select('student_id')
+        .eq('lesson_id', lessonId);
+      if (error) throw error;
+      return data || [];
+    });
+  }
 
   async getStudents(): Promise<any[]> {
     return this.retryOperation(async () => {
-      const { data, error } = await this.supabase
+       const { data, error } = await this.supabase
         .from('app_users')
         .select('id, name, email, role')
-        .eq('role', ['student','alumno','teacher','profesor'])
+        .in('role', ['student', 'alumno', 'estudiante'])
         .order('name', { ascending: true });
 
       if (error) throw error;
@@ -319,6 +356,45 @@ async getEnrollments(classId: string): Promise<CourseEnrollment[]> {
       return data;
     });
   }
+  // AÃ±adir al final de CourseService
+   async createLesson(lessonData: any): Promise<any> {
+    return this.retryOperation(async () => {
+      const { data, error } = await this.supabase
+        .from('lessons')
+        .insert([lessonData])
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    });
+  }
+
+
+async getLessonsByClass(classId: string): Promise<any[]> {
+    return this.retryOperation(async () => {
+      const { data, error } = await this.supabase
+        .from('lessons')
+        .select('*')
+        .eq('class_id', classId)
+        .order('order', { ascending: true });
+      if (error) throw error;
+      return data || [];
+    });
+  }
+
+// AsegÃºra de que este mÃ©todo devuelva los usuarios correctamente formateados, especialmente si quieres mostrar solo profesores en la gestiÃ³n de clases
+async getUsersByRole(roles: string[]): Promise<any[]> {
+    return this.retryOperation(async () => {
+      const { data, error } = await this.supabase
+        .from('app_users')
+        .select('id, name, email, role')
+        .in('role', roles)
+        .order('name', { ascending: true });
+      if (error) throw error;
+      return data || [];
+    });
+  }
+
 
   async removeEnrollment(enrollmentId: string, classId: string): Promise<void> {
     return this.retryOperation(async () => {
@@ -344,5 +420,4 @@ async getEnrollments(classId: string): Promise<CourseEnrollment[]> {
       }
     });
   }
-
-}
+} 
