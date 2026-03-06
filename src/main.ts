@@ -1,4 +1,4 @@
-﻿import { Component } from '@angular/core';
+import { Component } from '@angular/core';
 import { bootstrapApplication } from '@angular/platform-browser';
 import { provideRouter, RouterOutlet, Routes } from '@angular/router';
 import { LoginComponent } from './app/components/login/login.component';
@@ -11,6 +11,8 @@ import { UserManagementComponent } from './app/components/user-management/user-m
 import { CourseManagementComponent } from './app/components/course-management/course-management.component';
 import { SupabaseTestComponent } from './app/components/supabase-test/supabase-test.component';
 import { ParametersComponent } from './app/components/parameters/parameters.component';
+import { QuizManagementComponent } from './app/components/quiz-management/quiz-management.component';
+import { ClassManagementComponent } from './app/components/class-management/class-management.component';
 import { provideHttpClient } from '@angular/common/http';
 @Component({
   selector: 'app-root',
@@ -31,6 +33,8 @@ const routes: Routes = [
   { path: 'course-management', component: CourseManagementComponent },
   { path: 'supabase-test', component: SupabaseTestComponent },
   { path: 'parameters', component: ParametersComponent },
+  { path: 'quiz-management', component: QuizManagementComponent },
+  { path: 'class-management', component: ClassManagementComponent },
   { path: '**', redirectTo: '/login' }
 ];
 bootstrapApplication(App, {
