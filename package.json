@@ -1,10 +1,10 @@
-{
+﻿{
   "name": "angular-starter",
   "private": true,
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
-    "build": "ng build",
+    "build": "ng build --configuration production",
     "dev": "ng serve"
   },
   "dependencies": {
@@ -28,3 +28,4 @@
     "typescript": "~5.3.3"
   }
 }
+

@@ -1,19 +1,7 @@
-﻿$vercel = @'
-{
-  "version": 2,
-  "builds": [
-    {
-      "src": "package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dist/escuelamak/browser"
-      }
-    }
-  ],
+﻿{
+  "buildCommand": "ng build --configuration production",
+  "outputDirectory": "dist/escuelamak/browser",
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
-'@
-$vercel | Out-File -FilePath "C:\Users\LUISMORENO\source\repos\escuelamak\vercel.json" -Encoding UTF8
-Write-Host "✅ vercel.json actualizado"
