@@ -1,0 +1,358 @@
+﻿<div class="params-root">
+  <aside class="params-sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon"><i class="fas fa-cogs"></i></div>
+      <div>
+        <div class="brand-title">Parámetros</div>
+        <div class="brand-sub">Panel de Configuración</div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <button class="nav-item" [class.active]="activeSection==='users'" (click)="setSection('users')">
+        <i class="fas fa-users"></i><span>Usuarios</span><span class="nav-badge">{{getTotalUsers()}}</span>
+      </button>
+      <button class="nav-item" [class.active]="activeSection==='classes'" (click)="setSection('classes')">
+        <i class="fas fa-chalkboard"></i><span>Clases</span><span class="nav-badge">{{getTotalClasses()}}</span>
+      </button>
+      <button class="nav-item" [class.active]="activeSection==='theme'" (click)="setSection('theme')">
+        <i class="fas fa-palette"></i><span>Temas de Color</span>
+      </button>
+      <button class="nav-item" [class.active]="activeSection==='permissions'" (click)="setSection('permissions')">
+        <i class="fas fa-shield-alt"></i><span>Permisos</span><span class="nav-badge">{{getEnabledCount()}}</span>
+      </button>
+    </nav>
+    <div class="sidebar-footer">
+      <a routerLink="/dashboard" class="btn-back-dash"><i class="fas fa-arrow-left"></i> Volver al Panel</a>
+    </div>
+  </aside>
+  <main class="params-main">
+    <div *ngIf="successMsg" class="toast toast-success"><i class="fas fa-check-circle"></i> {{successMsg}}</div>
+    <div *ngIf="errorMsg"   class="toast toast-error"><i class="fas fa-times-circle"></i> {{errorMsg}}</div>
+    <div *ngIf="loading" class="global-loader"><div class="loader-spinner"></div></div>
+    <!-- USUARIOS -->
+    <section *ngIf="activeSection==='users'" class="content-section">
+      <div class="section-header">
+        <div>
+          <h1 class="section-title"><i class="fas fa-users"></i> Gestión de Usuarios</h1>
+          <p class="section-sub">Crea, edita y administra todos los usuarios del sistema</p>
+        </div>
+        <button class="btn-primary" (click)="openCreateUser()"><i class="fas fa-user-plus"></i> Nuevo Usuario</button>
+      </div>
+      <div class="stats-row">
+        <div class="stat-card stat-admin">
+          <div class="stat-icon"><i class="fas fa-crown"></i></div>
+          <div><div class="stat-num">{{getUserCountByRole('admin')}}</div><div class="stat-lbl">Admins</div></div>
+        </div>
+        <div class="stat-card stat-teacher">
+          <div class="stat-icon"><i class="fas fa-chalkboard-teacher"></i></div>
+          <div><div class="stat-num">{{getUserCountByRole('teacher')}}</div><div class="stat-lbl">Profesores</div></div>
+        </div>
+        <div class="stat-card stat-tutor">
+          <div class="stat-icon"><i class="fas fa-user-tie"></i></div>
+          <div><div class="stat-num">{{getUserCountByRole('tutor')}}</div><div class="stat-lbl">Tutores</div></div>
+        </div>
+        <div class="stat-card stat-student">
+          <div class="stat-icon"><i class="fas fa-user-graduate"></i></div>
+          <div><div class="stat-num">{{getUserCountByRole('estudiante') + getUserCountByRole('student')}}</div><div class="stat-lbl">Estudiantes</div></div>
+        </div>
+      </div>
+      <div class="filter-bar">
+        <div class="search-wrap">
+          <i class="fas fa-search"></i>
+          <input class="search-input" [(ngModel)]="searchUser" (ngModelChange)="applyUserFilters()" placeholder="Buscar usuario…" />
+        </div>
+        <select class="filter-select" [(ngModel)]="filterRole" (ngModelChange)="applyUserFilters()">
+          <option value="">Todos los roles</option>
+          <option *ngFor="let r of roles" [value]="r">{{r | titlecase}}</option>
+        </select>
+        <span class="results-count">{{filteredUsers.length}} usuarios</span>
+      </div>
+      <div class="table-card">
+        <div *ngIf="filteredUsers.length===0" class="empty-state">
+          <i class="fas fa-user-slash"></i><p>No se encontraron usuarios</p>
+          <button class="btn-primary" (click)="openCreateUser()">Crear primer usuario</button>
+        </div>
+        <table *ngIf="filteredUsers.length>0" class="data-table">
+          <thead><tr><th>Usuario</th><th>Email</th><th>Rol</th><th>Registro</th><th>Acciones</th></tr></thead>
+          <tbody>
+            <tr *ngFor="let user of filteredUsers" class="table-row">
+              <td>
+                <div class="user-cell">
+                  <div class="avatar" [style.background]="'var(--color-primary, #667eea)'">{{user.name.charAt(0).toUpperCase()}}</div>
+                  <span class="user-name">{{user.name}}</span>
+                </div>
+              </td>
+              <td><span class="email-text">{{user.email}}</span></td>
+              <td><span class="role-badge" [ngClass]="getRoleBadgeClass(user.role)"><i [class]="getRoleIcon(user.role)"></i> {{user.role | titlecase}}</span></td>
+              <td><span class="date-text">{{user.created_at | date:'dd/MM/yyyy'}}</span></td>
+              <td>
+                <div class="action-btns">
+                  <button class="btn-icon btn-edit"   (click)="openEditUser(user)"><i class="fas fa-edit"></i> Editar</button>
+                  <button class="btn-icon btn-delete" (click)="confirmDelete('user', user.id, user.name)"><i class="fas fa-trash"></i> Eliminar</button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+    <!-- CLASES -->
+    <section *ngIf="activeSection==='classes'" class="content-section">
+      <div class="section-header">
+        <div>
+          <h1 class="section-title"><i class="fas fa-chalkboard"></i> Gestión de Clases</h1>
+          <p class="section-sub">Administra las clases del sistema</p>
+        </div>
+        <button class="btn-primary" (click)="openCreateClass()"><i class="fas fa-plus"></i> Nueva Clase</button>
+      </div>
+      <div class="filter-bar">
+        <div class="search-wrap">
+          <i class="fas fa-search"></i>
+          <input class="search-input" [(ngModel)]="searchClass" (ngModelChange)="applyClassFilters()" placeholder="Buscar clase…" />
+        </div>
+        <span class="results-count">{{filteredClasses.length}} clases</span>
+      </div>
+      <div *ngIf="filteredClasses.length===0" class="empty-state">
+        <i class="fas fa-chalkboard"></i><p>No hay clases creadas</p>
+        <button class="btn-primary" (click)="openCreateClass()">Crear primera clase</button>
+      </div>
+      <div class="classes-grid" *ngIf="filteredClasses.length>0">
+        <div *ngFor="let cls of filteredClasses" class="class-card">
+          <div class="class-card-header">
+            <div class="class-icon"><i class="fas fa-chalkboard-teacher"></i></div>
+            <span class="class-status-badge" [class.open]="cls.status==='open'" [class.closed]="cls.status==='closed'">{{getClassStatusLabel(cls.status)}}</span>
+          </div>
+          <div class="class-card-body">
+            <h3 class="class-name">{{cls.name || cls.title}}</h3>
+            <p class="class-course"><i class="fas fa-book"></i> {{getCourseTitle(cls.course_id)}}</p>
+            <div class="class-meta">
+              <span><i class="fas fa-users"></i> {{cls.enrollment_count||0}} / {{cls.max_students||30}}</span>
+              <span *ngIf="cls.start_date"><i class="fas fa-calendar"></i> {{cls.start_date | date:'dd/MM/yyyy'}}</span>
+            </div>
+          </div>
+          <div class="class-card-actions">
+            <button class="btn-icon btn-edit"   (click)="openEditClass(cls)"><i class="fas fa-edit"></i> Editar</button>
+            <button class="btn-icon btn-delete" (click)="confirmDelete('class', cls.id, cls.name||cls.title)"><i class="fas fa-trash"></i> Eliminar</button>
+          </div>
+        </div>
+      </div>
+    </section>
+    <!-- TEMAS -->
+    <section *ngIf="activeSection==='theme'" class="content-section">
+      <div class="section-header">
+        <div>
+          <h1 class="section-title"><i class="fas fa-palette"></i> Temas de Color</h1>
+          <p class="section-sub">Personaliza los colores de toda la plataforma</p>
+        </div>
+      </div>
+      <div class="theme-grid">
+        <div *ngFor="let theme of themes" class="theme-card" [class.selected]="selectedTheme===theme.id" (click)="selectTheme(theme.id)">
+          <div class="theme-preview">
+            <div *ngFor="let color of theme.preview" class="preview-block" [style.background]="color"></div>
+          </div>
+          <div class="theme-info">
+            <span class="theme-name">{{theme.name}}</span>
+            <span *ngIf="selectedTheme===theme.id" class="theme-active"><i class="fas fa-check-circle"></i> Activo</span>
+          </div>
+          <div class="theme-colors">
+            <span *ngFor="let color of theme.preview" class="color-dot" [style.background]="color"></span>
+          </div>
+          <div class="theme-select-btn" [class.active]="selectedTheme===theme.id">
+            <i *ngIf="selectedTheme===theme.id" class="fas fa-check"></i>
+            <span>{{selectedTheme===theme.id ? 'Tema actual' : 'Seleccionar tema'}}</span>
+          </div>
+        </div>
+      </div>
+      <div class="preview-section">
+        <h2 class="preview-title"><i class="fas fa-eye"></i> Previsualización</h2>
+        <div *ngIf="getTheme(selectedTheme) as t" class="preview-demo" [style.background]="t.bg">
+          <div class="demo-header" [style.background]="'linear-gradient(135deg,'+t.primary+','+t.secondary+')'">
+            <span class="demo-logo"><i class="fas fa-rocket"></i> EscuelaMAK</span>
+            <div class="demo-nav"><span>Cursos</span><span>Clases</span><span>Quiz</span></div>
+          </div>
+          <div class="demo-body">
+            <div class="demo-card" [style.border-left]="'4px solid '+t.primary"><i class="fas fa-book" [style.color]="t.primary"></i><span>Matemáticas Mágicas</span></div>
+            <div class="demo-card" [style.border-left]="'4px solid '+t.accent"><i class="fas fa-star" [style.color]="t.accent"></i><span>Ciencias Aventura</span></div>
+            <button class="demo-btn" [style.background]="'linear-gradient(135deg,'+t.primary+','+t.secondary+')'">Ver Curso</button>
+          </div>
+        </div>
+      </div>
+    </section>
+    <!-- PERMISOS -->
+    <section *ngIf="activeSection==='permissions'" class="content-section">
+      <div class="section-header">
+        <div>
+          <h1 class="section-title"><i class="fas fa-shield-alt"></i> Permisos y Tarjetas</h1>
+          <p class="section-sub">Activa módulos y asigna roles con acceso</p>
+        </div>
+        <button class="btn-secondary" (click)="resetPermissions()"><i class="fas fa-undo"></i> Restablecer</button>
+      </div>
+      <div class="filter-bar">
+        <select class="filter-select" [(ngModel)]="filterCardCategory">
+          <option value="all">Todas las categorías</option>
+          <option *ngFor="let cat of cardCategories" [value]="cat">{{cat}}</option>
+        </select>
+        <select class="filter-select" [(ngModel)]="filterCardRole">
+          <option value="all">Todos los roles</option>
+          <option *ngFor="let r of roles" [value]="r">{{r | titlecase}}</option>
+        </select>
+        <span class="results-count">{{filteredCards.length}} tarjetas · {{getEnabledCount()}} activas</span>
+      </div>
+      <div class="permissions-grid">
+        <div *ngFor="let card of filteredCards" class="permission-card" [class.disabled]="!card.enabled">
+          <div class="perm-card-header" [style.background]="card.color+'18'">
+            <div class="perm-icon-wrap" [style.background]="card.color+'30'" [style.color]="card.color"><i [class]="card.icon"></i></div>
+            <div class="perm-title-group">
+              <span class="perm-category">{{card.category}}</span>
+              <h3 class="perm-title">{{card.title}}</h3>
+            </div>
+            <div class="toggle-wrap">
+              <label class="toggle-switch">
+                <input type="checkbox" [checked]="card.enabled" (change)="toggleCardEnabled(card)" />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+          <div class="perm-card-body">
+            <p class="perm-desc">{{card.description}}</p>
+            <div class="roles-section">
+              <span class="roles-label">Roles con acceso:</span>
+              <div class="roles-chips">
+                <div *ngFor="let role of roles" class="role-chip" [class.active]="hasRole(card,role)" [class.inactive]="!hasRole(card,role)"
+                  (click)="card.enabled && toggleRoleOnCard(card,role)">
+                  <i [class]="getRoleIcon(role)"></i><span>{{role | titlecase}}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="perm-card-footer">
+            <span class="perm-status" [class.on]="card.enabled" [class.off]="!card.enabled">
+              <i [class]="card.enabled ? 'fas fa-check-circle' : 'fas fa-times-circle'"></i>
+              {{card.enabled ? 'Módulo activo' : 'Desactivado'}}
+            </span>
+            <span class="roles-count">{{card.roles.length}} rol(es)</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+<!-- MODAL USUARIO -->
+<div *ngIf="showUserModal" class="modal-overlay" (click)="closeUserModal()">
+  <div class="modal-box" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2><i [class]="editingUser ? 'fas fa-user-edit' : 'fas fa-user-plus'"></i> {{editingUser ? 'Editar Usuario' : 'Nuevo Usuario'}}</h2>
+      <button class="modal-close" (click)="closeUserModal()"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group" [class.has-error]="userFormErrors['name']">
+        <label class="form-label"><i class="fas fa-user"></i> Nombre completo</label>
+        <input class="form-input" [(ngModel)]="userForm.name" placeholder="Ej: María García" />
+        <span *ngIf="userFormErrors['name']" class="field-error">{{userFormErrors['name']}}</span>
+      </div>
+      <div class="form-group" [class.has-error]="userFormErrors['email']">
+        <label class="form-label"><i class="fas fa-envelope"></i> Correo electrónico</label>
+        <input class="form-input" type="email" [(ngModel)]="userForm.email" placeholder="correo@escuela.com" />
+        <span *ngIf="userFormErrors['email']" class="field-error">{{userFormErrors['email']}}</span>
+      </div>
+      <div class="form-group">
+        <label class="form-label"><i class="fas fa-id-badge"></i> Rol del usuario</label>
+        <div class="role-selector">
+          <label *ngFor="let r of roles" class="role-option" [class.selected]="userForm.role===r">
+            <input type="radio" name="role" [value]="r" [(ngModel)]="userForm.role" hidden />
+            <i [class]="getRoleIcon(r)"></i><span>{{r | titlecase}}</span>
+          </label>
+        </div>
+      </div>
+      <div *ngIf="userForm.role==='teacher'" class="role-info-banner teacher-banner"><i class="fas fa-info-circle"></i> El profesor puede crear cursos, clases y asignar lecciones.</div>
+      <div *ngIf="userForm.role==='tutor'"   class="role-info-banner tutor-banner"><i class="fas fa-info-circle"></i> El tutor puede ver informes de sus alumnos.</div>
+      <div *ngIf="userForm.role==='estudiante'" class="role-info-banner student-banner"><i class="fas fa-info-circle"></i> El estudiante puede ver cursos y completar quizzes.</div>
+      <div *ngIf="userForm.role==='admin'"   class="role-info-banner admin-banner"><i class="fas fa-crown"></i> El administrador tiene acceso completo.</div>
+      <div *ngIf="!editingUser" class="form-group" [class.has-error]="userFormErrors['password']">
+        <label class="form-label"><i class="fas fa-lock"></i> Contraseña</label>
+        <input class="form-input" type="password" [(ngModel)]="userForm.password" placeholder="Mínimo 6 caracteres" />
+        <span *ngIf="userFormErrors['password']" class="field-error">{{userFormErrors['password']}}</span>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" (click)="closeUserModal()">Cancelar</button>
+      <button class="btn-primary" (click)="saveUser()" [disabled]="loading">
+        <i [class]="loading ? 'fas fa-spinner fa-spin' : (editingUser ? 'fas fa-save' : 'fas fa-user-plus')"></i>
+        {{loading ? 'Guardando…' : (editingUser ? 'Actualizar' : 'Crear Usuario')}}
+      </button>
+    </div>
+  </div>
+</div>
+<!-- MODAL CLASE -->
+<div *ngIf="showClassModal" class="modal-overlay" (click)="closeClassModal()">
+  <div class="modal-box" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2><i [class]="editingClass ? 'fas fa-edit' : 'fas fa-plus-circle'"></i> {{editingClass ? 'Editar Clase' : 'Nueva Clase'}}</h2>
+      <button class="modal-close" (click)="closeClassModal()"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label"><i class="fas fa-chalkboard"></i> Nombre de la clase</label>
+        <input class="form-input" [(ngModel)]="classForm.name" placeholder="Ej: Matemáticas Nivel 1 — Grupo A" />
+      </div>
+      <div class="form-group">
+        <label class="form-label"><i class="fas fa-book"></i> Curso asociado</label>
+        <select class="form-input" [(ngModel)]="classForm.course_id">
+          <option value="">— Sin curso —</option>
+          <option *ngFor="let c of courses" [value]="c.id">{{c.title}}</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label"><i class="fas fa-signal"></i> Estado</label>
+          <select class="form-input" [(ngModel)]="classForm.status">
+            <option value="open">Abierta</option><option value="closed">Cerrada</option><option value="active">Activa</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label"><i class="fas fa-users"></i> Máx. alumnos</label>
+          <input class="form-input" type="number" [(ngModel)]="classForm.max_students" min="1" max="200" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label"><i class="fas fa-calendar-alt"></i> Fecha inicio</label>
+          <input class="form-input" type="date" [(ngModel)]="classForm.start_date" />
+        </div>
+        <div class="form-group">
+          <label class="form-label"><i class="fas fa-calendar-check"></i> Fecha fin</label>
+          <input class="form-input" type="date" [(ngModel)]="classForm.end_date" />
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" (click)="closeClassModal()">Cancelar</button>
+      <button class="btn-primary" (click)="saveClass()" [disabled]="loading">
+        <i [class]="loading ? 'fas fa-spinner fa-spin' : 'fas fa-save'"></i>
+        {{loading ? 'Guardando…' : (editingClass ? 'Actualizar' : 'Crear Clase')}}
+      </button>
+    </div>
+  </div>
+</div>
+<!-- MODAL ELIMINAR -->
+<div *ngIf="deleteConfirm" class="modal-overlay" (click)="cancelDelete()">
+  <div class="modal-box modal-small" (click)="$event.stopPropagation()">
+    <div class="modal-header danger-header">
+      <h2><i class="fas fa-exclamation-triangle"></i> Confirmar eliminación</h2>
+    </div>
+    <div class="modal-body">
+      <div class="delete-warning">
+        <i class="fas fa-trash-alt"></i>
+        <p>¿Eliminar <strong>"{{deleteConfirm.name}}"</strong>?</p>
+        <p class="delete-note">Esta acción no se puede deshacer.</p>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" (click)="cancelDelete()">Cancelar</button>
+      <button class="btn-danger" (click)="executeDelete()" [disabled]="loading">
+        <i [class]="loading ? 'fas fa-spinner fa-spin' : 'fas fa-trash'"></i>
+        {{loading ? 'Eliminando…' : 'Sí, eliminar'}}
+      </button>
+    </div>
+  </div>
+</div>

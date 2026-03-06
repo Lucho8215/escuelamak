@@ -10,9 +10,7 @@ import { SettingsComponent } from './app/components/settings/settings.component'
 import { UserManagementComponent } from './app/components/user-management/user-management.component';
 import { CourseManagementComponent } from './app/components/course-management/course-management.component';
 import { SupabaseTestComponent } from './app/components/supabase-test/supabase-test.component';
-import { QuizManagementComponent } from './app/components/quiz-management/quiz-management.component';
-import { QuizTakingComponent } from './app/components/quiz-taking/quiz-taking.component';
-import { ClassManagementComponent } from './app/components/class-management/class-management.component';
+import { ParametersComponent } from './app/components/parameters/parameters.component';
 import { provideHttpClient } from '@angular/common/http';
 @Component({
   selector: 'app-root',
@@ -32,14 +30,9 @@ const routes: Routes = [
   { path: 'user-management', component: UserManagementComponent },
   { path: 'course-management', component: CourseManagementComponent },
   { path: 'supabase-test', component: SupabaseTestComponent },
-  { path: 'quiz-management', component: QuizManagementComponent },
-  { path: 'quiz/:id', component: QuizTakingComponent },
-  { path: 'class-management', component: ClassManagementComponent },
+  { path: 'parameters', component: ParametersComponent },
   { path: '**', redirectTo: '/login' }
 ];
 bootstrapApplication(App, {
-  providers: [
-    provideRouter(routes),
-    provideHttpClient()
-  ]
+  providers: [provideRouter(routes), provideHttpClient()]
 }).catch(err => console.error(err));
