@@ -74,23 +74,7 @@ import { User, UserRole } from '../../models/user.model';
             <h3>Test Supabase</h3>
             <p>Verificar conexion con la base de datos</p>
             <a routerLink="/supabase-test" class="btn btn-kid">Probar</a>
-          </div>
-        </div>
-        <div class='kid-card' style='background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);' *ngIf="authService.hasPermission('manage_users')">
-          <div class='kid-card-content'>
-            <i class='fas fa-chalkboard-teacher card-icon'></i>
-            <h3>Gestion de Clases</h3>
-            <p>Clases, alumnos, inscripciones y lecciones</p>
-            <a routerLink='/class-management' class='btn btn-kid'>Ver Clases</a>
-            <div class="kid-card params-card" *ngIf="authService.hasPermission('manage_permissions')">
-  <div class="kid-card-content">
-    <i class="fas fa-sliders-h card-icon"></i>
-    <h3>⚙️ Parámetros</h3>
-    <p>Usuarios, clases, temas y permisos</p>
-    <a routerLink="/parameters" class="btn btn-kid">Configurar</a>
-  </div>
-</div>
-
+        
           </div>
         </div>
               <div class="kid-card params-card" *ngIf="authService.hasPermission('manage_permissions')">
@@ -100,8 +84,7 @@ import { User, UserRole } from '../../models/user.model';
             <p>Usuarios, clases, temas y permisos</p>
             <a routerLink="/parameters" class="btn btn-kid">Configurar</a>
           </div>
-        </div>
-      </div>
+       
     </div>
   `,
   styles: [`
