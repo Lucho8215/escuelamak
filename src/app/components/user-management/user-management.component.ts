@@ -2,139 +2,218 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
-import { User, UserRole } from '../../models/user.model';
+import {
+  User,
+  UserRole,
+  CreateUserRequest,
+  UpdateUserRequest
+} from '../../models/user.model';
 import { UserService } from '../../services/user.service';
+
+type UserForm = {
+  id: string | null;
+  name: string;
+  email: string;
+  cedula: string;
+  role: UserRole;
+  password: string;
+};
 
 @Component({
   selector: 'app-user-management',
   standalone: true,
   imports: [CommonModule, FormsModule, RouterModule],
-  template: `
-    <div class="module-container">
-      <a routerLink="/dashboard" class="btn btn-back">
-        <i class="fas fa-arrow-left"></i> Volver al Panel
-      </a>
-      
-      <h1>
-        <i class="fas fa-users text-purple"></i>
-        Panel de Usuarios
-        <i class="fas fa-users text-purple"></i>
-      </h1>
-
-      <div class="card-grid">
-        <div class="kid-card" *ngFor="let user of users; let i = index">
-          <div class="kid-card-content">
-            <i class="fas fa-user-circle card-icon"></i>
-            <h3>{{user.name}}</h3>
-            <div class="user-details">
-              <p><strong>Email:</strong> {{user.email}}</p>
-              
-              <div class="form-group">
-                <label for="role{{i}}">Rol:</label>
-                <select 
-                  id="role{{i}}"
-                  [(ngModel)]="user.role"
-                  (change)="updateUser(user)"
-                  class="kid-input"
-                >
-                  <option [value]="UserRole.ADMIN">Administrador</option>
-                  <option [value]="UserRole.TEACHER">Profesor</option>
-                  <option [value]="UserRole.TUTOR">Tutor</option>
-                  <option [value]="UserRole.STUDENT">Estudiante</option>
-                </select>
-              </div>
-
-              <div class="form-group">
-                <label for="password{{i}}">Nueva Contraseña:</label>
-                <input
-                  type="password"
-                  id="password{{i}}"
-                  [(ngModel)]="newPasswords[user.id]"
-                  class="kid-input"
-                  placeholder="Nueva contraseña"
-                >
-              </div>
-
-              <button 
-                class="btn btn-kid"
-                (click)="updatePassword(user)"
-                [disabled]="!newPasswords[user.id]"
-              >
-                Actualizar Contraseña
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  `,
-  styles: [`
-    .user-details {
-      width: 100%;
-      text-align: left;
-      margin-top: 1rem;
-    }
-
-    .form-group {
-      margin: 1rem 0;
-    }
-
-    .form-group label {
-      display: block;
-      margin-bottom: 0.5rem;
-      color: white;
-      font-family: 'Comic Sans MS', cursive;
-    }
-
-    .kid-input {
-      width: 100%;
-      padding: 0.5rem;
-      border: 2px solid white;
-      border-radius: 10px;
-      background-color: rgba(255, 255, 255, 0.9);
-      font-family: 'Comic Sans MS', cursive;
-    }
-
-    .btn-kid {
-      margin-top: 1rem;
-      width: 100%;
-    }
-
-    .btn-kid:disabled {
-      opacity: 0.7;
-      cursor: not-allowed;
-    }
-  `]
+  templateUrl: './user-management.component.html',
+  styleUrls: ['./user-management.component.css']
 })
 export class UserManagementComponent implements OnInit {
   users: User[] = [];
-  UserRole = UserRole;
-  newPasswords: { [key: string]: string } = {};
+  readonly UserRole = UserRole;
+
+  loading = false;
+  saving = false;
+  updatingPasswordUserId: string | null = null;
+
+  successMessage = '';
+  errorMessage = '';
+
+  showUserModal = false;
+  editingUser: User | null = null;
+
+  userForm: UserForm = this.getEmptyForm();
+  newPasswords: Record<string, string> = {};
 
   constructor(private userService: UserService) {}
 
-  ngOnInit() {
+  ngOnInit(): void {
     this.loadUsers();
   }
 
-  loadUsers() {
-    this.userService.getUsers().subscribe(users => {
-      this.users = users;
+  loadUsers(): void {
+    this.loading = true;
+    this.clearMessages();
+
+    this.userService.getUsers().subscribe({
+      next: (users: User[]) => {
+        this.users = users;
+        this.loading = false;
+      },
+      error: (error: Error) => {
+        this.loading = false;
+        this.errorMessage = error.message || 'No se pudieron cargar los usuarios';
+      }
     });
   }
 
-  updateUser(user: User) {
-    this.userService.updateUser(user).subscribe(() => {
-      console.log('Usuario actualizado con éxito');
-    });
+  openCreateUser(): void {
+    this.editingUser = null;
+    this.userForm = this.getEmptyForm();
+    this.showUserModal = true;
+    this.clearMessages();
   }
 
-  updatePassword(user: User) {
-    if (this.newPasswords[user.id]) {
-      this.userService.updatePassword(user.id, this.newPasswords[user.id]).subscribe(() => {
-        console.log('Contraseña actualizada con éxito');
-        this.newPasswords[user.id] = ''; // Limpiar el campo
-      });
+  openEditUser(user: User): void {
+    this.editingUser = user;
+    this.userForm = {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      cedula: user.cedula,
+      role: user.role,
+      password: ''
+    };
+    this.showUserModal = true;
+    this.clearMessages();
+  }
+
+  closeUserModal(): void {
+    this.showUserModal = false;
+    this.editingUser = null;
+    this.userForm = this.getEmptyForm();
+  }
+
+  saveUser(): void {
+    this.clearMessages();
+
+    if (!this.userForm.name.trim()) {
+      this.errorMessage = 'El nombre es obligatorio';
+      return;
     }
+
+    if (!this.userForm.email.trim()) {
+      this.errorMessage = 'El correo es obligatorio';
+      return;
+    }
+
+    if (!this.userForm.cedula.trim()) {
+      this.errorMessage = 'La cédula es obligatoria';
+      return;
+    }
+
+    if (!this.userForm.role) {
+      this.errorMessage = 'El rol es obligatorio';
+      return;
+    }
+
+    if (!this.editingUser && !this.userForm.password.trim()) {
+      this.errorMessage = 'La contraseña es obligatoria para crear usuario';
+      return;
+    }
+
+    this.saving = true;
+
+    if (this.editingUser) {
+      const payload: UpdateUserRequest = {
+        id: this.userForm.id as string,
+        name: this.userForm.name.trim(),
+        email: this.userForm.email.trim(),
+        cedula: this.userForm.cedula.trim(),
+        role: this.userForm.role
+      };
+
+      this.userService.updateUser(payload).subscribe({
+        next: () => {
+          this.saving = false;
+          this.successMessage = 'Usuario actualizado correctamente';
+          this.closeUserModal();
+          this.loadUsers();
+        },
+        error: (error: Error) => {
+          this.saving = false;
+          this.errorMessage = error.message || 'No se pudo actualizar el usuario';
+        }
+      });
+
+      return;
+    }
+
+    const createPayload: CreateUserRequest = {
+      name: this.userForm.name.trim(),
+      email: this.userForm.email.trim(),
+      cedula: this.userForm.cedula.trim(),
+      role: this.userForm.role,
+      password: this.userForm.password.trim()
+    };
+
+    this.userService.createUser(createPayload).subscribe({
+      next: () => {
+        this.saving = false;
+        this.successMessage = 'Usuario creado correctamente';
+        this.closeUserModal();
+        this.loadUsers();
+      },
+      error: (error: Error) => {
+        this.saving = false;
+        this.errorMessage = error.message || 'No se pudo crear el usuario';
+      }
+    });
+  }
+
+  updatePassword(user: User): void {
+    const newPassword = this.newPasswords[user.id]?.trim();
+
+    if (!newPassword) {
+      this.errorMessage = 'Debes escribir una nueva contraseña';
+      return;
+    }
+
+    this.clearMessages();
+    this.updatingPasswordUserId = user.id;
+
+    this.userService.updatePassword(user.id, newPassword).subscribe({
+      next: () => {
+        this.updatingPasswordUserId = null;
+        this.newPasswords[user.id] = '';
+        this.successMessage = `Contraseña actualizada para ${user.name}`;
+      },
+      error: (error: Error) => {
+        this.updatingPasswordUserId = null;
+        this.errorMessage = error.message || 'No se pudo actualizar la contraseña';
+      }
+    });
+  }
+
+  trackByUserId(_index: number, user: User): string {
+    return user.id;
+  }
+
+  isUpdatingPassword(userId: string): boolean {
+    return this.updatingPasswordUserId === userId;
+  }
+
+  private getEmptyForm(): UserForm {
+    return {
+      id: null,
+      name: '',
+      email: '',
+      cedula: '',
+      role: UserRole.STUDENT,
+      password: ''
+    };
+  }
+
+  private clearMessages(): void {
+    this.successMessage = '';
+    this.errorMessage = '';
   }
 }

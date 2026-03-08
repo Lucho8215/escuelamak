@@ -18,4 +18,8 @@ export class SupabaseService {
   getClient(): SupabaseClient {
     return this.client;
   }
+
+  getUrl(): string {
+    return environment.supabaseUrl;
+  }
 }

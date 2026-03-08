@@ -161,12 +161,13 @@ export class SettingsComponent implements OnInit {
   availablePermissions: Permission[] = [];
   UserRole = UserRole;
   
-  newUser: Omit<User, 'id'> & { password: string } = {
-    name: '',
-    email: '',
-    password: '',
-    role: UserRole.STUDENT
-  };
+ newUser: Omit<User, 'id'> & { password: string } = {
+  name: '',
+  email: '',
+  cedula: '',
+  password: '',
+  role: UserRole.STUDENT
+};
   
   constructor(
     private roleService: RoleService,
@@ -216,11 +217,12 @@ export class SettingsComponent implements OnInit {
       this.userService.createUser(this.newUser).subscribe(user => {
         console.log('Usuario creado con éxito:', user);
         // Limpiar el formulario
-        this.newUser = {
-          name: '',
-          email: '',
-          password: '',
-          role: UserRole.STUDENT
+       this.newUser = {
+            name: '',
+            email: '',
+            cedula: '',
+            password: '',
+            role: UserRole.STUDENT
         };
       });
     }

@@ -1,0 +1,156 @@
+<div class="module-container">
+  <div class="header-row">
+    <a routerLink="/dashboard" class="btn btn-back">
+      <i class="fas fa-arrow-left"></i>
+      Volver al Panel
+    </a>
+
+    <div class="header-actions">
+      <button class="btn btn-refresh" (click)="loadUsers()" [disabled]="loading">
+        <i class="fas" [class.fa-rotate-right]="!loading" [class.fa-spinner]="loading" [class.fa-spin]="loading"></i>
+        Recargar
+      </button>
+
+      <button class="btn btn-kid create-btn" (click)="openCreateUser()">
+        <i class="fas fa-user-plus"></i>
+        Crear Usuario
+      </button>
+    </div>
+  </div>
+
+  <h1>
+    <i class="fas fa-users text-purple"></i>
+    Panel de Usuarios
+    <i class="fas fa-users text-purple"></i>
+  </h1>
+
+  <p class="subtitle">
+    Crea usuarios, edita nombre, correo, cédula y rol, y actualiza contraseñas.
+  </p>
+
+  <div *ngIf="successMessage" class="alert alert-success">
+    <i class="fas fa-check-circle"></i>
+    {{ successMessage }}
+  </div>
+
+  <div *ngIf="errorMessage" class="alert alert-error">
+    <i class="fas fa-circle-exclamation"></i>
+    {{ errorMessage }}
+  </div>
+
+  <div *ngIf="loading" class="loading-state">
+    <i class="fas fa-spinner fa-spin"></i>
+    Cargando usuarios...
+  </div>
+
+  <div *ngIf="!loading && users.length === 0" class="empty-state">
+    <i class="fas fa-user-slash"></i>
+    <p>No hay usuarios disponibles.</p>
+    <button class="btn btn-kid" (click)="openCreateUser()">Crear primer usuario</button>
+  </div>
+
+  <div class="card-grid" *ngIf="!loading && users.length > 0">
+    <div class="kid-card" *ngFor="let user of users; let i = index; trackBy: trackByUserId">
+      <div class="kid-card-content">
+        <i class="fas fa-user-circle card-icon"></i>
+        <h3>{{ user.name }}</h3>
+        
+        <div class="user-details">
+          <p><strong>Correo:</strong> {{ user.email }}</p>
+          <p><strong>Cédula:</strong> {{ user.cedula }}</p>
+          <p><strong>Rol:</strong> {{ user.role | titlecase }}</p>
+
+          <button class="btn btn-edit-user" (click)="openEditUser(user)">
+            <i class="fas fa-pen"></i>
+            Editar usuario
+          </button>
+
+          <hr class="separator" />
+
+          <div class="form-group">
+            <label [for]="'password' + i">Nueva contraseña</label>
+            <input
+              type="password"
+              [id]="'password' + i"
+              [(ngModel)]="newPasswords[user.id]"
+              class="kid-input"
+              placeholder="Nueva contraseña"
+              [disabled]="isUpdatingPassword(user.id)"
+            />
+          </div>
+          
+
+          <button
+            class="btn btn-kid"
+            (click)="updatePassword(user)"
+            [disabled]="!newPasswords[user.id] || isUpdatingPassword(user.id)"
+          >
+            <i
+              class="fas"
+              [class.fa-key]="!isUpdatingPassword(user.id)"
+              [class.fa-spinner]="isUpdatingPassword(user.id)"
+              [class.fa-spin]="isUpdatingPassword(user.id)"
+            ></i>
+            {{ isUpdatingPassword(user.id) ? 'Actualizando...' : 'Actualizar Contraseña' }}
+          </button>
+          
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div *ngIf="showUserModal" class="modal-overlay" (click)="closeUserModal()">
+  <div class="modal-box" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>
+        <i [class]="editingUser ? 'fas fa-user-edit' : 'fas fa-user-plus'"></i>
+        {{ editingUser ? 'Editar Usuario' : 'Crear Usuario' }}
+      </h2>
+
+      <button class="modal-close" (click)="closeUserModal()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Nombre</label>
+        <input class="form-input" [(ngModel)]="userForm.name" placeholder="Nombre completo" />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Correo</label>
+        <input class="form-input" type="email" [(ngModel)]="userForm.email" placeholder="correo@dominio.com" />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Cédula</label>
+        <input class="form-input" [(ngModel)]="userForm.cedula" placeholder="Número de cédula" />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Rol</label>
+        <select class="form-input" [(ngModel)]="userForm.role">
+          <option [ngValue]="UserRole.ADMIN">Administrador</option>
+          <option [ngValue]="UserRole.TEACHER">Profesor</option>
+          <option [ngValue]="UserRole.TUTOR">Tutor</option>
+          <option [ngValue]="UserRole.STUDENT">Estudiante</option>
+        </select>
+      </div>
+
+      <div class="form-group" *ngIf="!editingUser">
+        <label class="form-label">Contraseña inicial</label>
+        <input class="form-input" type="password" [(ngModel)]="userForm.password" placeholder="Contraseña inicial" />
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-secondary-modal" (click)="closeUserModal()">Cancelar</button>
+      <button class="btn btn-kid" (click)="saveUser()" [disabled]="saving">
+        <i class="fas" [class.fa-save]="!saving" [class.fa-spinner]="saving" [class.fa-spin]="saving"></i>
+        {{ saving ? 'Guardando...' : (editingUser ? 'Actualizar Usuario' : 'Crear Usuario') }}
+      </button>
+    </div>
+  </div>
+</div>
