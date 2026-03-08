@@ -12,6 +12,7 @@ import { UserService } from '../../services/user.service';
 
 type UserForm = {
   id: string | null;
+  auth_user_id: string | null;
   name: string;
   email: string;
   cedula: string;
@@ -32,6 +33,7 @@ export class UserManagementComponent implements OnInit {
 
   loading = false;
   saving = false;
+  deletingUserId: string | null = null;
   updatingPasswordUserId: string | null = null;
 
   successMessage = '';
@@ -76,6 +78,7 @@ export class UserManagementComponent implements OnInit {
     this.editingUser = user;
     this.userForm = {
       id: user.id,
+      auth_user_id: user.auth_user_id ?? null,
       name: user.name,
       email: user.email,
       cedula: user.cedula,
@@ -95,17 +98,27 @@ export class UserManagementComponent implements OnInit {
   saveUser(): void {
     this.clearMessages();
 
-    if (!this.userForm.name.trim()) {
+    const name = this.userForm.name.trim();
+    const email = this.userForm.email.trim();
+    const cedula = this.userForm.cedula.trim();
+    const password = this.userForm.password.trim();
+
+    if (!name) {
       this.errorMessage = 'El nombre es obligatorio';
       return;
     }
 
-    if (!this.userForm.email.trim()) {
+    if (!email) {
       this.errorMessage = 'El correo es obligatorio';
       return;
     }
 
-    if (!this.userForm.cedula.trim()) {
+    if (!this.isValidEmail(email)) {
+      this.errorMessage = 'El correo no es válido';
+      return;
+    }
+
+    if (!cedula) {
       this.errorMessage = 'La cédula es obligatoria';
       return;
     }
@@ -115,7 +128,7 @@ export class UserManagementComponent implements OnInit {
       return;
     }
 
-    if (!this.editingUser && !this.userForm.password.trim()) {
+    if (!this.editingUser && !password) {
       this.errorMessage = 'La contraseña es obligatoria para crear usuario';
       return;
     }
@@ -125,18 +138,21 @@ export class UserManagementComponent implements OnInit {
     if (this.editingUser) {
       const payload: UpdateUserRequest = {
         id: this.userForm.id as string,
-        name: this.userForm.name.trim(),
-        email: this.userForm.email.trim(),
-        cedula: this.userForm.cedula.trim(),
+        name,
+        email,
+        cedula,
         role: this.userForm.role
       };
 
       this.userService.updateUser(payload).subscribe({
-        next: () => {
+        next: (updatedUser: User) => {
+          this.users = this.users.map(user =>
+            user.id === updatedUser.id ? updatedUser : user
+          );
+
           this.saving = false;
           this.successMessage = 'Usuario actualizado correctamente';
           this.closeUserModal();
-          this.loadUsers();
         },
         error: (error: Error) => {
           this.saving = false;
@@ -148,19 +164,22 @@ export class UserManagementComponent implements OnInit {
     }
 
     const createPayload: CreateUserRequest = {
-      name: this.userForm.name.trim(),
-      email: this.userForm.email.trim(),
-      cedula: this.userForm.cedula.trim(),
+      name,
+      email,
+      cedula,
       role: this.userForm.role,
-      password: this.userForm.password.trim()
+      password
     };
 
     this.userService.createUser(createPayload).subscribe({
-      next: () => {
+      next: (createdUser: User) => {
+        this.users = [...this.users, createdUser].sort((a, b) =>
+          a.name.localeCompare(b.name)
+        );
+
         this.saving = false;
         this.successMessage = 'Usuario creado correctamente';
         this.closeUserModal();
-        this.loadUsers();
       },
       error: (error: Error) => {
         this.saving = false;
@@ -172,12 +191,18 @@ export class UserManagementComponent implements OnInit {
   updatePassword(user: User): void {
     const newPassword = this.newPasswords[user.id]?.trim();
 
+    this.clearMessages();
+
     if (!newPassword) {
       this.errorMessage = 'Debes escribir una nueva contraseña';
       return;
     }
 
-    this.clearMessages();
+    if (newPassword.length < 6) {
+      this.errorMessage = 'La nueva contraseña debe tener al menos 6 caracteres';
+      return;
+    }
+
     this.updatingPasswordUserId = user.id;
 
     this.userService.updatePassword(user.id, newPassword).subscribe({
@@ -193,6 +218,31 @@ export class UserManagementComponent implements OnInit {
     });
   }
 
+  deleteUser(user: User): void {
+    this.clearMessages();
+
+    const confirmed = confirm(`¿Seguro que deseas eliminar a "${user.name}"?`);
+
+    if (!confirmed) {
+      return;
+    }
+
+    this.deletingUserId = user.id;
+
+    this.userService.deleteUser(user.id).subscribe({
+      next: () => {
+        this.users = this.users.filter(item => item.id !== user.id);
+        delete this.newPasswords[user.id];
+        this.deletingUserId = null;
+        this.successMessage = `Usuario "${user.name}" eliminado correctamente`;
+      },
+      error: (error: Error) => {
+        this.deletingUserId = null;
+        this.errorMessage = error.message || 'No se pudo eliminar el usuario';
+      }
+    });
+  }
+
   trackByUserId(_index: number, user: User): string {
     return user.id;
   }
@@ -201,9 +251,14 @@ export class UserManagementComponent implements OnInit {
     return this.updatingPasswordUserId === userId;
   }
 
+  isDeletingUser(userId: string): boolean {
+    return this.deletingUserId === userId;
+  }
+
   private getEmptyForm(): UserForm {
     return {
       id: null,
+      auth_user_id: null,
       name: '',
       email: '',
       cedula: '',
@@ -215,5 +270,9 @@ export class UserManagementComponent implements OnInit {
   private clearMessages(): void {
     this.successMessage = '';
     this.errorMessage = '';
+  }
+
+  private isValidEmail(email: string): boolean {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   }
 }
