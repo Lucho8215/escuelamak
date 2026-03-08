@@ -53,7 +53,7 @@
         </div>
         <div class="stat-card stat-student">
           <div class="stat-icon"><i class="fas fa-user-graduate"></i></div>
-          <div><div class="stat-num">{{getUserCountByRole('estudiante') + getUserCountByRole('student')}}</div><div class="stat-lbl">Estudiantes</div></div>
+          <div><div class="stat-num">{{getUserCountByRole('student') + getUserCountByRole('student')}}</div><div class="stat-lbl">Alumnos</div></div>
         </div>
       </div>
       <div class="filter-bar">
@@ -62,7 +62,7 @@
           <input class="search-input" [(ngModel)]="searchUser" (ngModelChange)="applyUserFilters()" placeholder="Buscar usuario…" />
         </div>
         <select class="filter-select" [(ngModel)]="filterRole" (ngModelChange)="applyUserFilters()">
-          <option value="">Todos los roles</option>
+          <option value="">Filtrar por rol</option>
           <option *ngFor="let r of roles" [value]="r">{{r | titlecase}}</option>
         </select>
         <span class="results-count">{{filteredUsers.length}} usuarios</span>

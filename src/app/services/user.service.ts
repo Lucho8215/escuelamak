@@ -1,93 +1,135 @@
 import { Injectable } from '@angular/core';
-import { Observable, from, of } from 'rxjs';
+import { Observable, from, throwError } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
 import { User, UserRole } from '../models/user.model';
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { environment } from '../../environments/environment';
+import { SupabaseService } from './supabase.service';
+
+type AppUserRow = {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+};
+
+export type CreateUserInput = {
+  name: string;
+  email: string;
+  role: UserRole;
+  password: string;
+};
 
 @Injectable({
   providedIn: 'root'
 })
 export class UserService {
-
-  private supabase: SupabaseClient = createClient(
-    environment.supabaseUrl,
-    environment.supabaseKey
-  );
+  constructor(private supabaseService: SupabaseService) {}
 
   async getUserByEmail(email: string): Promise<User | null> {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.supabaseService
+      .getClient()
       .from('app_users')
       .select('*')
       .eq('email', email)
       .single();
 
-    if (error || !data) return null;
+    if (error || !data) {
+      return null;
+    }
 
-    return {
-      id: data.id,
-      name: data.name,
-      email: data.email,
-      role: data.role as UserRole,
-      password: ''
-    };
-  }
-
-  async verifyPassword(email: string, password: string): Promise<boolean> {
-    const user = await this.getUserByEmail(email);
-    return user !== null;
+    return this.mapToUser(data as AppUserRow);
   }
 
   getUsers(): Observable<User[]> {
     return from(
-      this.supabase
+      this.supabaseService
+        .getClient()
         .from('app_users')
         .select('*')
-        .then(({ data }) => (data || []).map(u => ({
-          id: u.id,
-          name: u.name,
-          email: u.email,
-          role: u.role as UserRole,
-          password: ''
-        })))
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) {
+          throw new Error(error.message);
+        }
+
+        const rows = (data ?? []) as AppUserRow[];
+        return rows.map((row: AppUserRow) => this.mapToUser(row));
+      }),
+      catchError(error =>
+        throwError(() => new Error(error.message || 'Error al obtener usuarios'))
+      )
     );
   }
 
-  createUser(user: Omit<User, 'id'> & { password: string }): Observable<User> {
+  createUser(user: CreateUserInput): Observable<User> {
     return from(
-      this.supabase
+      this.supabaseService
+        .getClient()
         .from('app_users')
-        .insert([{ name: user.name, email: user.email, role: user.role }])
+        .insert([
+          {
+            name: user.name,
+            email: user.email,
+            role: user.role
+          }
+        ])
         .select()
         .single()
-        .then(({ data }) => ({
-          id: data.id,
-          name: data.name,
-          email: data.email,
-          role: data.role as UserRole,
-          password: ''
-        }))
+    ).pipe(
+      map(({ data, error }) => {
+        if (error || !data) {
+          throw new Error(error?.message || 'No se pudo crear el usuario');
+        }
+
+        return this.mapToUser(data as AppUserRow);
+      }),
+      catchError(error =>
+        throwError(() => new Error(error.message || 'Error al crear usuario'))
+      )
     );
   }
 
   updateUser(user: User): Observable<User> {
     return from(
-      this.supabase
+      this.supabaseService
+        .getClient()
         .from('app_users')
-        .update({ name: user.name, email: user.email, role: user.role })
+        .update({
+          name: user.name,
+          email: user.email,
+          role: user.role
+        })
         .eq('id', user.id)
         .select()
         .single()
-        .then(({ data }) => ({
-          id: data.id,
-          name: data.name,
-          email: data.email,
-          role: data.role as UserRole,
-          password: ''
-        }))
+    ).pipe(
+      map(({ data, error }) => {
+        if (error || !data) {
+          throw new Error(error?.message || 'No se pudo actualizar el usuario');
+        }
+
+        return this.mapToUser(data as AppUserRow);
+      }),
+      catchError(error =>
+        throwError(() => new Error(error.message || 'Error al actualizar usuario'))
+      )
     );
   }
 
   updatePassword(userId: string, newPassword: string): Observable<void> {
-    return of(void 0);
+    void userId;
+    void newPassword;
+
+    return throwError(() => new Error(
+      'La actualización de contraseñas de otros usuarios requiere un backend seguro o una Edge Function de Supabase.'
+    ));
+  }
+
+  private mapToUser(data: AppUserRow): User {
+    return {
+      id: data.id,
+      name: data.name,
+      email: data.email,
+      role: data.role as UserRole
+    };
   }
 }

@@ -1,36 +1,32 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable, from, throwError } from 'rxjs';
+import { BehaviorSubject, Observable, from, throwError, of } from 'rxjs';
 import { catchError, map, switchMap } from 'rxjs/operators';
 import { User, UserRole } from '../models/user.model';
 import { UserService } from './user.service';
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { environment } from '../../environments/environment';
+import { SupabaseService } from './supabase.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
-
   private currentUserSubject = new BehaviorSubject<User | null>(null);
   currentUser$ = this.currentUserSubject.asObservable();
 
   private connectionStatus = new BehaviorSubject<boolean>(true);
   connectionStatus$ = this.connectionStatus.asObservable();
 
-  private supabase: SupabaseClient = createClient(
-    environment.supabaseUrl,
-    environment.supabaseKey
-  );
-
-  constructor(private userService: UserService) {
+  constructor(
+    private userService: UserService,
+    private supabaseService: SupabaseService
+  ) {
     this.loadSavedUser();
   }
 
-  private loadSavedUser() {
+  private loadSavedUser(): void {
     try {
       const savedUser = localStorage.getItem('currentUser');
       if (savedUser) {
-        const user = JSON.parse(savedUser);
+        const user = JSON.parse(savedUser) as User;
         this.currentUserSubject.next(user);
       }
     } catch (error) {
@@ -45,18 +41,28 @@ export class AuthService {
     }
 
     return from(
-      this.supabase.auth.signInWithPassword({ email, password })
+      this.supabaseService.getClient().auth.signInWithPassword({ email, password })
     ).pipe(
       switchMap(({ data, error }) => {
-        if (error) throw new Error(error.message);
-        if (!data.user) throw new Error('Usuario no encontrado');
+        if (error) {
+          throw new Error(error.message);
+        }
+
+        if (!data.user) {
+          throw new Error('Usuario no encontrado');
+        }
+
         return from(this.userService.getUserByEmail(email));
       }),
       map(user => {
-        if (!user) throw new Error('Usuario no encontrado en la base de datos');
+        if (!user) {
+          throw new Error('Usuario no encontrado en la base de datos');
+        }
+
         localStorage.setItem('currentUser', JSON.stringify(user));
         this.currentUserSubject.next(user);
         this.connectionStatus.next(true);
+
         return user;
       }),
       catchError(error => {
@@ -70,10 +76,12 @@ export class AuthService {
 
   requestPasswordReset(email: string): Observable<void> {
     return from(
-      this.supabase.auth.resetPasswordForEmail(email)
+      this.supabaseService.getClient().auth.resetPasswordForEmail(email)
     ).pipe(
       map(({ error }) => {
-        if (error) throw new Error(error.message);
+        if (error) {
+          throw new Error(error.message);
+        }
       }),
       catchError(error => throwError(() => new Error(error.message)))
     );
@@ -81,26 +89,33 @@ export class AuthService {
 
   verifyResetToken(token: string): Observable<boolean> {
     return from(
-      this.supabase.auth.verifyOtp({ token_hash: token, type: 'recovery' })
+      this.supabaseService.getClient().auth.verifyOtp({
+        token_hash: token,
+        type: 'recovery'
+      })
     ).pipe(
       map(({ error }) => !error),
-      catchError(() => from([false]))
+      catchError(() => of(false))
     );
   }
 
   resetPassword(token: string, newPassword: string): Observable<void> {
+    void token;
+
     return from(
-      this.supabase.auth.updateUser({ password: newPassword })
+      this.supabaseService.getClient().auth.updateUser({ password: newPassword })
     ).pipe(
       map(({ error }) => {
-        if (error) throw new Error(error.message);
+        if (error) {
+          throw new Error(error.message);
+        }
       }),
       catchError(error => throwError(() => new Error(error.message)))
     );
   }
 
   logout(): void {
-    this.supabase.auth.signOut();
+    this.supabaseService.getClient().auth.signOut();
     localStorage.removeItem('currentUser');
     this.currentUserSubject.next(null);
   }
@@ -111,23 +126,40 @@ export class AuthService {
 
   hasPermission(permission: string): boolean {
     const user = this.getCurrentUser();
-    if (!user) return false;
 
-    const permissions = {
+    if (!user) {
+      return false;
+    }
+
+    const permissions: Record<UserRole, string[]> = {
       [UserRole.ADMIN]: [
-        'manage_users', 'manage_permissions', 'view_courses',
-        'review_exercises', 'create_courses', 'edit_courses',
-        'create_quizzes', 'edit_quizzes', 'submit_exercises'
+        'manage_users',
+        'manage_permissions',
+        'view_courses',
+        'review_exercises',
+        'create_courses',
+        'edit_courses',
+        'create_quizzes',
+        'edit_quizzes',
+        'submit_exercises'
       ],
       [UserRole.TEACHER]: [
-        'view_courses', 'create_courses', 'edit_courses',
-        'create_quizzes', 'edit_quizzes', 'review_exercises'
+        'view_courses',
+        'create_courses',
+        'edit_courses',
+        'create_quizzes',
+        'edit_quizzes',
+        'review_exercises'
       ],
       [UserRole.TUTOR]: [
-        'view_courses', 'review_exercises', 'create_quizzes'
+        'view_courses',
+        'review_exercises',
+        'create_quizzes'
       ],
       [UserRole.STUDENT]: [
-        'view_courses', 'submit_exercises', 'take_quizzes'
+        'view_courses',
+        'submit_exercises',
+        'take_quizzes'
       ]
     };
 
