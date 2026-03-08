@@ -1,0 +1,94 @@
+<div class="module-container">
+  <div class="welcome-card" [ngClass]="roleClass">
+    <div class="welcome-content">
+      <div class="welcome-left">
+        <div class="role-badge">
+          <i class="fas" [ngClass]="roleIcon"></i>
+          {{ roleLabel }}
+        </div>
+
+        <h1 class="welcome-name">
+          Hola, {{ currentUser?.name || 'Usuario' }}!
+        </h1>
+
+        <p class="welcome-email">
+          {{ currentUser?.email || 'Sin correo disponible' }}
+        </p>
+      </div>
+
+      <div class="welcome-avatar">
+        <i class="fas fa-user-circle"></i>
+      </div>
+    </div>
+
+    <button class="btn btn-logout" (click)="logout()">
+      <i class="fas fa-sign-out-alt"></i>
+      Salir
+    </button>
+  </div>
+
+  <div class="card-grid">
+    <div class="kid-card theme-card" *ngIf="authService.hasPermission('manage_users')">
+      <div class="kid-card-content">
+        <i class="fas fa-users card-icon"></i>
+        <h3>Gestión de Usuarios</h3>
+        <p>Administra los usuarios del sistema</p>
+        <a routerLink="/user-management" class="btn btn-kid">Gestionar</a>
+      </div>
+    </div>
+
+    <div class="kid-card completed-card" *ngIf="authService.hasPermission('review_exercises')">
+      <div class="kid-card-content">
+        <i class="fas fa-star card-icon"></i>
+        <h3>Ejercicios y Quizzes</h3>
+        <p>Practica y revisa cuestionarios</p>
+        <a routerLink="/review" class="btn btn-kid">Practicar</a>
+      </div>
+    </div>
+
+    <div class="kid-card numbers-card" *ngIf="authService.hasPermission('view_courses')">
+      <div class="kid-card-content">
+        <i class="fas fa-book-open card-icon"></i>
+        <h3>Mis Cursos</h3>
+        <p>Explora el mundo de las matemáticas</p>
+        <a routerLink="/courses" class="btn btn-kid">Ver Cursos</a>
+      </div>
+    </div>
+
+    <div class="kid-card quiz-card" *ngIf="authService.hasPermission('create_quizzes') || authService.hasPermission('edit_quizzes')">
+      <div class="kid-card-content">
+        <i class="fas fa-question-circle card-icon"></i>
+        <h3>Gestión de Quizzes</h3>
+        <p>Crea y administra cuestionarios</p>
+        <a routerLink="/quiz-management" class="btn btn-kid">Gestionar Quizzes</a>
+      </div>
+    </div>
+
+    <div class="kid-card pending-card" *ngIf="canManageCourses()">
+      <div class="kid-card-content">
+        <i class="fas fa-chalkboard-teacher card-icon"></i>
+        <h3>Gestión de Cursos</h3>
+        <p>Administra los cursos de la plataforma</p>
+        <a routerLink="/course-management" class="btn btn-kid">Gestionar Cursos</a>
+      </div>
+    </div>
+
+    <div class="kid-card theme-card" *ngIf="authService.hasPermission('manage_users')">
+      <div class="kid-card-content">
+        <i class="fas fa-flask card-icon"></i>
+        <h3>Test Supabase</h3>
+        <p>Verifica la conexión con la base de datos</p>
+        <a routerLink="/supabase-test" class="btn btn-kid">Probar</a>
+      </div>
+    </div>
+
+    <div class="kid-card params-card" *ngIf="authService.hasPermission('manage_permissions')">
+      <div class="kid-card-content">
+        <i class="fas fa-sliders-h card-icon"></i>
+        <h3>Parámetros</h3>
+        <p>Usuarios, clases, temas y permisos</p>
+        <a routerLink="/parameters" class="btn btn-kid">Configurar</a>
+      </div>
+    </div>
+  </div>
+</div>

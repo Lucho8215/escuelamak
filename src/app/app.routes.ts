@@ -11,6 +11,9 @@ import { SupabaseTestComponent } from './components/supabase-test/supabase-test.
 import { QuizManagementComponent } from './components/quiz-management/quiz-management.component';
 import { QuizTakingComponent } from './components/quiz-taking/quiz-taking.component';
 import { ClassManagementComponent } from './components/class-management/class-management.component';
+import { ParametersComponent } from './components/parameters/parameters.component';
+
+
 export const routes: Routes = [
   { path: '', redirectTo: '/login', pathMatch: 'full' },
   { path: 'login', component: LoginComponent },
@@ -25,5 +28,6 @@ export const routes: Routes = [
   { path: 'quiz-management', component: QuizManagementComponent },
   { path: 'quiz/:id', component: QuizTakingComponent },
   { path: 'class-management', component: ClassManagementComponent },
+  { path: 'parameters', component: ParametersComponent },
   { path: '**', redirectTo: '/login' }
 ];
