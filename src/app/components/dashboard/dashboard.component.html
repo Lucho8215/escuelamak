@@ -28,7 +28,7 @@
   </div>
 
   <div class="card-grid">
-    <div class="kid-card theme-card" *ngIf="authService.hasPermission('manage_users')">
+    <div class="kid-card theme-card" *ngIf="canManageUsers()">
       <div class="kid-card-content">
         <i class="fas fa-users card-icon"></i>
         <h3>Gestión de Usuarios</h3>
@@ -37,7 +37,7 @@
       </div>
     </div>
 
-    <div class="kid-card completed-card" *ngIf="authService.hasPermission('review_exercises')">
+    <div class="kid-card completed-card" *ngIf="canReviewExercises()">
       <div class="kid-card-content">
         <i class="fas fa-star card-icon"></i>
         <h3>Ejercicios y Quizzes</h3>
@@ -55,7 +55,7 @@
       </div>
     </div>
 
-    <div class="kid-card quiz-card" *ngIf="authService.hasPermission('create_quizzes') || authService.hasPermission('edit_quizzes')">
+    <div class="kid-card quiz-card" *ngIf="authService.hasPermission('manage_users')">
       <div class="kid-card-content">
         <i class="fas fa-question-circle card-icon"></i>
         <h3>Gestión de Quizzes</h3>
@@ -73,7 +73,7 @@
       </div>
     </div>
 
-    <div class="kid-card theme-card" *ngIf="authService.hasPermission('manage_users')">
+    <div class="kid-card theme-card" *ngIf="canManageUsers()">
       <div class="kid-card-content">
         <i class="fas fa-flask card-icon"></i>
         <h3>Test Supabase</h3>
