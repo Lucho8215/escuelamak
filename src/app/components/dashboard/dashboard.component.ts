@@ -5,16 +5,18 @@ import { AuthService } from '../../services/auth.service';
 import { User, UserRole } from '../../models/user.model';
 
 /**
- * Configuración visual por rol.
- * Esto nos permite centralizar:
- * - etiqueta del rol
+ * Configuración visual y descriptiva por rol.
+ * Aquí centralizamos:
+ * - etiqueta amigable
  * - icono
- * - clase CSS asociada
+ * - clase CSS
+ * - descripción principal del dashboard
  */
 type RoleConfig = {
   label: string;
   icon: string;
   className: string;
+  description: string;
 };
 
 @Component({
@@ -26,33 +28,38 @@ type RoleConfig = {
 })
 export class DashboardComponent implements OnInit {
   /**
-   * Usuario actual que inició sesión.
+   * Usuario autenticado actual.
    */
   currentUser: User | null = null;
 
   /**
-   * Configuración visual de cada rol.
+   * Configuración central por rol.
+   * Esto evita repetir lógica en distintos métodos.
    */
   private readonly roleConfig: Record<UserRole, RoleConfig> = {
     [UserRole.ADMIN]: {
       label: 'Administrador',
       icon: 'fa-crown',
-      className: 'admin'
+      className: 'admin',
+      description: 'Administra usuarios, cursos, quizzes y la configuración general de la plataforma.'
     },
     [UserRole.TEACHER]: {
       label: 'Profesor',
       icon: 'fa-chalkboard-teacher',
-      className: 'teacher'
+      className: 'teacher',
+      description: 'Gestiona cursos, clases y cuestionarios para acompañar el aprendizaje.'
     },
     [UserRole.TUTOR]: {
       label: 'Tutor',
       icon: 'fa-user-tie',
-      className: 'tutor'
+      className: 'tutor',
+      description: 'Revisa actividades, apoya el seguimiento y participa en la gestión de quizzes.'
     },
     [UserRole.STUDENT]: {
-      label: 'Alumno',
+      label: 'Estudiante',
       icon: 'fa-graduation-cap',
-      className: 'student'
+      className: 'student',
+      description: 'Accede a tus cursos, realiza actividades y continúa tu aprendizaje.'
     }
   };
 
@@ -62,9 +69,9 @@ export class DashboardComponent implements OnInit {
   ) {}
 
   /**
-   * Al iniciar:
+   * Al iniciar el componente:
    * 1. obtenemos el usuario actual
-   * 2. si no hay usuario, lo mandamos a login
+   * 2. si no existe, volvemos al login
    */
   ngOnInit(): void {
     this.currentUser = this.authService.getCurrentUser();
@@ -75,7 +82,7 @@ export class DashboardComponent implements OnInit {
   }
 
   /**
-   * Devuelve la etiqueta legible del rol actual.
+   * Etiqueta legible del rol.
    */
   get roleLabel(): string {
     if (!this.currentUser) {
@@ -86,7 +93,7 @@ export class DashboardComponent implements OnInit {
   }
 
   /**
-   * Devuelve el icono del rol actual.
+   * Icono asociado al rol.
    */
   get roleIcon(): string {
     if (!this.currentUser) {
@@ -97,7 +104,7 @@ export class DashboardComponent implements OnInit {
   }
 
   /**
-   * Devuelve la clase CSS según rol.
+   * Clase CSS asociada al rol.
    */
   get roleClass(): string {
     if (!this.currentUser) {
@@ -108,29 +115,46 @@ export class DashboardComponent implements OnInit {
   }
 
   /**
-   * Permite saber si el usuario puede administrar usuarios.
-   * Solo el admin puede hacerlo.
+   * Descripción principal del dashboard según rol.
+   */
+  get roleDescription(): string {
+    if (!this.currentUser) {
+      return 'Bienvenido a la plataforma.';
+    }
+
+    return this.roleConfig[this.currentUser.role]?.description ?? 'Bienvenido a la plataforma.';
+  }
+
+  /**
+   * Título secundario del panel.
+   */
+  get dashboardTitle(): string {
+    return 'Accesos disponibles';
+  }
+
+  /**
+   * Solo el admin puede gestionar usuarios.
    */
   canManageUsers(): boolean {
     return this.currentUser?.role === UserRole.ADMIN;
   }
 
   /**
-   * Permite saber si el usuario puede ver cursos.
+   * Ver cursos.
    */
   canViewCourses(): boolean {
     return this.authService.hasPermission('view_courses');
   }
 
   /**
-   * Permite saber si el usuario puede revisar ejercicios.
+   * Revisar ejercicios.
    */
   canReviewExercises(): boolean {
     return this.authService.hasPermission('review_exercises');
   }
 
   /**
-   * Permite gestionar quizzes.
+   * Gestionar quizzes.
    */
   canManageQuizzes(): boolean {
     return (
@@ -140,7 +164,7 @@ export class DashboardComponent implements OnInit {
   }
 
   /**
-   * Permite gestionar cursos.
+   * Gestionar cursos.
    */
   canManageCourses(): boolean {
     return (
@@ -150,7 +174,7 @@ export class DashboardComponent implements OnInit {
   }
 
   /**
-   * Permite entrar al módulo de parámetros.
+   * Entrar a parámetros.
    */
   canManageParameters(): boolean {
     return this.authService.hasPermission('manage_permissions');

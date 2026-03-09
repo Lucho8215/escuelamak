@@ -199,4 +199,12 @@ display: flex;
   .welcome-avatar {
     font-size: 4rem;
   }
+  .welcome-description {
+  margin-top: 0.85rem;
+  max-width: 680px;
+  line-height: 1.6;
+  font-size: 0.98rem;
+  opacity: 0.96;
+}
+
 }

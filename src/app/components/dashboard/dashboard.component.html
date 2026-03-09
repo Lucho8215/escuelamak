@@ -1,5 +1,5 @@
 <div class="dashboard-page">
-  <!-- Encabezado de bienvenida -->
+  <!-- Tarjeta de bienvenida -->
   <section class="welcome-card" [ngClass]="roleClass">
     <div class="welcome-content">
       <div class="welcome-left">
@@ -15,6 +15,10 @@
         <p class="welcome-email">
           {{ currentUser?.email || 'Sin correo disponible' }}
         </p>
+
+        <p class="welcome-description">
+          {{ roleDescription }}
+        </p>
       </div>
 
       <div class="welcome-avatar">
@@ -23,9 +27,11 @@
     </div>
   </section>
 
-  <!-- Tarjetas principales -->
+  <!-- Sección de accesos -->
   <section class="dashboard-section">
-    <h2 class="section-title">Accesos disponibles</h2>
+    <h2 class="section-title">
+      {{ dashboardTitle }}
+    </h2>
 
     <div class="card-grid">
       <div class="kid-card theme-card" *ngIf="canManageUsers()">
