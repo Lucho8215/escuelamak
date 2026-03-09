@@ -1,50 +1,66 @@
 export interface Course {
   id: string;
+
   title: string;
   description: string;
+
   category: 'education' | 'mathematics';
-  isVisible: boolean;
-  videoUrl: string;
+
+  imageUrl?: string;
+
+  videoUrl?: string;
+
   price: number;
-  duration: number;
-  createdAt: Date;
-  updatedAt: Date;
+
+  hidePrice?: boolean;
+
+  duration?: number;
+  durationMonths?: number;
+
+  isVisible: boolean;
 }
 
 export interface Class {
   id: string;
+
   courseId: string;
+
   name: string;
+
   teacherId: string;
+
   status: 'open' | 'closed';
+
   classNumber: number;
-  enrollmentCount: number;
+
   maxStudents: number;
+
+  enrollmentCount: number;
+
   startDate: Date;
   endDate: Date;
-  enrolledStudents: string[];
-  courseTitle?: string;
-  teacherName?: string;
+
+  imageUrl?: string;
+
+  resourceLink?: string;
+
+  resourceFileUrl?: string;
+
+  enrolledStudents?: string[];
 }
 
 export interface CourseEnrollment {
   id: string;
+
   courseId: string;
-  studentId: string;
   classId: string;
-  enrollmentDate: Date;
-  status: 'active' | 'completed' | 'cancelled';
+
+  studentId: string;
   studentName?: string;
   studentEmail?: string;
-}
 
-export interface Lesson {
-  id: string;
-  classId: string;
-  title: string;
-  description?: string;
-  order: number;
-  isCompleted: boolean;
-  videoUrl?: string;
-  createdAt: Date;
+  status?: 'active' | 'inactive' | 'pending';
+
+  enrollmentDate?: Date;
+  enrolledAt?: Date;
 }

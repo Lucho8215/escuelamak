@@ -1,49 +1,76 @@
-<div class="module-container">
-  <a routerLink="/dashboard" class="btn btn-back">
-    <i class="fas fa-arrow-left"></i> Volver al Panel
-  </a>
+<div class="page-shell">
+  <!-- Encabezado principal de la página -->
+  <section class="page-header">
+    <div>
+      <h1 class="page-title">
+        <i class="fas fa-chalkboard-teacher"></i>
+        Gestión de Cursos
+      </h1>
+      <p class="page-subtitle">
+        Crea, edita y administra cursos de la plataforma. Desde aquí también podrás gestionar las clases asociadas.
+      </p>
+    </div>
+  </section>
 
-  <h1>
-    <i class="fas fa-chalkboard-teacher text-purple"></i>
-    Gestión de Cursos
-    <i class="fas fa-chalkboard-teacher text-purple"></i>
-  </h1>
-
-  <div *ngIf="errorMessage" class="error-message">
+  <!-- Mensaje de error -->
+  <div *ngIf="errorMessage" class="alert alert-error">
+    <i class="fas fa-circle-exclamation"></i>
     {{ errorMessage }}
   </div>
 
-  <!-- Formulario de Curso -->
-  <div class="kid-card">
-    <div class="kid-card-content">
-      <h2>{{ editingCourse ? 'Editar Curso' : 'Crear Nuevo Curso' }}</h2>
-      <form (ngSubmit)="saveCourse()" #courseForm="ngForm">
-        <div class="form-group">
-          <label for="title">Título del Curso</label>
-          <input
-            type="text"
-            id="title"
-            name="title"
-            [(ngModel)]="newCourse.title"
-            required
-            class="kid-input"
-          >
+  <!-- Estado de carga -->
+  <div *ngIf="isLoading" class="loading-state">
+    <i class="fas fa-spinner fa-spin"></i>
+    Procesando información...
+  </div>
+
+  <!-- Formulario principal del curso -->
+  <section class="panel-card">
+    <div class="panel-card-header">
+      <div>
+        <h2 class="panel-title">
+          <i class="fas" [class.fa-pen]="editingCourse" [class.fa-plus-circle]="!editingCourse"></i>
+          {{ editingCourse ? 'Editar Curso' : 'Crear Nuevo Curso' }}
+        </h2>
+        <p class="panel-subtitle">
+          Completa la información general del curso.
+        </p>
+      </div>
+    </div>
+
+    <div class="panel-card-body">
+      <form (ngSubmit)="saveCourse()" #courseForm="ngForm" class="course-form">
+        <!-- Primera fila -->
+        <div class="form-row">
+          <div class="form-group">
+            <label for="title">Título del Curso</label>
+            <input
+              type="text"
+              id="title"
+              name="title"
+              [(ngModel)]="newCourse.title"
+              required
+              class="form-input"
+              placeholder="Ej: Matemáticas Básicas"
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="category">Categoría</label>
+            <select
+              id="category"
+              name="category"
+              [(ngModel)]="newCourse.category"
+              required
+              class="form-input"
+            >
+              <option value="education">Educación</option>
+              <option value="mathematics">Matemáticas</option>
+            </select>
+          </div>
         </div>
 
-        <div class="form-group">
-          <label for="category">Categoría</label>
-          <select
-            id="category"
-            name="category"
-            [(ngModel)]="newCourse.category"
-            required
-            class="kid-input"
-          >
-            <option value="education">Educación</option>
-            <option value="mathematics">Matemáticas</option>
-          </select>
-        </div>
-
+        <!-- Segunda fila -->
         <div class="form-group">
           <label for="description">Descripción</label>
           <textarea
@@ -51,216 +78,403 @@
             name="description"
             [(ngModel)]="newCourse.description"
             required
-            class="kid-input"
+            class="form-input"
             rows="4"
+            placeholder="Describe el objetivo del curso, lo que aprenderá el estudiante y su enfoque."
           ></textarea>
         </div>
 
-        <div class="form-group">
-          <label for="videoUrl">URL del Video</label>
-          <input
-            type="url"
-            id="videoUrl"
-            name="videoUrl"
-            [(ngModel)]="newCourse.videoUrl"
-            class="kid-input"
-            placeholder="https://youtube.com/..."
-          >
-        </div>
-
-        <div class="form-group">
-          <label for="price">Precio</label>
-          <input
-            type="number"
-            id="price"
-            name="price"
-            [(ngModel)]="newCourse.price"
-            required
-            class="kid-input"
-            min="0"
-            step="0.01"
-          >
-        </div>
-
-        <div class="form-group">
-          <label for="duration">Duración (horas)</label>
-          <input
-            type="number"
-            id="duration"
-            name="duration"
-            [(ngModel)]="newCourse.duration"
-            required
-            class="kid-input"
-            min="1"
-          >
-        </div>
-
-        <div class="form-group">
-          <label class="checkbox-label">
+        <!-- Tercera fila -->
+        <div class="form-row">
+          <div class="form-group">
+            <label for="videoUrl">URL del Video</label>
             <input
-              type="checkbox"
-              name="isVisible"
-              [(ngModel)]="newCourse.isVisible"
+              type="url"
+              id="videoUrl"
+              name="videoUrl"
+              [(ngModel)]="newCourse.videoUrl"
+              class="form-input"
+              placeholder="https://youtube.com/..."
             >
-            Visible en catálogo
-          </label>
+          </div>
+
+          <div class="form-group">
+            <label for="courseImage">Imagen del Curso</label>
+            <input
+              type="file"
+              id="courseImage"
+              name="courseImage"
+              class="form-input"
+              accept="image/*"
+              (change)="onCourseImageSelected($event)"
+            >
+          </div>
         </div>
 
+        <!-- Cuarta fila -->
+        <div class="form-row">
+          <div class="form-group">
+            <label for="price">Precio</label>
+            <input
+              type="number"
+              id="price"
+              name="price"
+              [(ngModel)]="newCourse.price"
+              required
+              class="form-input"
+              min="0"
+              step="0.01"
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="durationMonths">Duración (meses)</label>
+            <input
+              type="number"
+              id="durationMonths"
+              name="durationMonths"
+              [(ngModel)]="newCourse.durationMonths"
+              required
+              class="form-input"
+              min="1"
+            >
+          </div>
+        </div>
+
+        <!-- Quinta fila -->
+        <div class="form-row">
+          <div class="form-group checkbox-group">
+            <label class="checkbox-label">
+              <input
+                type="checkbox"
+                name="hidePrice"
+                [(ngModel)]="newCourse.hidePrice"
+              >
+              Ocultar precio en la visualización
+            </label>
+          </div>
+
+          <div class="form-group checkbox-group">
+            <label class="checkbox-label">
+              <input
+                type="checkbox"
+                name="isVisible"
+                [(ngModel)]="newCourse.isVisible"
+              >
+              Visible en catálogo
+            </label>
+          </div>
+        </div>
+
+        <!-- Acciones -->
         <div class="button-group">
-          <button type="submit" class="btn btn-kid" [disabled]="!courseForm.form.valid">
-            {{ editingCourse ? '¡Guardar Cambios!' : '¡Crear Curso!' }}
+          <button type="submit" class="btn btn-primary" [disabled]="!courseForm.form.valid || isLoading">
+            <i class="fas" [class.fa-save]="editingCourse" [class.fa-plus]="!editingCourse"></i>
+            {{ editingCourse ? 'Guardar Cambios' : 'Crear Curso' }}
           </button>
 
-          <button type="button" class="btn btn-kid btn-secondary" (click)="resetCourseForm()">
+          <button type="button" class="btn btn-secondary" (click)="resetCourseForm()">
+            <i class="fas fa-rotate-left"></i>
             Cancelar
           </button>
         </div>
       </form>
     </div>
-  </div>
+  </section>
 
-  <!-- Lista de Cursos -->
-  <div class="card-grid">
-    <div class="kid-card" *ngFor="let course of courses">
-      <div class="kid-card-content">
-        <h3>{{course.title}}</h3>
-        <p>{{course.description}}</p>
-        <div class="course-details">
-          <p><strong>Categoría:</strong> {{course.category === 'education' ? 'Educación' : 'Matemáticas'}}</p>
-          <p><strong>Precio:</strong> ${{course.price}}</p>
-          <p><strong>Duración:</strong> {{course.duration}} horas</p>
-          <p><strong>Estado:</strong> {{course.isVisible ? 'Visible' : 'Oculto'}}</p>
-        </div>
-        
-        <div class="button-group">
-          <button class="btn btn-kid" (click)="editCourse(course)">Editar</button>
-          <button class="btn btn-kid btn-danger" (click)="deleteCourse(course.id)">Eliminar</button>
-          <button class="btn btn-kid" (click)="manageClasses(course)">Gestionar Clases</button>
-        </div>
+  <!-- Listado de cursos -->
+  <section class="panel-card">
+    <div class="panel-card-header">
+      <div>
+        <h2 class="panel-title">
+          <i class="fas fa-book-open"></i>
+          Cursos Registrados
+        </h2>
+        <p class="panel-subtitle">
+          Administra el contenido ya creado y abre la gestión de clases por curso.
+        </p>
       </div>
     </div>
-  </div>
 
-  <!-- Modal de Clases -->
-  <div class="modal" *ngIf="showClassModal">
-    <div class="modal-content kid-card">
-      <div class="kid-card-content">
-        <h2>Gestión de Clases - {{selectedCourse?.title}}</h2>
-        
-        <!-- Formulario de Clase -->
-        <form (ngSubmit)="saveClass()" #classForm="ngForm">
-          <div class="form-group">
-            <label for="className">Nombre de la Clase</label>
-            <input
-              type="text"
-              id="className"
-              name="className"
-              [(ngModel)]="newClass.name"
-              required
-              class="kid-input"
-            >
+    <div class="panel-card-body">
+      <div *ngIf="courses.length === 0 && !isLoading" class="empty-state">
+        <i class="fas fa-folder-open"></i>
+        <p>No hay cursos registrados todavía.</p>
+      </div>
+
+      <div class="courses-grid" *ngIf="courses.length > 0">
+        <article class="course-card" *ngFor="let course of courses">
+          <div class="course-card-top">
+            <div class="course-badge">
+              <i class="fas fa-book"></i>
+              {{ course.category === 'education' ? 'Educación' : 'Matemáticas' }}
+            </div>
+
+            <span class="visibility-badge" [class.visible]="course.isVisible" [class.hidden]="!course.isVisible">
+              <i class="fas" [class.fa-eye]="course.isVisible" [class.fa-eye-slash]="!course.isVisible"></i>
+              {{ course.isVisible ? 'Visible' : 'Oculto' }}
+            </span>
           </div>
 
-          <div class="form-group">
-            <label for="teacher">Profesor</label>
-            <select
-              id="teacher"
-              name="teacher"
-              [(ngModel)]="newClass.teacherId"
-              required
-              class="kid-input"
-            >
-              <option value="">Selecciona un profesor</option>
-              <option *ngFor="let teacher of teachers" [value]="teacher.id">
-                {{teacher.name}}
-              </option>
-            </select>
-          </div>
+          <h3 class="course-title">{{ course.title }}</h3>
+          <p class="course-description">{{ course.description }}</p>
 
-          <div class="form-group">
-            <label for="classNumber">Número de Clase</label>
-            <input
-              type="number"
-              id="classNumber"
-              name="classNumber"
-              [(ngModel)]="newClass.classNumber"
-              required
-              class="kid-input"
-              min="1"
-            >
-          </div>
+          <div class="course-meta">
+            <div class="meta-item" *ngIf="!course.hidePrice">
+              <i class="fas fa-dollar-sign"></i>
+              <span>${{ course.price }}</span>
+            </div>
 
-          <div class="form-group">
-            <label for="maxStudents">Máximo de Estudiantes</label>
-            <input
-              type="number"
-              id="maxStudents"
-              name="maxStudents"
-              [(ngModel)]="newClass.maxStudents"
-              required
-              class="kid-input"
-              min="1"
-            >
-          </div>
-
-          <div class="form-group">
-            <label for="startDate">Fecha de Inicio</label>
-            <input
-              type="datetime-local"
-              id="startDate"
-              name="startDate"
-              [(ngModel)]="newClass.startDate"
-              required
-              class="kid-input"
-            >
-          </div>
-
-          <div class="form-group">
-            <label for="endDate">Fecha de Fin</label>
-            <input
-              type="datetime-local"
-              id="endDate"
-              name="endDate"
-              [(ngModel)]="newClass.endDate"
-              required
-              class="kid-input"
-            >
+            <div class="meta-item">
+              <i class="fas fa-calendar-alt"></i>
+              <span>{{ course.durationMonths || 1 }} mes(es)</span>
+            </div>
           </div>
 
           <div class="button-group">
-            <button type="submit" class="btn btn-kid" [disabled]="!classForm.form.valid">
-              {{ editingClass ? '¡Guardar Cambios!' : '¡Crear Clase!' }}
+            <button class="btn btn-outline" (click)="editCourse(course)">
+              <i class="fas fa-edit"></i>
+              Editar
             </button>
-            <button type="button" class="btn btn-kid btn-secondary" (click)="resetClassForm()">
+
+            <button class="btn btn-danger" (click)="deleteCourse(course.id)">
+              <i class="fas fa-trash"></i>
+              Eliminar
+            </button>
+
+            <button class="btn btn-primary" (click)="manageClasses(course)">
+              <i class="fas fa-chalkboard"></i>
+              Gestionar Clases
+            </button>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- Modal de clases -->
+<div class="modal-overlay" *ngIf="showClassModal" (click)="closeClassModal()">
+  <div class="modal-box" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <div>
+        <h2 class="modal-title">
+          <i class="fas fa-chalkboard"></i>
+          Gestión de Clases
+        </h2>
+        <p class="modal-subtitle">
+          Curso: <strong>{{ selectedCourse?.title }}</strong>
+        </p>
+      </div>
+
+      <button class="modal-close" (click)="closeClassModal()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <!-- Formulario de clase -->
+      <section class="inner-panel">
+        <h3 class="inner-title">
+          <i class="fas" [class.fa-pen]="editingClass" [class.fa-plus-circle]="!editingClass"></i>
+          {{ editingClass ? 'Editar Clase' : 'Crear Clase' }}
+        </h3>
+
+        <form (ngSubmit)="saveClass()" #classForm="ngForm" class="class-form">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="className">Nombre de la Clase</label>
+              <input
+                type="text"
+                id="className"
+                name="className"
+                [(ngModel)]="newClass.name"
+                required
+                class="form-input"
+                placeholder="Ej: Grupo A - Nivel 1"
+              >
+            </div>
+
+            <div class="form-group">
+              <label for="teacher">Profesor</label>
+              <select
+                id="teacher"
+                name="teacher"
+                [(ngModel)]="newClass.teacherId"
+                required
+                class="form-input"
+              >
+                <option value="">Selecciona un profesor</option>
+                <option *ngFor="let teacher of teachers" [value]="teacher.id">
+                  {{ teacher.name }}
+                </option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="classNumber">Número de Clase</label>
+              <input
+                type="number"
+                id="classNumber"
+                name="classNumber"
+                [(ngModel)]="newClass.classNumber"
+                required
+                class="form-input"
+                min="1"
+              >
+            </div>
+
+            <div class="form-group">
+              <label for="maxStudents">Máximo de Estudiantes</label>
+              <input
+                type="number"
+                id="maxStudents"
+                name="maxStudents"
+                [(ngModel)]="newClass.maxStudents"
+                required
+                class="form-input"
+                min="1"
+              >
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="startDate">Fecha de Inicio</label>
+              <input
+                type="datetime-local"
+                id="startDate"
+                name="startDate"
+                [(ngModel)]="newClass.startDate"
+                required
+                class="form-input"
+              >
+            </div>
+
+            <div class="form-group">
+              <label for="endDate">Fecha de Fin</label>
+              <input
+                type="datetime-local"
+                id="endDate"
+                name="endDate"
+                [(ngModel)]="newClass.endDate"
+                required
+                class="form-input"
+              >
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="resourceLink">Link del Recurso</label>
+              <input
+                type="url"
+                id="resourceLink"
+                name="resourceLink"
+                [(ngModel)]="newClass.resourceLink"
+                class="form-input"
+                placeholder="https://drive.google.com/... o enlace de apoyo"
+              >
+            </div>
+
+            <div class="form-group">
+              <label for="classImage">Imagen de la Clase</label>
+              <input
+                type="file"
+                id="classImage"
+                name="classImage"
+                class="form-input"
+                accept="image/*"
+                (change)="onClassImageSelected($event)"
+              >
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="classFile">Archivo Adjunto</label>
+              <input
+                type="file"
+                id="classFile"
+                name="classFile"
+                class="form-input"
+                (change)="onClassFileSelected($event)"
+              >
+            </div>
+          </div>
+
+          <div class="button-group">
+            <button type="submit" class="btn btn-primary" [disabled]="!classForm.form.valid || isLoading">
+              <i class="fas" [class.fa-save]="editingClass" [class.fa-plus]="!editingClass"></i>
+              {{ editingClass ? 'Guardar Cambios' : 'Crear Clase' }}
+            </button>
+
+            <button type="button" class="btn btn-secondary" (click)="resetClassForm()">
+              <i class="fas fa-rotate-left"></i>
               Cancelar
             </button>
           </div>
         </form>
+      </section>
 
-        <!-- Lista de Clases -->
-        <div class="classes-list">
-          <div *ngFor="let class of classes" class="class-item kid-card">
-            <div class="kid-card-content">
-              <h4>{{class.name}}</h4>
-              <div class="class-details">
-                <p>Clase #{{class.classNumber}}</p>
-                <p>Estudiantes: {{class.enrollmentCount}}/{{class.maxStudents}}</p>
-                <p>Estado: {{class.status === 'open' ? 'Abierta' : 'Cerrada'}}</p>
-              </div>
-              
-              <div class="button-group">
-                <button class="btn btn-kid" (click)="editClass(class)">Editar</button>
-                <button class="btn btn-kid btn-danger" (click)="deleteClass(class.id)">Eliminar</button>
-                <button class="btn btn-kid" (click)="manageEnrollments(class)">Gestionar Inscripciones</button>
-              </div>
-            </div>
-          </div>
+      <!-- Lista de clases -->
+      <section class="inner-panel">
+        <h3 class="inner-title">
+          <i class="fas fa-list"></i>
+          Clases Registradas
+        </h3>
+
+        <div *ngIf="classes.length === 0" class="empty-state compact">
+          <i class="fas fa-chalkboard"></i>
+          <p>No hay clases registradas para este curso.</p>
         </div>
 
-        <button class="btn btn-kid btn-secondary mt-4" (click)="closeClassModal()">
-          Cerrar
-        </button>
-      </div>
+        <div class="class-list" *ngIf="classes.length > 0">
+          <article class="class-card" *ngFor="let class of classes">
+            <div class="class-card-header">
+              <h4>{{ class.name }}</h4>
+
+              <span class="visibility-badge" [class.visible]="class.status === 'open'" [class.hidden]="class.status !== 'open'">
+                <i class="fas" [class.fa-lock-open]="class.status === 'open'" [class.fa-lock]="class.status !== 'open'"></i>
+                {{ class.status === 'open' ? 'Abierta' : 'Cerrada' }}
+              </span>
+            </div>
+
+            <div class="class-details">
+              <p><strong>Clase:</strong> #{{ class.classNumber }}</p>
+              <p><strong>Estudiantes:</strong> {{ class.enrollmentCount }}/{{ class.maxStudents }}</p>
+              <p *ngIf="class.resourceLink"><strong>Link:</strong> {{ class.resourceLink }}</p>
+              <p *ngIf="class.resourceFileUrl"><strong>Archivo:</strong> Material cargado</p>
+            </div>
+
+            <div class="button-group">
+              <button class="btn btn-outline" (click)="editClass(class)">
+                <i class="fas fa-edit"></i>
+                Editar
+              </button>
+
+              <button class="btn btn-danger" (click)="deleteClass(class.id)">
+                <i class="fas fa-trash"></i>
+                Eliminar
+              </button>
+
+              <button class="btn btn-primary" (click)="manageEnrollments(class)">
+                <i class="fas fa-user-plus"></i>
+                Gestionar Inscripciones
+              </button>
+            </div>
+          </article>
+        </div>
+      </section>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-secondary" (click)="closeClassModal()">
+        <i class="fas fa-times"></i>
+        Cerrar
+      </button>
     </div>
   </div>
 </div>
