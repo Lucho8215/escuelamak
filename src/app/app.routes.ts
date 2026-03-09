@@ -8,26 +8,104 @@ import { SettingsComponent } from './components/settings/settings.component';
 import { UserManagementComponent } from './components/user-management/user-management.component';
 import { CourseManagementComponent } from './components/course-management/course-management.component';
 import { SupabaseTestComponent } from './components/supabase-test/supabase-test.component';
+import { ParametersComponent } from './components/parameters/parameters.component';
 import { QuizManagementComponent } from './components/quiz-management/quiz-management.component';
 import { QuizTakingComponent } from './components/quiz-taking/quiz-taking.component';
 import { ClassManagementComponent } from './components/class-management/class-management.component';
-import { ParametersComponent } from './components/parameters/parameters.component';
-
+import { AppLayoutComponent } from './components/layout/app-layout.component';
+import { authGuard } from './guards/auth.guard';
+import { roleGuard } from './guards/role.guard';
+import { UserRole } from './models/user.model';
 
 export const routes: Routes = [
+  /**
+   * Ruta inicial:
+   * cuando la app arranca, manda al login
+   */
   { path: '', redirectTo: '/login', pathMatch: 'full' },
-  { path: 'login', component: LoginComponent },
-  { path: 'dashboard', component: DashboardComponent },
-  { path: 'courses', component: CoursesComponent },
-  { path: 'users', component: UsersComponent },
-  { path: 'review', component: ReviewComponent },
-  { path: 'settings', component: SettingsComponent },
-  { path: 'user-management', component: UserManagementComponent },
-  { path: 'course-management', component: CourseManagementComponent },
-  { path: 'supabase-test', component: SupabaseTestComponent },
-  { path: 'quiz-management', component: QuizManagementComponent },
-  { path: 'quiz/:id', component: QuizTakingComponent },
-  { path: 'class-management', component: ClassManagementComponent },
-  { path: 'parameters', component: ParametersComponent },
+
+  /**
+   * Ruta pública:
+   * no necesita sesión
+   */
+  {
+    path: 'login',
+    component: LoginComponent
+  },
+
+  /**
+   * Grupo de rutas privadas:
+   * todas usan AppLayoutComponent como contenedor
+   */
+  {
+    path: '',
+    component: AppLayoutComponent,
+    canActivate: [authGuard],
+    children: [
+      {
+        path: 'dashboard',
+        component: DashboardComponent
+      },
+      {
+        path: 'courses',
+        component: CoursesComponent
+      },
+      {
+        path: 'users',
+        component: UsersComponent,
+        canActivate: [roleGuard([UserRole.ADMIN])]
+      },
+      {
+        path: 'review',
+        component: ReviewComponent,
+        canActivate: [roleGuard([UserRole.ADMIN, UserRole.TEACHER, UserRole.TUTOR])]
+      },
+      {
+        path: 'settings',
+        component: SettingsComponent,
+        canActivate: [roleGuard([UserRole.ADMIN])]
+      },
+      {
+        path: 'user-management',
+        component: UserManagementComponent,
+        canActivate: [roleGuard([UserRole.ADMIN])]
+      },
+      {
+        path: 'course-management',
+        component: CourseManagementComponent,
+        canActivate: [roleGuard([UserRole.ADMIN, UserRole.TEACHER])]
+      },
+      {
+        path: 'supabase-test',
+        component: SupabaseTestComponent,
+        canActivate: [roleGuard([UserRole.ADMIN])]
+      },
+      {
+        path: 'parameters',
+        component: ParametersComponent,
+        canActivate: [roleGuard([UserRole.ADMIN])]
+      },
+      {
+        path: 'quiz-management',
+        component: QuizManagementComponent,
+        canActivate: [roleGuard([UserRole.ADMIN, UserRole.TEACHER, UserRole.TUTOR])]
+      },
+      {
+        path: 'quiz/:id',
+        component: QuizTakingComponent,
+        canActivate: [roleGuard([UserRole.ADMIN, UserRole.TEACHER, UserRole.TUTOR, UserRole.STUDENT])]
+      },
+      {
+        path: 'class-management',
+        component: ClassManagementComponent,
+        canActivate: [roleGuard([UserRole.ADMIN, UserRole.TEACHER])]
+      }
+    ]
+  },
+
+  /**
+   * Cualquier ruta desconocida
+   * redirige al login
+   */
   { path: '**', redirectTo: '/login' }
 ];

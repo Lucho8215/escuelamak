@@ -1,14 +1,26 @@
+:host {
+  display: block;
+}
+
+/* Página del dashboard */
+.dashboard-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+
+   /* permite que el contenido crezca */
+  min-height: 100%;
+
+  /* agrega espacio inferior */
+  padding-bottom: 5rem;
+}
+
+/* Tarjeta de bienvenida */
 .welcome-card {
   border-radius: 20px;
   padding: 2rem;
-  margin-bottom: 2rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 1rem;
   color: white;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
 }
 
 .admin {
@@ -30,64 +42,161 @@
 .welcome-content {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 2rem;
-  flex: 1;
+  flex-wrap: wrap;
 }
 
 .welcome-left {
   flex: 1;
 }
 
-.welcome-name {
-  font-size: 2.5rem;
-  font-weight: 900;
-  margin: 0.5rem 0;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-}
-
-.welcome-email {
-  font-size: 1rem;
-  opacity: 0.9;
-  margin: 0;
-}
-
 .role-badge {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.4rem 1.2rem;
-  border-radius: 50px;
+  padding: 0.45rem 1.1rem;
+  border-radius: 999px;
   font-size: 0.9rem;
-  font-weight: bold;
-  background: rgba(255, 255, 255, 0.25);
-  margin-bottom: 0.5rem;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.22);
+  margin-bottom: 0.8rem;
+}
+
+.welcome-name {
+  font-size: 2rem;
+  font-weight: 800;
+  margin: 0 0 0.4rem;
+}
+
+.welcome-email {
+  margin: 0;
+  opacity: 0.92;
+  font-size: 1rem;
 }
 
 .welcome-avatar {
   font-size: 5rem;
-  opacity: 0.3;
+  opacity: 0.28;
 }
 
-.btn-logout {
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
-  border: 2px solid rgba(255, 255, 255, 0.5);
-  padding: 0.75rem 1.5rem;
-  border-radius: 25px;
-  cursor: pointer;
-  font-size: 1rem;
-  font-weight: bold;
+/* Sección */
+.dashboard-section {
   display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.section-title {
+  margin: 0;
+  font-size: 1.3rem;
+  color: #2d3748;
+  font-weight: 800;
+}
+
+/* Grid */
+.card-grid {
+  display: grid;
+  
+    /* columnas adaptativas */
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+
+  gap: 1.5rem;
+
+  /* evita que se recorten */
+  align-items: stretch;
+}
+
+/* Tarjetas */
+.kid-card {
+  border-radius: 18px;
+  overflow: hidden;
+  color: white;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  min-height: 280px; 
+
+display: flex;
+}
+
+.kid-card-content {
+  padding: 1.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  height: 100%;
+}
+
+.card-icon {
+  font-size: 2rem;
+}
+
+.kid-card h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 800;
+}
+
+.kid-card p {
+  margin: 0;
+  line-height: 1.5;
+  opacity: 0.95;
+}
+
+.btn-kid {
+  margin-top: 10px ;
+  display: inline-flex;
+  justify-content: center;
   align-items: center;
-  gap: 0.5rem;
+  text-decoration: none;
+  font-weight: 700;
+  padding: 0.8rem 1rem;
+  border-radius: 18px;
+  background: rgba(26, 45, 216, 0.2);
+  color: white;
   transition: all 0.2s ease;
 }
 
-.btn-logout:hover {
-  background: rgba(255, 255, 255, 0.35);
-  transform: scale(1.05);
+.btn-kid:hover {
+  background: rgba(255, 255, 255, 0.28);
+  transform: translateY(-2px);
+}
+
+/* Colores de tarjetas */
+.theme-card {
+  background: linear-gradient(135deg, #7f7fd5, #86a8e7, #91eae4);
+}
+
+.completed-card {
+  background: linear-gradient(135deg, #43cea2, #185a9d);
+}
+
+.numbers-card {
+  background: linear-gradient(135deg, #56ccf2, #2f80ed);
 }
 
 .quiz-card {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #667eea, #764ba2);
+}
+
+.pending-card {
+  background: linear-gradient(135deg, #f7971e, #ffd200);
+}
+
+.params-card {
+  background: linear-gradient(135deg, #11998e, #38ef7d);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .welcome-card {
+    padding: 1.5rem;
+  }
+
+  .welcome-name {
+    font-size: 1.6rem;
+  }
+
+  .welcome-avatar {
+    font-size: 4rem;
+  }
 }
