@@ -1,0 +1,53 @@
+<div class="layout-shell">
+  <!-- Sidebar lateral -->
+  <aside class="sidebar">
+    <!-- Cabecera del sidebar -->
+    <div class="sidebar-brand">
+      <div class="brand-icon">
+        <i class="fas fa-graduation-cap"></i>
+      </div>
+
+      <div class="brand-text">
+        <h2>EscuelaMak</h2>
+        <p>Panel principal</p>
+      </div>
+    </div>
+
+    <!-- Información del usuario -->
+    <div class="user-box" *ngIf="currentUser">
+      <i class="fas fa-user-circle user-avatar"></i>
+
+      <div class="user-info">
+        <strong>{{ currentUser.name }}</strong>
+        <span>{{ roleLabel }}</span>
+      </div>
+    </div>
+
+    <!-- Menú de navegación -->
+    <nav class="sidebar-nav">
+      <a
+        *ngFor="let item of visibleNavItems"
+        [routerLink]="item.route"
+        routerLinkActive="active-link"
+        class="nav-link"
+      >
+        <i [class]="item.icon"></i>
+        <span>{{ item.label }}</span>
+      </a>
+    </nav>
+
+    <!-- Footer del sidebar -->
+    <div class="sidebar-footer">
+      <button class="logout-btn" (click)="logout()">
+        <i class="fas fa-sign-out-alt"></i>
+        <span>Salir</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Área principal -->
+  <main class="layout-content">
+    <!-- Aquí se cargará cada página -->
+    <router-outlet></router-outlet>
+  </main>
+</div>

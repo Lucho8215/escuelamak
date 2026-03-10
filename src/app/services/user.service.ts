@@ -47,7 +47,6 @@ export class UserService {
       .select('*')
       .eq('email', email)
       .single();
-      
 
     if (error || !data) {
       return null;
@@ -126,6 +125,19 @@ export class UserService {
     );
   }
 
+  deleteUser(userId: string): Observable<void> {
+    return from(
+      this.callAdminFunction<{ success: boolean }>('delete-user', {
+        id: userId
+      })
+    ).pipe(
+      map(() => void 0),
+      catchError(error =>
+        throwError(() => new Error(error.message || 'Error al eliminar usuario'))
+      )
+    );
+  }
+
   private async callAdminFunction<T>(
     action: string,
     payload: {
@@ -138,19 +150,10 @@ export class UserService {
       password?: string;
     }
   ): Promise<T> {
-    const {
-      data: { session }
-    } = await this.supabaseService.getClient().auth.getSession();
-
-    if (!session?.access_token) {
-      throw new Error('No hay sesión activa');
-    }
-
     const response = await fetch(this.getFunctionEndpoint('admin-users'), {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${session.access_token}`
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         action,
@@ -160,23 +163,23 @@ export class UserService {
 
     let result: unknown;
 
-try {
-  result = await response.json();
-} catch {
-  result = null;
-}
+    try {
+      result = await response.json();
+    } catch {
+      result = null;
+    }
 
-if (!response.ok) {
-  const message =
-    typeof result === 'object' &&
-    result !== null &&
-    'error' in result &&
-    typeof (result as { error: unknown }).error === 'string'
-      ? (result as { error: string }).error
-      : `Error HTTP ${response.status} en la función administrativa`;
+    if (!response.ok) {
+      const message =
+        typeof result === 'object' &&
+        result !== null &&
+        'error' in result &&
+        typeof (result as { error: unknown }).error === 'string'
+          ? (result as { error: string }).error
+          : `Error HTTP ${response.status} en la función administrativa`;
 
-  throw new Error(message);
-}
+      throw new Error(message);
+    }
 
     return result as T;
   }
@@ -190,11 +193,5 @@ if (!response.ok) {
       cedula: data.cedula,
       role: data.role as UserRole
     };
-    
   }
-  deleteUser(userId: string) {
-  return from(
-    this.callAdminFunction('delete-user', { id: userId })
-  );
-}
 }

@@ -1,50 +1,102 @@
 export interface Course {
   id: string;
+
+  /* Información general del curso */
   title: string;
   description: string;
+
+  /* Categoría */
   category: 'education' | 'mathematics';
-  isVisible: boolean;
-  videoUrl: string;
+
+  /* Multimedia */
+  imageUrl?: string;
+  videoUrl?: string;
+
+  /* Precio */
   price: number;
-  duration: number;
-  createdAt: Date;
-  updatedAt: Date;
+  hidePrice?: boolean;
+
+  /* Duración */
+  duration?: number;
+  durationMonths?: number;
+
+  /* Visibilidad */
+  isVisible: boolean;
 }
 
 export interface Class {
   id: string;
+
+  /* Relación con curso */
   courseId: string;
+
+  /* Datos principales */
   name: string;
   teacherId: string;
+
+  /* Estado de la clase */
   status: 'open' | 'closed';
+
+  /* Organización */
   classNumber: number;
-  enrollmentCount: number;
   maxStudents: number;
+  enrollmentCount: number;
+
+  /* Fechas */
   startDate: Date;
   endDate: Date;
-  enrolledStudents: string[];
-  courseTitle?: string;
-  teacherName?: string;
+
+  /* Recursos */
+  imageUrl?: string;
+  resourceLink?: string;
+  resourceFileUrl?: string;
+
+  /* Observación del docente / administrador */
+  observation?: string;
+
+  /* Estudiantes inscritos */
+  enrolledStudents?: string[];
 }
 
 export interface CourseEnrollment {
   id: string;
+
+  /* Relación con curso y clase */
   courseId: string;
-  studentId: string;
   classId: string;
-  enrollmentDate: Date;
-  status: 'active' | 'completed' | 'cancelled';
+
+  /* Estudiante */
+  studentId: string;
   studentName?: string;
   studentEmail?: string;
+
+  /* Estado */
+  status?: 'active' | 'inactive' | 'pending';
+
+  /* Fechas */
+  enrollmentDate?: Date;
+  enrolledAt?: Date;
 }
 
-export interface Lesson {
+/**
+ * Nueva estructura para inscripción específica por clase.
+ * La usaremos para gestionar estudiantes por clase.
+ */
+export interface ClassEnrollment {
   id: string;
+
+  /* Relación principal */
+  courseId: string;
   classId: string;
-  title: string;
-  description?: string;
-  order: number;
-  isCompleted: boolean;
-  videoUrl?: string;
-  createdAt: Date;
+  studentId: string;
+
+  /* Datos opcionales para mostrar en UI */
+  studentName?: string;
+  studentEmail?: string;
+
+  /* Estado de la inscripción */
+  status: 'active' | 'inactive' | 'pending';
+
+  /* Fecha */
+  enrollmentDate: Date;
 }

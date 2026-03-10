@@ -7,7 +7,12 @@
 
     <div class="header-actions">
       <button class="btn btn-refresh" (click)="loadUsers()" [disabled]="loading">
-        <i class="fas" [class.fa-rotate-right]="!loading" [class.fa-spinner]="loading" [class.fa-spin]="loading"></i>
+        <i
+          class="fas"
+          [class.fa-rotate-right]="!loading"
+          [class.fa-spinner]="loading"
+          [class.fa-spin]="loading"
+        ></i>
         Recargar
       </button>
 
@@ -50,11 +55,11 @@
   </div>
 
   <div class="card-grid" *ngIf="!loading && users.length > 0">
-    <div class="kid-card" *ngFor="let user of users; let i = index; trackBy: trackByUserId">
+    <div class="kid-card" *ngFor="let user of users; trackBy: trackByUserId">
       <div class="kid-card-content">
         <i class="fas fa-user-circle card-icon"></i>
         <h3>{{ user.name }}</h3>
-        
+
         <div class="user-details">
           <p><strong>Correo:</strong> {{ user.email }}</p>
           <p><strong>Cédula:</strong> {{ user.cedula }}</p>
@@ -65,20 +70,32 @@
             Editar usuario
           </button>
 
+          <button
+            class="btn btn-danger-user"
+            (click)="deleteUser(user)"
+            [disabled]="isDeletingUser(user.id)"
+          >
+            <i
+              class="fas"
+              [class.fa-trash]="!isDeletingUser(user.id)"
+              [class.fa-spinner]="isDeletingUser(user.id)"
+              [class.fa-spin]="isDeletingUser(user.id)"
+            ></i>
+            {{ isDeletingUser(user.id) ? 'Eliminando...' : 'Eliminar usuario' }}
+          </button>
+
           <hr class="separator" />
 
           <div class="form-group">
-            <label [for]="'password' + i">Nueva contraseña</label>
+            <label>Nueva contraseña</label>
             <input
               type="password"
-              [id]="'password' + i"
               [(ngModel)]="newPasswords[user.id]"
               class="kid-input"
               placeholder="Nueva contraseña"
               [disabled]="isUpdatingPassword(user.id)"
             />
           </div>
-          
 
           <button
             class="btn btn-kid"
@@ -93,7 +110,6 @@
             ></i>
             {{ isUpdatingPassword(user.id) ? 'Actualizando...' : 'Actualizar Contraseña' }}
           </button>
-          
         </div>
       </div>
     </div>
@@ -141,14 +157,25 @@
 
       <div class="form-group" *ngIf="!editingUser">
         <label class="form-label">Contraseña inicial</label>
-        <input class="form-input" type="password" [(ngModel)]="userForm.password" placeholder="Contraseña inicial" />
+        <input
+          class="form-input"
+          type="password"
+          [(ngModel)]="userForm.password"
+          placeholder="Contraseña inicial"
+        />
       </div>
     </div>
 
     <div class="modal-footer">
       <button class="btn btn-secondary-modal" (click)="closeUserModal()">Cancelar</button>
-      <button class="btn btn-kid" (click)="saveUser()" [disabled]="saving">
-        <i class="fas" [class.fa-save]="!saving" [class.fa-spinner]="saving" [class.fa-spin]="saving"></i>
+
+      <button class="btn btn-kid modal-save-btn" (click)="saveUser()" [disabled]="saving">
+        <i
+          class="fas"
+          [class.fa-save]="!saving"
+          [class.fa-spinner]="saving"
+          [class.fa-spin]="saving"
+        ></i>
         {{ saving ? 'Guardando...' : (editingUser ? 'Actualizar Usuario' : 'Crear Usuario') }}
       </button>
     </div>

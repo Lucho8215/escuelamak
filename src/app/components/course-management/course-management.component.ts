@@ -7,6 +7,36 @@ import { Course, Class } from '../../models/course.model';
 import { UserService } from '../../services/user.service';
 import { User, UserRole } from '../../models/user.model';
 
+type CourseForm = {
+  title: string;
+  description: string;
+  category: 'education' | 'mathematics';
+  isVisible: boolean;
+  videoUrl: string;
+  imageUrl?: string;
+  price: number;
+  hidePrice: boolean;
+  duration?: number;
+  durationMonths: number;
+};
+
+type ClassForm = {
+  id?: string;
+  name: string;
+  teacherId: string;
+  status: 'open' | 'closed';
+  classNumber: number;
+  maxStudents: number;
+  enrollmentCount: number;
+  startDate: string;
+  endDate: string;
+  imageUrl?: string;
+  resourceLink?: string;
+  resourceFileUrl?: string;
+  observation?: string;
+  enrolledStudents: string[];
+};
+
 @Component({
   selector: 'app-course-management',
   standalone: true,
@@ -18,46 +48,39 @@ export class CourseManagementComponent implements OnInit {
   courses: Course[] = [];
   classes: Class[] = [];
   teachers: User[] = [];
-  isLoading: boolean = false;
-  
-  newCourse: Partial<Course> = {
-    title: '',
-    description: '',
-    category: 'education',
-    isVisible: true,
-    videoUrl: '',
-    price: 0,
-    duration: 1
-  };
 
-  newClass: Partial<Class> = {
-    name: '',
-    teacherId: '',
-    status: 'open',
-    classNumber: 1,
-    maxStudents: 20,
-    enrollmentCount: 0,
-    startDate: new Date(),
-    endDate: new Date(),
-    enrolledStudents: []
-  };
+  isLoading = false;
+  errorMessage = '';
 
-  editingCourse: boolean = false;
-  editingClass: boolean = false;
-  showClassModal: boolean = false;
+  editingCourse = false;
+  editingClass = false;
+
+  showClassModal = false;
+
   selectedCourse: Course | null = null;
-  errorMessage: string = '';
+  selectedClass: Class | null = null;
+
+  newCourse: CourseForm = this.getEmptyCourseForm();
+  newClass: ClassForm = this.getEmptyClassForm();
+
+  /**
+   * Archivos seleccionados temporalmente.
+   * En el siguiente paso los subiremos a Storage.
+   */
+  selectedCourseImageFile: File | null = null;
+  selectedClassImageFile: File | null = null;
+  selectedClassResourceFile: File | null = null;
 
   constructor(
     private courseService: CourseService,
     private userService: UserService
   ) {}
 
-  ngOnInit() {
+  ngOnInit(): void {
     this.loadInitialData();
   }
 
-  private async loadInitialData() {
+  private async loadInitialData(): Promise<void> {
     try {
       this.isLoading = true;
       await Promise.all([
@@ -71,15 +94,92 @@ export class CourseManagementComponent implements OnInit {
     }
   }
 
-  private handleError(message: string, error: any) {
-    this.errorMessage = message;
+  private handleError(message: string, error: unknown): void {
     console.error(message, error);
+
+    const detailedMessage =
+      error instanceof Error && error.message
+        ? `${message}: ${error.message}`
+        : message;
+
+    this.errorMessage = detailedMessage;
+
     setTimeout(() => {
       this.errorMessage = '';
     }, 5000);
   }
 
-  async loadCourses() {
+  private getEmptyCourseForm(): CourseForm {
+    return {
+      title: '',
+      description: '',
+      category: 'education',
+      isVisible: true,
+      videoUrl: '',
+      imageUrl: '',
+      price: 0,
+      hidePrice: false,
+      duration: 1,
+      durationMonths: 1
+    };
+  }
+
+  private getEmptyClassForm(): ClassForm {
+    const now = new Date();
+    const later = new Date(now.getTime() + 60 * 60 * 1000);
+
+    return {
+      name: '',
+      teacherId: '',
+      status: 'open',
+      classNumber: 1,
+      maxStudents: 20,
+      enrollmentCount: 0,
+      startDate: this.formatDateForInput(now),
+      endDate: this.formatDateForInput(later),
+      imageUrl: '',
+      resourceLink: '',
+      resourceFileUrl: '',
+      observation: '',
+      enrolledStudents: []
+    };
+  }
+
+  private formatDateForInput(date: Date): string {
+    const year = date.getFullYear();
+    const month = `${date.getMonth() + 1}`.padStart(2, '0');
+    const day = `${date.getDate()}`.padStart(2, '0');
+    const hours = `${date.getHours()}`.padStart(2, '0');
+    const minutes = `${date.getMinutes()}`.padStart(2, '0');
+
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  }
+
+  /**
+   * Guarda temporalmente la imagen del curso seleccionada.
+   */
+  onCourseImageSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.selectedCourseImageFile = input.files?.[0] ?? null;
+  }
+
+  /**
+   * Guarda temporalmente la imagen de la clase seleccionada.
+   */
+  onClassImageSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.selectedClassImageFile = input.files?.[0] ?? null;
+  }
+
+  /**
+   * Guarda temporalmente el archivo adjunto de la clase.
+   */
+  onClassFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.selectedClassResourceFile = input.files?.[0] ?? null;
+  }
+
+  async loadCourses(): Promise<void> {
     try {
       this.courses = await this.courseService.getCourses();
     } catch (error) {
@@ -87,26 +187,44 @@ export class CourseManagementComponent implements OnInit {
     }
   }
 
-  async loadTeachers() {
-    this.userService.getUsers().subscribe({
-      next: (users) => {
-        this.teachers = users.filter(user => user.role === UserRole.TEACHER);
-      },
-      error: (error) => {
-        this.handleError('Error al cargar los profesores', error);
-      }
+  async loadTeachers(): Promise<void> {
+    return new Promise((resolve) => {
+      this.userService.getUsers().subscribe({
+        next: (users) => {
+          this.teachers = users.filter((user) => user.role === UserRole.TEACHER);
+          resolve();
+        },
+        error: (error) => {
+          this.handleError('Error al cargar los profesores', error);
+          resolve();
+        }
+      });
     });
   }
 
-  async saveCourse() {
+  async saveCourse(): Promise<void> {
     try {
       this.isLoading = true;
+
+      const payload: Partial<Course> = {
+        title: this.newCourse.title.trim(),
+        description: this.newCourse.description.trim(),
+        category: this.newCourse.category as 'education' | 'mathematics',
+        isVisible: this.newCourse.isVisible,
+        videoUrl: this.newCourse.videoUrl.trim(),
+        imageUrl: this.newCourse.imageUrl?.trim() || '',
+        price: Number(this.newCourse.price),
+        hidePrice: this.newCourse.hidePrice,
+        duration: Number(this.newCourse.duration ?? 1),
+        durationMonths: Number(this.newCourse.durationMonths)
+      };
+
       if (this.editingCourse && this.selectedCourse) {
-        await this.courseService.updateCourse(this.selectedCourse.id, this.newCourse as Course);
+        await this.courseService.updateCourse(this.selectedCourse.id, payload as Course);
       } else {
-        await this.courseService.createCourse(this.newCourse as Course);
+        await this.courseService.createCourse(payload as Course);
       }
-      
+
       this.resetCourseForm();
       await this.loadCourses();
     } catch (error) {
@@ -116,33 +234,50 @@ export class CourseManagementComponent implements OnInit {
     }
   }
 
-  editCourse(course: Course) {
+  editCourse(course: Course): void {
     this.editingCourse = true;
     this.selectedCourse = course;
-    this.newCourse = { ...course };
+
+    this.newCourse = {
+      title: course.title ?? '',
+      description: course.description ?? '',
+      category: course.category ?? 'education',
+      isVisible: course.isVisible ?? true,
+      videoUrl: course.videoUrl ?? '',
+      imageUrl: course.imageUrl ?? '',
+      price: course.price ?? 0,
+      hidePrice: course.hidePrice ?? false,
+      duration: course.duration ?? 1,
+      durationMonths: course.durationMonths ?? 1
+    };
   }
 
-  async deleteCourse(id: string) {
-    if (confirm('¿Estás seguro de que deseas eliminar este curso?')) {
-      try {
-        this.isLoading = true;
-        await this.courseService.deleteCourse(id);
-        await this.loadCourses();
-      } catch (error) {
-        this.handleError('Error al eliminar el curso', error);
-      } finally {
-        this.isLoading = false;
-      }
+  async deleteCourse(id: string): Promise<void> {
+    const confirmed = confirm('¿Estás seguro de que deseas eliminar este curso?');
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      this.isLoading = true;
+      await this.courseService.deleteCourse(id);
+      await this.loadCourses();
+    } catch (error) {
+      this.handleError('Error al eliminar el curso', error);
+    } finally {
+      this.isLoading = false;
     }
   }
 
-  async manageClasses(course: Course) {
+  async manageClasses(course: Course): Promise<void> {
     this.selectedCourse = course;
     this.showClassModal = true;
+    this.resetClassForm();
     await this.loadClasses(course.id);
   }
 
-  async loadClasses(courseId: string) {
+  async loadClasses(courseId: string): Promise<void> {
     try {
       this.isLoading = true;
       this.classes = await this.courseService.getClasses(courseId);
@@ -153,22 +288,51 @@ export class CourseManagementComponent implements OnInit {
     }
   }
 
-  async saveClass() {
-    if (!this.selectedCourse) return;
+  async saveClass(): Promise<void> {
+    if (!this.selectedCourse) {
+      this.handleError('No hay curso seleccionado para crear la clase', null);
+      return;
+    }
 
     try {
       this.isLoading = true;
-      if (this.editingClass) {
-        // Actualizar clase existente
+
+      const payload: Partial<Class> = {
+        name: this.newClass.name.trim(),
+        teacherId: this.newClass.teacherId,
+        status: this.newClass.status as 'open' | 'closed',
+        classNumber: Number(this.newClass.classNumber),
+        maxStudents: Number(this.newClass.maxStudents),
+        enrollmentCount: Number(this.newClass.enrollmentCount),
+        startDate: new Date(this.newClass.startDate),
+        endDate: new Date(this.newClass.endDate),
+        imageUrl: this.newClass.imageUrl?.trim() || '',
+        resourceLink: this.newClass.resourceLink?.trim() || '',
+        resourceFileUrl: this.newClass.resourceFileUrl?.trim() || '',
+        enrolledStudents: this.newClass.enrolledStudents,
+        observation: this.newClass.observation,
+        courseId: this.selectedCourse.id
+      };
+
+      if (this.editingClass && this.selectedClass) {
+        const courseServiceWithUpdate = this.courseService as CourseService & {
+          updateClass?: (classId: string, data: Class) => Promise<void>;
+        };
+
+        if (courseServiceWithUpdate.updateClass) {
+          await courseServiceWithUpdate.updateClass(this.selectedClass.id, payload as Class);
+        } else {
+          throw new Error('El servicio todavía no implementa updateClass');
+        }
       } else {
-        await this.courseService.createClass({
-          ...this.newClass as Class,
-          courseId: this.selectedCourse.id
-        });
+        await this.courseService.createClass(payload as Class);
       }
-      
+
       this.resetClassForm();
-      await this.loadClasses(this.selectedCourse.id);
+
+      if (this.selectedCourse) {
+        await this.loadClasses(this.selectedCourse.id);
+      }
     } catch (error) {
       this.handleError('Error al guardar la clase', error);
     } finally {
@@ -176,64 +340,73 @@ export class CourseManagementComponent implements OnInit {
     }
   }
 
-  editClass(class_: Class) {
+  editClass(classItem: Class): void {
     this.editingClass = true;
-    this.newClass = { ...class_ };
+    this.selectedClass = classItem;
+
+    this.newClass = {
+      id: classItem.id,
+      name: classItem.name ?? '',
+      teacherId: classItem.teacherId ?? '',
+      status: classItem.status ?? 'open',
+      classNumber: classItem.classNumber ?? 1,
+      maxStudents: classItem.maxStudents ?? 20,
+      enrollmentCount: classItem.enrollmentCount ?? 0,
+      startDate: this.formatDateForInput(new Date(classItem.startDate)),
+      endDate: this.formatDateForInput(new Date(classItem.endDate)),
+      imageUrl: classItem.imageUrl ?? '',
+      resourceLink: classItem.resourceLink ?? '',
+      resourceFileUrl: classItem.resourceFileUrl ?? '',
+      enrolledStudents: classItem.enrolledStudents ?? []
+    };
   }
 
-  async deleteClass(id: string) {
-    if (confirm('¿Estás seguro de que deseas eliminar esta clase?')) {
-      try {
-        this.isLoading = true;
-        await this.courseService.deleteClass(id);
-        if (this.selectedCourse) {
-          await this.loadClasses(this.selectedCourse.id);
-        }
-      } catch (error) {
-        this.handleError('Error al eliminar la clase', error);
-      } finally {
-        this.isLoading = false;
+  async deleteClass(id: string): Promise<void> {
+    const confirmed = confirm('¿Estás seguro de que deseas eliminar esta clase?');
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      this.isLoading = true;
+      await this.courseService.deleteClass(id);
+
+      if (this.selectedCourse) {
+        await this.loadClasses(this.selectedCourse.id);
       }
+    } catch (error) {
+      this.handleError('Error al eliminar la clase', error);
+    } finally {
+      this.isLoading = false;
     }
   }
 
-  manageEnrollments(class_: Class) {
-    // Implementar gestión de inscripciones
+  manageEnrollments(classItem: Class): void {
+    console.log('Gestión de inscripciones pendiente para:', classItem);
+    alert(`Próximo paso: gestionar inscripciones de la clase "${classItem.name}"`);
   }
 
-  closeClassModal() {
+  closeClassModal(): void {
     this.showClassModal = false;
+    this.selectedClass = null;
     this.resetClassForm();
   }
 
-  resetCourseForm() {
-    this.newCourse = {
-      title: '',
-      description: '',
-      category: 'education',
-      isVisible: true,
-      videoUrl: '',
-      price: 0,
-      duration: 1
-    };
+  resetCourseForm(): void {
+    this.newCourse = this.getEmptyCourseForm();
     this.editingCourse = false;
     this.selectedCourse = null;
+    this.selectedCourseImageFile = null;
     this.errorMessage = '';
   }
 
-  resetClassForm() {
-    this.newClass = {
-      name: '',
-      teacherId: '',
-      status: 'open',
-      classNumber: 1,
-      maxStudents: 20,
-      enrollmentCount: 0,
-      startDate: new Date(),
-      endDate: new Date(),
-      enrolledStudents: []
-    };
+  resetClassForm(): void {
+    this.newClass = this.getEmptyClassForm();
     this.editingClass = false;
+    this.selectedClass = null;
+    this.selectedClassImageFile = null;
+    this.selectedClassResourceFile = null;
     this.errorMessage = '';
   }
 }

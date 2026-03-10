@@ -1,131 +1,494 @@
-.modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-.modal-content {
-  max-width: 800px;
-  width: 90%;
-  max-height: 90vh;
-  overflow-y: auto;
-  margin: 2rem;
-}
-
-.button-group {   
-  display: flex;
-  gap: 1rem;
-  margin-top: 1rem;
-  flex-wrap: wrap;
-  justify-content: center;
-}
-
-.btn-danger {
-  background-color: #ff6b6b !important;
-  color: white !important;
-}
-
-.btn-danger:hover {
-  background-color: #ff5252 !important;
-}
-
-.btn-secondary {
-  background-color: #6c757d !important;
-  color: white !important;
-}
-
-.btn-secondary:hover {
-  background-color: #5a6268 !important;
-}
-
-.classes-list {
-  margin-top: 2rem;
-}
-
-.class-item {
-  margin-bottom: 1rem;
-}
-
-.class-details, .course-details {
-  margin: 1rem 0;
-  text-align: left;
-}
-
-.form-group {
-  margin-bottom: 1.5rem;
-  text-align: left;
-}
-
-.kid-input {
-  width: 100%;
-  padding: 0.75rem;
-  border: 2px solid #87CEFA;
-  border-radius: 10px;
-  font-family: 'Comic Sans MS', cursive;
-  background-color: white;
-}
-
-.checkbox-label {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: white;
-  cursor: pointer;
-}
-
-textarea.kid-input {
-  resize: vertical;
-  min-height: 100px;
-}
-
-.mt-4 {
-  margin-top: 2rem;
-}
-
-h2 {
-  color: white;
-  font-family: 'Comic Sans MS', cursive;
-  margin-bottom: 1.5rem;
-  text-align: center;
-}
-
-h4 {
-  color: white;
-  font-family: 'Comic Sans MS', cursive;
-  margin-bottom: 1rem;
-  font-size: 1.5rem;
-}
-
-label {
-  color: white;
-  font-family: 'Comic Sans MS', cursive;
-  margin-bottom: 0.5rem;
+:host {
   display: block;
 }
 
-.error-message {
-  background-color: #ff6b6b;
-  color: white;
-  padding: 1rem;
-  border-radius: 10px;
-  margin-bottom: 1rem;
+/* =========================
+   ESTRUCTURA GENERAL
+========================= */
+.page-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.page-title {
+  margin: 0;
+  font-size: 1.8rem;
+  color: #2d3748;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.page-subtitle {
+  margin: 0.45rem 0 0;
+  color: #718096;
+  line-height: 1.5;
+  max-width: 760px;
+}
+
+/* =========================
+   ALERTAS Y ESTADOS
+========================= */
+.alert {
+  padding: 1rem 1.2rem;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-weight: 600;
+}
+
+.alert-error {
+  background: rgba(231, 76, 60, 0.12);
+  color: #b83227;
+  border: 1px solid rgba(231, 76, 60, 0.25);
+}
+
+.loading-state,
+.empty-state {
+  padding: 2rem;
+  border-radius: 18px;
+  background: white;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
   text-align: center;
-  font-family: 'Comic Sans MS', cursive;
+  color: #4a5568;
+}
+
+.loading-state i,
+.empty-state i {
+  display: block;
+  font-size: 2rem;
+  margin-bottom: 0.8rem;
+}
+
+.empty-state.compact {
+  padding: 1.25rem;
+  box-shadow: none;
+  background: #f8fafc;
+}
+
+/* =========================
+   PANELES
+========================= */
+.panel-card {
+  background: white;
+  border-radius: 22px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+.panel-card-header {
+  padding: 1.25rem 1.4rem 0.75rem;
+}
+
+.panel-card-body {
+  padding: 1.25rem 1.4rem 1.4rem;
+}
+
+.panel-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #2d3748;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.panel-subtitle {
+  margin: 0.45rem 0 0;
+  color: #718096;
+  line-height: 1.5;
+}
+
+/* =========================
+   FORMULARIOS
+========================= */
+.course-form,
+.class-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.form-group label {
+  font-weight: 700;
+  color: #2d3748;
+  font-size: 0.95rem;
+}
+
+.form-input {
+  width: 100%;
+  padding: 0.85rem 0.95rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 14px;
+  background: #fff;
+  box-sizing: border-box;
+  font-size: 0.95rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.12);
+}
+
+textarea.form-input {
+  resize: vertical;
+  min-height: 110px;
+}
+
+.checkbox-group {
+  justify-content: end;
+}
+
+.checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-weight: 700;
+  color: #2d3748;
+  margin-top: 2rem;
+}
+
+/* =========================
+   BOTONES
+========================= */
+.button-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.btn {
+  border: none;
+  border-radius: 14px;
+  padding: 0.85rem 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+}
+
+.btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+}
+
+.btn-secondary {
+  background: #edf2f7;
+  color: #2d3748;
+}
+
+.btn-outline {
+  background: white;
+  color: #4c51bf;
+  border: 2px solid #c3d0ff;
+}
+
+.btn-danger {
+  background: linear-gradient(135deg, #ff6b6b, #ee0979);
+  color: white;
+}
+
+/* =========================
+   GRID DE CURSOS
+========================= */
+.courses-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.25rem;
+}
+
+.course-card {
+  background: linear-gradient(135deg, #7f7fd5, #86a8e7, #91eae4);
+  color: white;
+  border-radius: 20px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+}
+
+.course-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.course-badge,
+.visibility-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.course-badge {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.visibility-badge.visible {
+  background: rgba(46, 204, 113, 0.22);
+  color: #f0fff4;
+}
+
+.visibility-badge.hidden {
+  background: rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.course-title {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 800;
+}
+
+.course-description {
+  margin: 0;
+  line-height: 1.6;
+  opacity: 0.95;
+}
+
+.course-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-weight: 600;
+}
+
+/* =========================
+   MODAL
+========================= */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.modal-box {
+  width: 100%;
+  max-width: 1100px;
+  background: white;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.25);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.25rem 1.4rem;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+}
+
+.modal-title {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.modal-subtitle {
+  margin: 0.35rem 0 0;
+  opacity: 0.95;
+}
+
+.modal-close {
+  border: none;
+  background: rgba(255, 255, 255, 0.18);
+  color: white;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.modal-close:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.modal-body {
+  padding: 1.4rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+}
+
+.modal-footer {
+  padding: 0 1.4rem 1.4rem;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* =========================
+   SUBPANELES DEL MODAL
+========================= */
+.inner-panel {
+  background: #f8fafc;
+  border-radius: 18px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.inner-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #2d3748;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+/* =========================
+   LISTA DE CLASES
+========================= */
+.class-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.class-card {
+  background: white;
+  border-radius: 16px;
+  padding: 1rem;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.class-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.class-card-header h4 {
+  margin: 0;
+  font-size: 1rem;
+  color: #2d3748;
+  font-weight: 800;
+}
+
+.class-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.class-details p {
+  margin: 0;
+  color: #4a5568;
+  line-height: 1.5;
+}
+
+/* =========================
+   RESPONSIVE
+========================= */
+@media (max-width: 900px) {
+  .modal-body {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 768px) {
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .checkbox-label {
+    margin-top: 0;
+  }
+
+  .page-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
   .button-group {
     flex-direction: column;
   }
 
   .button-group .btn {
+    width: 100%;
+  }
+
+  .modal-header {
+    flex-direction: column;
+  }
+
+  .modal-footer {
+    padding-top: 1rem;
+  }
+
+  .modal-footer .btn {
     width: 100%;
   }
 }

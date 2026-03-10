@@ -1,4 +1,88 @@
 ﻿:host {
+  display: block;
+}
+
+.page-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.page-title {
+  margin: 0;
+  font-size: 1.8rem;
+  color: #2d3748;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.page-subtitle {
+  margin: 0.45rem 0 0;
+  color: #718096;
+  line-height: 1.5;
+  max-width: 760px;
+}
+
+.params-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.section-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.section-tabs .nav-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  border: none;
+  background: white;
+  color: #4a5568;
+  padding: 0.85rem 1rem;
+  border-radius: 14px;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+  transition: all 0.2s ease;
+  font-weight: 600;
+}
+
+.section-tabs .nav-item:hover {
+  transform: translateY(-2px);
+}
+
+.section-tabs .nav-item.active {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+}
+
+.section-tabs .nav-badge {
+  background: rgba(255, 255, 255, 0.25);
+  color: inherit;
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+
+
+
+
+
+:host {
   --primary: var(--color-primary, #667eea);
   --secondary: var(--color-secondary, #764ba2);
   display: block;
@@ -1336,4 +1420,82 @@
   .section-header {
     flex-direction: column;
   }
+  :host {
+  display: block;
+}
+
+.page-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.page-title {
+  margin: 0;
+  font-size: 1.8rem;
+  color: #2d3748;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.page-subtitle {
+  margin: 0.45rem 0 0;
+  color: #718096;
+  line-height: 1.5;
+  max-width: 760px;
+}
+
+.params-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.section-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.section-tabs .nav-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  border: none;
+  background: white;
+  color: #4a5568;
+  padding: 0.85rem 1rem;
+  border-radius: 14px;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+  transition: all 0.2s ease;
+  font-weight: 600;
+}
+
+.section-tabs .nav-item:hover {
+  transform: translateY(-2px);
+}
+
+.section-tabs .nav-item.active {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+}
+
+.section-tabs .nav-badge {
+  background: rgba(255, 255, 255, 0.25);
+  color: inherit;
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
 }
