@@ -230,6 +230,10 @@
               <i class="fas fa-trash"></i>
               Eliminar
             </button>
+            <a class="btn btn-secondary" [routerLink]="['/lesson-management', course.id]">
+                <i class="fas fa-book-reader"></i>
+              Lecciones
+              </a>
 
             <button class="btn btn-primary" (click)="manageClasses(course)">
               <i class="fas fa-chalkboard"></i>

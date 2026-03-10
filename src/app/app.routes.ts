@@ -16,6 +16,10 @@ import { AppLayoutComponent } from './components/layout/app-layout.component';
 import { authGuard } from './guards/auth.guard';
 import { roleGuard } from './guards/role.guard';
 import { UserRole } from './models/user.model';
+import { LessonManagementComponent } from './components/lesson-management/lesson-management.component';
+import { StudentLessonsComponent } from './components/student-lessons/student-lessons.component';
+
+
 
 export const routes: Routes = [
   /**
@@ -32,12 +36,24 @@ export const routes: Routes = [
     path: 'login',
     component: LoginComponent
   },
+  {
+    path: 'lesson-management/:courseId',
+    component: LessonManagementComponent
+   },
+   {
+     path: 'my-lessons',
+     component: StudentLessonsComponent
+    },
+  {
+    path: 'lesson-management/:courseId',
+    component: LessonManagementComponent
+  },
 
   /**
    * Grupo de rutas privadas:
    * todas usan AppLayoutComponent como contenedor
    */
-  {
+  { 
     path: '',
     component: AppLayoutComponent,
     canActivate: [authGuard],

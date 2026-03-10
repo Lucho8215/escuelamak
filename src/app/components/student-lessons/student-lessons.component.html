@@ -1,0 +1,82 @@
+<div class="student-page">
+  <div class="page-header">
+    <h1>Mis Lecciones</h1>
+    <p>Consulta tu progreso, continúa tus actividades y revisa tus recursos asignados.</p>
+  </div>
+
+  <div *ngIf="successMessage" class="alert success">{{ successMessage }}</div>
+  <div *ngIf="errorMessage" class="alert error">{{ errorMessage }}</div>
+
+  <div class="overview-card">
+    <div>
+      <strong>{{ lessons.length }}</strong>
+      <span>Lecciones activas</span>
+    </div>
+    <div>
+      <strong>{{ getOverallProgress() }}%</strong>
+      <span>Progreso general</span>
+    </div>
+  </div>
+
+  <div *ngIf="loading" class="empty-box">Cargando tus lecciones...</div>
+
+  <div class="lesson-grid" *ngIf="!loading && lessons.length > 0">
+    <article class="lesson-card" *ngFor="let row of lessons">
+      <div class="lesson-top">
+        <div>
+          <h3>{{ row.lessonTitle }}</h3>
+          <p>{{ row.className }}</p>
+        </div>
+
+        <span class="status-chip" [ngClass]="row.status">
+          {{ getStatusLabel(row.status) }}
+        </span>
+      </div>
+
+      <p class="summary">{{ row.summary || 'Sin resumen disponible.' }}</p>
+
+      <div class="progress-box">
+        <div class="progress-bar">
+          <div
+            class="progress-fill"
+            [style.width.%]="row.progressPercent"
+            [style.background]="getProgressColor(row.progressPercent)"
+          ></div>
+        </div>
+        <small>{{ row.progressPercent }}%</small>
+      </div>
+
+      <div class="meta">
+        <span *ngIf="row.videoUrl">Video disponible</span>
+        <span *ngIf="row.resourceLink || row.resourceFileUrl">Recursos disponibles</span>
+        <span *ngIf="row.completedAt">Terminada: {{ row.completedAt | date:'dd/MM/yyyy' }}</span>
+      </div>
+
+      <div class="actions">
+        <button class="btn secondary" (click)="startLesson(row)">
+          Iniciar
+        </button>
+
+        <button class="btn primary" (click)="continueLesson(row)">
+          Continuar
+        </button>
+
+        <button class="btn success" (click)="completeLesson(row)">
+          Marcar completada
+        </button>
+      </div>
+
+      <div class="content-box" *ngIf="row.objective || row.content">
+        <h4>Objetivo</h4>
+        <p>{{ row.objective || 'Sin objetivo registrado.' }}</p>
+
+        <h4>Contenido</h4>
+        <p>{{ row.content || 'Sin contenido registrado.' }}</p>
+      </div>
+    </article>
+  </div>
+
+  <div class="empty-box" *ngIf="!loading && lessons.length === 0">
+    No tienes lecciones activas todavía.
+  </div>
+</div>
