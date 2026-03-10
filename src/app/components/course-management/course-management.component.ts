@@ -63,10 +63,6 @@ export class CourseManagementComponent implements OnInit {
   newCourse: CourseForm = this.getEmptyCourseForm();
   newClass: ClassForm = this.getEmptyClassForm();
 
-  /**
-   * Archivos seleccionados temporalmente.
-   * En el siguiente paso los subiremos a Storage.
-   */
   selectedCourseImageFile: File | null = null;
   selectedClassImageFile: File | null = null;
   selectedClassResourceFile: File | null = null;
@@ -155,25 +151,16 @@ export class CourseManagementComponent implements OnInit {
     return `${year}-${month}-${day}T${hours}:${minutes}`;
   }
 
-  /**
-   * Guarda temporalmente la imagen del curso seleccionada.
-   */
   onCourseImageSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     this.selectedCourseImageFile = input.files?.[0] ?? null;
   }
 
-  /**
-   * Guarda temporalmente la imagen de la clase seleccionada.
-   */
   onClassImageSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     this.selectedClassImageFile = input.files?.[0] ?? null;
   }
 
-  /**
-   * Guarda temporalmente el archivo adjunto de la clase.
-   */
   onClassFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     this.selectedClassResourceFile = input.files?.[0] ?? null;
@@ -209,7 +196,7 @@ export class CourseManagementComponent implements OnInit {
       const payload: Partial<Course> = {
         title: this.newCourse.title.trim(),
         description: this.newCourse.description.trim(),
-        category: this.newCourse.category as 'education' | 'mathematics',
+        category: this.newCourse.category,
         isVisible: this.newCourse.isVisible,
         videoUrl: this.newCourse.videoUrl.trim(),
         imageUrl: this.newCourse.imageUrl?.trim() || '',
@@ -254,10 +241,7 @@ export class CourseManagementComponent implements OnInit {
 
   async deleteCourse(id: string): Promise<void> {
     const confirmed = confirm('¿Estás seguro de que deseas eliminar este curso?');
-
-    if (!confirmed) {
-      return;
-    }
+    if (!confirmed) return;
 
     try {
       this.isLoading = true;
@@ -300,7 +284,7 @@ export class CourseManagementComponent implements OnInit {
       const payload: Partial<Class> = {
         name: this.newClass.name.trim(),
         teacherId: this.newClass.teacherId,
-        status: this.newClass.status as 'open' | 'closed',
+        status: this.newClass.status,
         classNumber: Number(this.newClass.classNumber),
         maxStudents: Number(this.newClass.maxStudents),
         enrollmentCount: Number(this.newClass.enrollmentCount),
@@ -309,8 +293,8 @@ export class CourseManagementComponent implements OnInit {
         imageUrl: this.newClass.imageUrl?.trim() || '',
         resourceLink: this.newClass.resourceLink?.trim() || '',
         resourceFileUrl: this.newClass.resourceFileUrl?.trim() || '',
-        enrolledStudents: this.newClass.enrolledStudents,
         observation: this.newClass.observation,
+        enrolledStudents: this.newClass.enrolledStudents,
         courseId: this.selectedCourse.id
       };
 
@@ -357,16 +341,14 @@ export class CourseManagementComponent implements OnInit {
       imageUrl: classItem.imageUrl ?? '',
       resourceLink: classItem.resourceLink ?? '',
       resourceFileUrl: classItem.resourceFileUrl ?? '',
+      observation: classItem.observation ?? '',
       enrolledStudents: classItem.enrolledStudents ?? []
     };
   }
 
   async deleteClass(id: string): Promise<void> {
     const confirmed = confirm('¿Estás seguro de que deseas eliminar esta clase?');
-
-    if (!confirmed) {
-      return;
-    }
+    if (!confirmed) return;
 
     try {
       this.isLoading = true;

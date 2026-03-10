@@ -1,5 +1,4 @@
 <div class="page-shell">
-  <!-- Encabezado principal de la página -->
   <section class="page-header">
     <div>
       <h1 class="page-title">
@@ -12,19 +11,16 @@
     </div>
   </section>
 
-  <!-- Mensaje de error -->
   <div *ngIf="errorMessage" class="alert alert-error">
     <i class="fas fa-circle-exclamation"></i>
     {{ errorMessage }}
   </div>
 
-  <!-- Estado de carga -->
   <div *ngIf="isLoading" class="loading-state">
     <i class="fas fa-spinner fa-spin"></i>
     Procesando información...
   </div>
 
-  <!-- Formulario principal del curso -->
   <section class="panel-card">
     <div class="panel-card-header">
       <div>
@@ -40,7 +36,6 @@
 
     <div class="panel-card-body">
       <form (ngSubmit)="saveCourse()" #courseForm="ngForm" class="course-form">
-        <!-- Primera fila -->
         <div class="form-row">
           <div class="form-group">
             <label for="title">Título del Curso</label>
@@ -70,7 +65,6 @@
           </div>
         </div>
 
-        <!-- Segunda fila -->
         <div class="form-group">
           <label for="description">Descripción</label>
           <textarea
@@ -84,7 +78,6 @@
           ></textarea>
         </div>
 
-        <!-- Tercera fila -->
         <div class="form-row">
           <div class="form-group">
             <label for="videoUrl">URL del Video</label>
@@ -111,7 +104,6 @@
           </div>
         </div>
 
-        <!-- Cuarta fila -->
         <div class="form-row">
           <div class="form-group">
             <label for="price">Precio</label>
@@ -141,7 +133,6 @@
           </div>
         </div>
 
-        <!-- Quinta fila -->
         <div class="form-row">
           <div class="form-group checkbox-group">
             <label class="checkbox-label">
@@ -166,7 +157,6 @@
           </div>
         </div>
 
-        <!-- Acciones -->
         <div class="button-group">
           <button type="submit" class="btn btn-primary" [disabled]="!courseForm.form.valid || isLoading">
             <i class="fas" [class.fa-save]="editingCourse" [class.fa-plus]="!editingCourse"></i>
@@ -182,7 +172,6 @@
     </div>
   </section>
 
-  <!-- Listado de cursos -->
   <section class="panel-card">
     <div class="panel-card-header">
       <div>
@@ -253,7 +242,6 @@
   </section>
 </div>
 
-<!-- Modal de clases -->
 <div class="modal-overlay" *ngIf="showClassModal" (click)="closeClassModal()">
   <div class="modal-box" (click)="$event.stopPropagation()">
     <div class="modal-header">
@@ -273,7 +261,6 @@
     </div>
 
     <div class="modal-body">
-      <!-- Formulario de clase -->
       <section class="inner-panel">
         <h3 class="inner-title">
           <i class="fas" [class.fa-pen]="editingClass" [class.fa-plus-circle]="!editingClass"></i>
@@ -390,7 +377,7 @@
                 (change)="onClassImageSelected($event)"
               >
             </div>
-         
+          </div>
 
           <div class="form-row">
             <div class="form-group">
@@ -404,18 +391,18 @@
               >
             </div>
           </div>
+
           <div class="form-group">
             <label for="observation">Observación</label>
-              <textarea
+            <textarea
               id="observation"
               name="observation"
-               [(ngModel)]="newClass.observation"
+              [(ngModel)]="newClass.observation"
               class="form-input"
               rows="3"
-               placeholder="Observaciones del docente o del administrador sobre esta clase"
-               ></textarea>
+              placeholder="Observaciones del docente o del administrador sobre esta clase"
+            ></textarea>
           </div>
-           </div>
 
           <div class="button-group">
             <button type="submit" class="btn btn-primary" [disabled]="!classForm.form.valid || isLoading">
@@ -431,7 +418,6 @@
         </form>
       </section>
 
-      <!-- Lista de clases -->
       <section class="inner-panel">
         <h3 class="inner-title">
           <i class="fas fa-list"></i>
@@ -459,6 +445,7 @@
               <p><strong>Estudiantes:</strong> {{ class.enrollmentCount }}/{{ class.maxStudents }}</p>
               <p *ngIf="class.resourceLink"><strong>Link:</strong> {{ class.resourceLink }}</p>
               <p *ngIf="class.resourceFileUrl"><strong>Archivo:</strong> Material cargado</p>
+              <p *ngIf="class.observation"><strong>Observación:</strong> {{ class.observation }}</p>
             </div>
 
             <div class="button-group">
