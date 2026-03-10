@@ -1,9 +1,8 @@
 ﻿import { Injectable } from '@angular/core';
 import { Observable, of } from 'rxjs';
-import { Course, Class, CourseEnrollment } from '../models/course.model';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { environment } from '../../environments/environment';
-import { ClassEnrollment } from '../models/course.model';
+import { Course, Class, CourseEnrollment, ClassEnrollment } from '../models/course.model';
 
 
 @Injectable({
@@ -131,6 +130,7 @@ export class CourseService {
     });
   }
 
+  
   async createCourse(course: Omit<Course, 'id' | 'createdAt' | 'updatedAt'>): Promise<Course> {
     return this.retryOperation(async () => {
       const snakeCaseData = this.transformToSnakeCase({
@@ -179,6 +179,7 @@ export class CourseService {
       if (error) throw error;
     });
   }
+  
 
   // Clases
   async getClasses(courseId: string): Promise<Class[]> {
@@ -277,6 +278,7 @@ async updateClassEnrollmentStatus(
     throw error;
   }
 }
+
 
 async createClass(classData: Omit<Class, 'id'>): Promise<Class> {
     return this.retryOperation(async () => {
