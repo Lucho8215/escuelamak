@@ -33,6 +33,7 @@ type ClassForm = {
   imageUrl?: string;
   resourceLink?: string;
   resourceFileUrl?: string;
+  observation?: string;
   enrolledStudents: string[];
 };
 
@@ -139,6 +140,7 @@ export class CourseManagementComponent implements OnInit {
       imageUrl: '',
       resourceLink: '',
       resourceFileUrl: '',
+      observation: '',
       enrolledStudents: []
     };
   }
@@ -308,6 +310,7 @@ export class CourseManagementComponent implements OnInit {
         resourceLink: this.newClass.resourceLink?.trim() || '',
         resourceFileUrl: this.newClass.resourceFileUrl?.trim() || '',
         enrolledStudents: this.newClass.enrolledStudents,
+        observation: this.newClass.observation,
         courseId: this.selectedCourse.id
       };
 
