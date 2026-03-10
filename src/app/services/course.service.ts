@@ -3,6 +3,8 @@ import { Observable, of } from 'rxjs';
 import { Course, Class, CourseEnrollment } from '../models/course.model';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { environment } from '../../environments/environment';
+import { ClassEnrollment } from '../models/course.model';
+
 
 @Injectable({
   providedIn: 'root'
@@ -34,7 +36,9 @@ export class CourseService {
           return fetch(url, {
             ...options,
             signal: AbortSignal.timeout(this.timeoutDuration)
+            
           });
+          
         }
       }
     });
@@ -210,6 +214,67 @@ export class CourseService {
     return await this.supabase
       .from('student_lesson_assignments')
       .insert([{ lesson_id: lessonId, student_id: studentId }]);
+  }
+}
+async getClassEnrollments(classId: string): Promise<ClassEnrollment[]> {
+  const { data, error } = await this.supabase
+    .from('class_enrollments')
+    .select('*')
+    .eq('class_id', classId)
+    .order('enrollment_date', { ascending: false });
+
+  if (error) {
+    throw error;
+  }
+
+  return (data || []).map((item: any) => ({
+    id: item.id,
+    courseId: item.course_id,
+    classId: item.class_id,
+    studentId: item.student_id,
+    status: item.status,
+    enrollmentDate: item.enrollment_date ? new Date(item.enrollment_date) : new Date()
+  }));
+}
+
+async createClassEnrollment(enrollment: Omit<ClassEnrollment, 'id'>): Promise<void> {
+  const { error } = await this.supabase.from('class_enrollments').insert([
+    {
+      course_id: enrollment.courseId,
+      class_id: enrollment.classId,
+      student_id: enrollment.studentId,
+      status: enrollment.status,
+      enrollment_date: enrollment.enrollmentDate
+    }
+  ]);
+
+  if (error) {
+    throw error;
+  }
+}
+
+async deleteClassEnrollment(enrollmentId: string): Promise<void> {
+  const { error } = await this.supabase
+    .from('class_enrollments')
+    .delete()
+    .eq('id', enrollmentId);
+
+  if (error) {
+    throw error;
+  }
+}
+
+async updateClassEnrollmentStatus(
+  enrollmentId: string,
+  status: 'active' | 'inactive' | 'pending'
+): Promise<void> {
+  const { error } = await this.supabase
+    .from('class_enrollments')
+    .update({ status })
+    .eq('id', enrollmentId);
+
+  if (error) {
+    throw error;
   }
 }
 

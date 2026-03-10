@@ -475,5 +475,116 @@
         Cerrar
       </button>
     </div>
+   </div>
+</div>
+<div class="modal-overlay" *ngIf="showEnrollmentModal" (click)="closeEnrollmentModal()">
+  <div class="modal-box" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <div>
+        <h2 class="modal-title">
+          <i class="fas fa-user-plus"></i>
+          Gestionar Inscripciones
+        </h2>
+        <p class="modal-subtitle">
+          Clase: <strong>{{ selectedEnrollmentClass?.name }}</strong>
+        </p>
+      </div>
+
+      <button class="modal-close" (click)="closeEnrollmentModal()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <section class="inner-panel">
+        <h3 class="inner-title">
+          <i class="fas fa-users"></i>
+          Estudiantes Disponibles
+        </h3>
+
+        <div class="class-list">
+          <article class="class-card" *ngFor="let student of students">
+            <div class="class-card-header">
+              <h4>{{ student.name }}</h4>
+              <span
+                class="visibility-badge"
+                [class.visible]="!isStudentEnrolled(student.id)"
+                [class.hidden]="isStudentEnrolled(student.id)"
+              >
+                {{ isStudentEnrolled(student.id) ? 'Ya inscrito' : 'Disponible' }}
+              </span>
+            </div>
+
+            <div class="class-details">
+              <p><strong>Correo:</strong> {{ student.email }}</p>
+              <p><strong>Cédula:</strong> {{ student.cedula }}</p>
+            </div>
+
+            <div class="button-group">
+              <button
+                class="btn btn-primary"
+                (click)="enrollStudent(student)"
+                [disabled]="isStudentEnrolled(student.id)"
+              >
+                <i class="fas fa-user-plus"></i>
+                Inscribir
+              </button>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="inner-panel">
+        <h3 class="inner-title">
+          <i class="fas fa-list-check"></i>
+          Estudiantes Inscritos
+        </h3>
+
+        <div *ngIf="classEnrollments.length === 0" class="empty-state compact">
+          <i class="fas fa-user-slash"></i>
+          <p>No hay estudiantes inscritos en esta clase.</p>
+        </div>
+
+        <div class="class-list" *ngIf="classEnrollments.length > 0">
+          <article class="class-card" *ngFor="let enrollment of classEnrollments">
+            <div class="class-card-header">
+              <h4>{{ enrollment.studentName || enrollment.studentId }}</h4>
+
+              <span
+                class="visibility-badge"
+                [class.visible]="enrollment.status === 'active'"
+                [class.hidden]="enrollment.status !== 'active'"
+              >
+                {{ enrollment.status }}
+              </span>
+            </div>
+
+            <div class="class-details">
+              <p><strong>Correo:</strong> {{ enrollment.studentEmail || 'Sin correo' }}</p>
+              <p><strong>Fecha:</strong> {{ enrollment.enrollmentDate | date:'dd/MM/yyyy HH:mm' }}</p>
+            </div>
+
+            <div class="button-group">
+              <button class="btn btn-outline" (click)="toggleEnrollmentStatus(enrollment)">
+                <i class="fas fa-power-off"></i>
+                {{ enrollment.status === 'active' ? 'Desactivar' : 'Activar' }}
+              </button>
+
+              <button class="btn btn-danger" (click)="removeEnrollment(enrollment)">
+                <i class="fas fa-user-minus"></i>
+                Quitar
+              </button>
+            </div>
+          </article>
+        </div>
+      </section>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-secondary" (click)="closeEnrollmentModal()">
+        <i class="fas fa-times"></i>
+        Cerrar
+      </button>
+    </div>
   </div>
 </div>

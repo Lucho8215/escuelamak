@@ -99,4 +99,6 @@ export interface ClassEnrollment {
 
   /* Fecha */
   enrollmentDate: Date;
+
+  
 }

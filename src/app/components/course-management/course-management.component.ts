@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { CourseService } from '../../services/course.service';
-import { Course, Class } from '../../models/course.model';
+import { Course, Class, ClassEnrollment } from '../../models/course.model';
 import { UserService } from '../../services/user.service';
 import { User, UserRole } from '../../models/user.model';
 
@@ -59,6 +59,12 @@ export class CourseManagementComponent implements OnInit {
 
   selectedCourse: Course | null = null;
   selectedClass: Class | null = null;
+
+  showEnrollmentModal = false;
+  selectedEnrollmentClass: Class | null = null;
+
+  students: User[] = [];
+classEnrollments: ClassEnrollment[] = []
 
   newCourse: CourseForm = this.getEmptyCourseForm();
   newClass: ClassForm = this.getEmptyClassForm();
@@ -179,6 +185,7 @@ export class CourseManagementComponent implements OnInit {
       this.userService.getUsers().subscribe({
         next: (users) => {
           this.teachers = users.filter((user) => user.role === UserRole.TEACHER);
+          this.students = users.filter((user) => user.role === UserRole.STUDENT);
           resolve();
         },
         error: (error) => {
@@ -363,11 +370,125 @@ export class CourseManagementComponent implements OnInit {
       this.isLoading = false;
     }
   }
-
+/*
   manageEnrollments(classItem: Class): void {
     console.log('Gestión de inscripciones pendiente para:', classItem);
     alert(`Próximo paso: gestionar inscripciones de la clase "${classItem.name}"`);
+ 
+    }*/
+async manageEnrollments(classItem: Class): Promise<void> {
+
+  // guardamos la clase seleccionada
+  this.selectedEnrollmentClass = classItem;
+
+  // abrimos el modal de inscripciones
+  this.showEnrollmentModal = true;
+
+  // cargamos los estudiantes inscritos
+  await this.loadClassEnrollments(classItem.id);
+
+}
+async loadClassEnrollments(classId: string): Promise<void> {
+  try {
+    this.isLoading = true;
+
+    const enrollments = await this.courseService.getClassEnrollments(classId);
+
+    this.classEnrollments = enrollments.map((enrollment) => {
+      const student = this.students.find((s) => s.id === enrollment.studentId);
+
+      return {
+        ...enrollment,
+        studentName: student?.name || enrollment.studentName,
+        studentEmail: student?.email || enrollment.studentEmail
+      };
+    });
+  } catch (error) {
+    this.handleError('Error al cargar inscripciones', error);
+  } finally {
+    this.isLoading = false;
   }
+}
+
+isStudentEnrolled(studentId: string): boolean {
+  return this.classEnrollments.some((e) => e.studentId === studentId);
+}
+
+async enrollStudent(student: User): Promise<void> {
+  if (!this.selectedEnrollmentClass || !this.selectedCourse) {
+    return;
+  }
+
+  if (this.isStudentEnrolled(student.id)) {
+    this.handleError('El estudiante ya está inscrito en esta clase', null);
+    return;
+  }
+
+  try {
+    this.isLoading = true;
+
+    await this.courseService.createClassEnrollment({
+      courseId: this.selectedCourse.id,
+      classId: this.selectedEnrollmentClass.id,
+      studentId: student.id,
+      studentName: student.name,
+      studentEmail: student.email,
+      status: 'active',
+      enrollmentDate: new Date()
+    });
+
+    await this.loadClassEnrollments(this.selectedEnrollmentClass.id);
+  } catch (error) {
+    this.handleError('Error al inscribir estudiante', error);
+  } finally {
+    this.isLoading = false;
+  }
+}
+
+async removeEnrollment(enrollment: ClassEnrollment): Promise<void> {
+  const confirmed = confirm(`¿Quitar a ${enrollment.studentName || enrollment.studentId} de esta clase?`);
+
+  if (!confirmed) {
+    return;
+  }
+
+  try {
+    this.isLoading = true;
+    await this.courseService.deleteClassEnrollment(enrollment.id);
+
+    if (this.selectedEnrollmentClass) {
+      await this.loadClassEnrollments(this.selectedEnrollmentClass.id);
+    }
+  } catch (error) {
+    this.handleError('Error al quitar estudiante', error);
+  } finally {
+    this.isLoading = false;
+  }
+}
+
+async toggleEnrollmentStatus(enrollment: ClassEnrollment): Promise<void> {
+  const nextStatus = enrollment.status === 'active' ? 'inactive' : 'active';
+
+  try {
+    this.isLoading = true;
+    await this.courseService.updateClassEnrollmentStatus(enrollment.id, nextStatus);
+
+    if (this.selectedEnrollmentClass) {
+      await this.loadClassEnrollments(this.selectedEnrollmentClass.id);
+    }
+  } catch (error) {
+    this.handleError('Error al cambiar estado de inscripción', error);
+  } finally {
+    this.isLoading = false;
+  }
+}
+
+closeEnrollmentModal(): void {
+  this.showEnrollmentModal = false;
+  this.selectedEnrollmentClass = null;
+  this.classEnrollments = [];
+}
+    
 
   closeClassModal(): void {
     this.showClassModal = false;
