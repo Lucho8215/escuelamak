@@ -1,285 +1,453 @@
-<div class="lesson-page">
-  <div class="page-header">
-    <div>
-      <h1>Lecciones del Curso</h1>
-      <p>
-        Crea contenido académico, asígnalo a una clase y monitorea el progreso
-        del alumno con estados, barras y resumen visual.
-      </p>
-    </div>
-  </div>
+/* Lesson Management Styles */
+.lesson-page {
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
 
-  <div *ngIf="successMessage" class="alert success">{{ successMessage }}</div>
-  <div *ngIf="errorMessage" class="alert error">{{ errorMessage }}</div>
+.page-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 20px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  color: white;
+}
 
-  <div class="layout-grid">
-    <section class="panel">
-      <div class="panel-header">
-        <h2>{{ editing ? 'Editar Lección' : 'Crear Lección' }}</h2>
-      </div>
+.page-header h1 {
+  margin: 0 0 0.5rem;
+}
 
-      <form class="form-grid" (ngSubmit)="saveLesson()">
-        <div class="form-group">
-          <label>Título</label>
-          <input [(ngModel)]="lessonForm.title" name="title" required />
-        </div>
+.page-header p {
+  margin: 0;
+  opacity: 0.9;
+}
 
-        <div class="form-group">
-          <label>Orden</label>
-          <input [(ngModel)]="lessonForm.orderIndex" name="orderIndex" type="number" min="1" />
-        </div>
+.alert {
+  padding: 1rem 1.5rem;
+  border-radius: 10px;
+  margin-bottom: 1.5rem;
+}
 
-        <div class="form-group full">
-          <label>Resumen</label>
-          <textarea [(ngModel)]="lessonForm.summary" name="summary" rows="2"></textarea>
-        </div>
+.alert.success {
+  background: #d1fae5;
+  color: #065f46;
+}
 
-        <div class="form-group full">
-          <label>Objetivo</label>
-          <textarea [(ngModel)]="lessonForm.objective" name="objective" rows="2"></textarea>
-        </div>
+.alert.error {
+  background: #fee2e2;
+  color: #991b1b;
+}
 
-        <div class="form-group full">
-          <label>Contenido</label>
-          <textarea [(ngModel)]="lessonForm.content" name="content" rows="5"></textarea>
-        </div>
+.layout-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
 
-        <div class="form-group">
-          <label>Video URL</label>
-          <input [(ngModel)]="lessonForm.videoUrl" name="videoUrl" />
-        </div>
+.panel {
+  background: white;
+  border-radius: 15px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
 
-        <div class="form-group">
-          <label>Imagen portada URL</label>
-          <input [(ngModel)]="lessonForm.coverImageUrl" name="coverImageUrl" />
-        </div>
+.panel-header {
+  padding: 1.5rem;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+}
 
-        <div class="form-group">
-          <label>Recurso enlace</label>
-          <input [(ngModel)]="lessonForm.resourceLink" name="resourceLink" />
-        </div>
+.panel-header h2 {
+  margin: 0;
+  color: #1f2937;
+}
 
-        <div class="form-group">
-          <label>Archivo URL</label>
-          <input [(ngModel)]="lessonForm.resourceFileUrl" name="resourceFileUrl" />
-        </div>
+.form-grid {
+  padding: 1.5rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
 
-        <div class="form-group">
-          <label>Duración estimada (min)</label>
-          <input [(ngModel)]="lessonForm.estimatedMinutes" name="estimatedMinutes" type="number" min="1" />
-        </div>
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
 
-        <div class="form-group checkbox">
-          <label>
-            <input [(ngModel)]="lessonForm.isPublished" name="isPublished" type="checkbox" />
-            Publicada
-          </label>
-        </div>
+.form-group.full {
+  grid-column: 1 / -1;
+}
 
-        <div class="actions full">
-          <button class="btn primary" type="submit" [disabled]="loading">
-            {{ editing ? 'Actualizar Lección' : 'Crear Lección' }}
-          </button>
-          <button class="btn secondary" type="button" (click)="resetForm()">Cancelar</button>
-        </div>
-      </form>
-    </section>
+.form-group label {
+  font-weight: 600;
+  color: #374151;
+}
 
-    <section class="panel">
-      <div class="panel-header">
-        <h2>Lecciones del Curso</h2>
-      </div>
+.form-group input,
+.form-group textarea,
+.form-group select {
+  padding: 0.75rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 1rem;
+}
 
-      <div class="lesson-list" *ngIf="lessons.length > 0; else emptyLessons">
-        <article class="lesson-card" *ngFor="let lesson of lessons">
-          <div class="lesson-card-top">
-            <h3>{{ lesson.orderIndex }}. {{ lesson.title }}</h3>
-            <span class="badge" [class.off]="!lesson.isPublished">
-              {{ lesson.isPublished ? 'Publicada' : 'Oculta' }}
-            </span>
-          </div>
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: #667eea;
+}
 
-          <p>{{ lesson.summary || 'Sin resumen' }}</p>
+.form-group.checkbox {
+  flex-direction: row;
+  align-items: center;
+}
 
-          <div class="meta-row">
-            <span>{{ lesson.estimatedMinutes }} min</span>
-          </div>
+.form-group.checkbox label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: normal;
+  cursor: pointer;
+}
 
-          <div class="action-row">
-            <button class="btn secondary" (click)="editLesson(lesson)">Editar</button>
-            <button class="btn danger" (click)="deleteLesson(lesson)">Eliminar</button>
-          </div>
+.actions {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
 
-          <div class="assign-box">
-            <select [(ngModel)]="selectedClassId" [ngModelOptions]="{ standalone: true }" (ngModelChange)="loadProgress()">
-              <option value="">Selecciona clase</option>
-              <option *ngFor="let cls of classes" [value]="cls.id">{{ cls.name }}</option>
-            </select>
+.btn {
+  padding: 0.75rem 1.5rem;
+  border-radius: 10px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
 
-            <button class="btn primary" (click)="assignLesson(lesson)">
-              Asignar a Clase
-            </button>
-          </div>
-        </article>
-      </div>
+.btn.primary {
+  background: #667eea;
+  color: white;
+}
 
-      <ng-template #emptyLessons>
-        <div class="empty-box">No hay lecciones creadas todavía.</div>
-      </ng-template>
-    </section>
-  </div>
+.btn.primary:hover {
+  background: #5568d3;
+}
 
-  <section class="panel progress-panel">
-    <div class="panel-header">
-      <h2>Seguimiento Académico del Alumno</h2>
-    </div>
+.btn.secondary {
+  background: #6b7280;
+  color: white;
+}
 
-    <div class="summary-cards">
-      <div class="summary-card">
-        <strong>{{ getSummary().total }}</strong>
-        <span>Asignadas</span>
-      </div>
-      <div class="summary-card">
-        <strong>{{ getSummary().completed }}</strong>
-        <span>Completadas</span>
-      </div>
-      <div class="summary-card">
-        <strong>{{ getSummary().inProgress }}</strong>
-        <span>En progreso</span>
-      </div>
-      <div class="summary-card">
-        <strong>{{ getSummary().average }}%</strong>
-        <span>Promedio general</span>
-      </div>
-    </div>
+.btn.danger {
+  background: #ef4444;
+  color: white;
+}
 
-    <div class="chart-box">
-      <div class="chart-title">Resumen visual del avance del grupo</div>
+.lesson-list {
+  padding: 1rem;
+  max-height: 500px;
+  overflow-y: auto;
+}
 
-      <div class="chart-bar">
-        <div
-          class="segment completed"
-          [style.width.%]="getChartWidth(getSummary().completed)"
-          title="Completadas"
-        ></div>
+.lesson-card {
+  background: #f9fafb;
+  border-radius: 10px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
 
-        <div
-          class="segment progress"
-          [style.width.%]="getChartWidth(getSummary().inProgress)"
-          title="En progreso"
-        ></div>
+.lesson-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
 
-        <div
-          class="segment assigned"
-          [style.width.%]="getChartWidth(getSummary().assigned)"
-          title="Asignadas"
-        ></div>
+.lesson-card h3 {
+  margin: 0;
+  color: #1f2937;
+}
 
-        <div
-          class="segment inactive"
-          [style.width.%]="getChartWidth(getSummary().inactive)"
-          title="Inactivas"
-        ></div>
-      </div>
+.badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: #d1fae5;
+  color: #065f46;
+}
 
-      <div class="chart-legend">
-        <span><i class="dot completed"></i> Completadas</span>
-        <span><i class="dot progress"></i> En progreso</span>
-        <span><i class="dot assigned"></i> No iniciadas</span>
-        <span><i class="dot inactive"></i> Inactivas</span>
-      </div>
-    </div>
+.badge.off {
+  background: #e5e7eb;
+  color: #6b7280;
+}
 
-    <div class="table-wrap" *ngIf="classProgress.length > 0; else emptyProgress">
-      <table>
-        <thead>
-          <tr>
-            <th>Alumno</th>
-            <th>Lección</th>
-            <th>Estado</th>
-            <th>Progreso</th>
-            <th>Nota</th>
-            <th>Inicio</th>
-            <th>Fin</th>
-            <th>Último acceso</th>
-            <th>Activo</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
+.meta-row {
+  margin: 0.5rem 0;
+  color: #6b7280;
+  font-size: 0.9rem;
+}
 
-        <tbody>
-          <tr *ngFor="let row of classProgress">
-            <td>
-              <div class="student-cell">
-                <strong>{{ row.studentName || row.studentId }}</strong>
-                <small>{{ row.studentEmail || 'Sin correo' }}</small>
-              </div>
-            </td>
+.action-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
 
-            <td>{{ row.lessonTitle || row.lessonId }}</td>
+.assign-box {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
 
-            <td>
-              <span class="status-chip" [ngClass]="row.status">
-                {{
-                  row.status === 'assigned'
-                    ? 'No iniciada'
-                    : row.status === 'in_progress'
-                    ? 'En progreso'
-                    : row.status === 'completed'
-                    ? 'Completada'
-                    : 'Inactiva'
-                }}
-              </span>
-            </td>
+.assign-box select {
+  flex: 1;
+  padding: 0.5rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+}
 
-            <td>
-              <div class="progress-bar">
-                <div
-                  class="progress-fill"
-                  [style.width.%]="row.progressPercent"
-                  [style.background]="getProgressColor(row.progressPercent)"
-                ></div>
-              </div>
-              <small>{{ row.progressPercent }}%</small>
-            </td>
+.empty-box {
+  text-align: center;
+  padding: 3rem;
+  color: #9ca3af;
+}
 
-            <td>
-              <div class="score-box">
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  [(ngModel)]="scoreDrafts[row.id]"
-                  [ngModelOptions]="{ standalone: true }"
-                />
-                <button class="mini-btn" (click)="saveScore(row)">Guardar</button>
-              </div>
-            </td>
+.progress-panel {
+  margin-top: 2rem;
+}
 
-            <td>{{ row.startedAt ? (row.startedAt | date:'dd/MM/yyyy HH:mm') : '-' }}</td>
-            <td>{{ row.completedAt ? (row.completedAt | date:'dd/MM/yyyy HH:mm') : '-' }}</td>
-            <td>{{ row.lastAccessedAt ? (row.lastAccessedAt | date:'dd/MM/yyyy HH:mm') : '-' }}</td>
-            <td>{{ row.isActive ? 'Sí' : 'No' }}</td>
+.summary-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+  padding: 1.5rem;
+}
 
-            <td class="action-cell">
-              <button class="mini-btn secondary" (click)="markAssigned(row)">Reset</button>
-              <button class="mini-btn info" (click)="markInProgress(row)">Iniciar</button>
-              <button class="mini-btn success" (click)="markCompleted(row)">Completar</button>
-              <button class="mini-btn neutral" (click)="changeProgress(row, -10)">-10%</button>
-              <button class="mini-btn neutral" (click)="changeProgress(row, 10)">+10%</button>
-              <button class="mini-btn warn" (click)="toggleActive(row)">
-                {{ row.isActive ? 'Inactivar' : 'Activar' }}
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+.summary-card {
+  background: #f9fafb;
+  border-radius: 10px;
+  padding: 1.5rem;
+  text-align: center;
+}
 
-    <ng-template #emptyProgress>
-      <div class="empty-box">
-        Selecciona una clase y asigna lecciones para ver el progreso del grupo.
-      </div>
-    </ng-template>
-  </section>
-</div>
+.summary-card strong {
+  display: block;
+  font-size: 2rem;
+  color: #1f2937;
+}
+
+.summary-card span {
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+.chart-box {
+  padding: 1.5rem;
+}
+
+.chart-title {
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 1rem;
+}
+
+.chart-bar {
+  height: 24px;
+  background: #e5e7eb;
+  border-radius: 12px;
+  display: flex;
+  overflow: hidden;
+}
+
+.segment {
+  height: 100%;
+}
+
+.segment.completed {
+  background: #16a34a;
+}
+
+.segment.progress {
+  background: #2563eb;
+}
+
+.segment.assigned {
+  background: #f59e0b;
+}
+
+.segment.inactive {
+  background: #94a3b8;
+}
+
+.chart-legend {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+.chart-legend span {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.dot.completed {
+  background: #16a34a;
+}
+
+.dot.progress {
+  background: #2563eb;
+}
+
+.dot.assigned {
+  background: #f59e0b;
+}
+
+.dot.inactive {
+  background: #94a3b8;
+}
+
+.table-wrap {
+  overflow-x: auto;
+  padding: 1rem;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th, td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+th {
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.85rem;
+}
+
+td {
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+.student-cell strong {
+  display: block;
+  color: #1f2937;
+}
+
+.student-cell small {
+  font-size: 0.8rem;
+}
+
+.status-chip {
+  display: inline-flex;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.status-chip.assigned {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-chip.in_progress {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.status-chip.completed {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.progress-bar {
+  width: 100px;
+  height: 6px;
+  background: #e5e7eb;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 3px;
+}
+
+.score-box {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.score-box input {
+  width: 60px;
+  padding: 0.25rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 5px;
+}
+
+.mini-btn {
+  padding: 0.25rem 0.5rem;
+  border-radius: 5px;
+  font-size: 0.75rem;
+  border: none;
+  cursor: pointer;
+}
+
+.mini-btn.secondary {
+  background: #6b7280;
+  color: white;
+}
+
+.mini-btn.info {
+  background: #3b82f6;
+  color: white;
+}
+
+.mini-btn.success {
+  background: #10b981;
+  color: white;
+}
+
+.mini-btn.neutral {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.mini-btn.warn {
+  background: #f59e0b;
+  color: white;
+}
+
+.action-cell {
+  display: flex;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 1024px) {
+  .layout-grid {
+    grid-template-columns: 1fr;
+  }
+}

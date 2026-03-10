@@ -6,7 +6,7 @@
         Gestión de Cursos
       </h1>
       <p class="page-subtitle">
-        Crea, edita y administra cursos de la plataforma. Desde aquí también podrás gestionar las clases asociadas.
+        Crea, edita y administra cursos de la plataforma. Desde aquí también podrás gestionar las Lecciones asociadas.
       </p>
     </div>
   </section>
@@ -180,7 +180,7 @@
           Cursos Registrados
         </h2>
         <p class="panel-subtitle">
-          Administra el contenido ya creado y abre la gestión de clases por curso.
+          Administra el contenido ya creado y abre la gestión de Lecciones por curso.
         </p>
       </div>
     </div>
@@ -230,14 +230,14 @@
               <i class="fas fa-trash"></i>
               Eliminar
             </button>
-            <a class="btn btn-secondary" [routerLink]="['/lesson-management', course.id]">
+           <!--  <a class="btn btn-secondary" [routerLink]="['/lesson-management', course.id]">
                 <i class="fas fa-book-reader"></i>
               Lecciones
-              </a>
+              </a> -->
 
             <button class="btn btn-primary" (click)="manageClasses(course)">
               <i class="fas fa-chalkboard"></i>
-              Gestionar Clases
+              Gestionar Lecciones
             </button>
           </div>
         </article>
@@ -252,7 +252,7 @@
       <div>
         <h2 class="modal-title">
           <i class="fas fa-chalkboard"></i>
-          Gestión de Clases
+          Gestión de Lecciones
         </h2>
         <p class="modal-subtitle">
           Curso: <strong>{{ selectedCourse?.title }}</strong>
@@ -268,13 +268,13 @@
       <section class="inner-panel">
         <h3 class="inner-title">
           <i class="fas" [class.fa-pen]="editingClass" [class.fa-plus-circle]="!editingClass"></i>
-          {{ editingClass ? 'Editar Clase' : 'Crear Clase' }}
+          {{ editingClass ? 'Editar Leccion' : 'Crear Leccion' }}
         </h3>
 
         <form (ngSubmit)="saveClass()" #classForm="ngForm" class="class-form">
           <div class="form-row">
             <div class="form-group">
-              <label for="className">Nombre de la Clase</label>
+              <label for="className">Nombre de la Leccion</label>
               <input
                 type="text"
                 id="className"
@@ -305,7 +305,7 @@
 
           <div class="form-row">
             <div class="form-group">
-              <label for="classNumber">Número de Clase</label>
+              <label for="classNumber">Número de Leccion</label>
               <input
                 type="number"
                 id="classNumber"
@@ -371,7 +371,7 @@
             </div>
 
             <div class="form-group">
-              <label for="classImage">Imagen de la Clase</label>
+              <label for="classImage">Imagen de la Leccion</label>
               <input
                 type="file"
                 id="classImage"
@@ -411,7 +411,7 @@
           <div class="button-group">
             <button type="submit" class="btn btn-primary" [disabled]="!classForm.form.valid || isLoading">
               <i class="fas" [class.fa-save]="editingClass" [class.fa-plus]="!editingClass"></i>
-              {{ editingClass ? 'Guardar Cambios' : 'Crear Clase' }}
+              {{ editingClass ? 'Guardar Cambios' : 'Crear Leccion' }}
             </button>
 
             <button type="button" class="btn btn-secondary" (click)="resetClassForm()">
@@ -425,12 +425,12 @@
       <section class="inner-panel">
         <h3 class="inner-title">
           <i class="fas fa-list"></i>
-          Clases Registradas
+          Lecciones Registradas
         </h3>
 
         <div *ngIf="classes.length === 0" class="empty-state compact">
           <i class="fas fa-chalkboard"></i>
-          <p>No hay clases registradas para este curso.</p>
+          <p>No hay Lecciones registradas para este curso.</p>
         </div>
 
         <div class="class-list" *ngIf="classes.length > 0">
@@ -445,7 +445,7 @@
             </div>
 
             <div class="class-details">
-              <p><strong>Clase:</strong> #{{ class.classNumber }}</p>
+              <p><strong>Leccion:</strong> #{{ class.classNumber }}</p>
               <p><strong>Estudiantes:</strong> {{ class.enrollmentCount }}/{{ class.maxStudents }}</p>
               <p *ngIf="class.resourceLink"><strong>Link:</strong> {{ class.resourceLink }}</p>
               <p *ngIf="class.resourceFileUrl"><strong>Archivo:</strong> Material cargado</p>
@@ -490,7 +490,7 @@
           Gestionar Inscripciones
         </h2>
         <p class="modal-subtitle">
-          Clase: <strong>{{ selectedEnrollmentClass?.name }}</strong>
+          Leccion: <strong>{{ selectedEnrollmentClass?.name }}</strong>
         </p>
       </div>
 

@@ -75,6 +75,12 @@ export class AppLayoutComponent implements OnInit {
       roles: [UserRole.ADMIN, UserRole.TEACHER, UserRole.TUTOR]
     },
     {
+      label: 'Generador de Gradientes',
+      route: '/gradient-generator',
+      icon: 'fas fa-palette',
+      roles: [UserRole.ADMIN, UserRole.TEACHER]
+    },
+    {
       label: 'Parámetros',
       route: '/parameters',
       icon: 'fas fa-sliders-h',

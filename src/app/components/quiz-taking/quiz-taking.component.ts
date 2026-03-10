@@ -582,9 +582,11 @@ export class QuizTakingComponent implements OnInit, OnDestroy {
         selectedOption: answer
       })),
       score: this.score,
+      passed: this.score >= (this.quiz.passingScore || 60),
       startedAt: new Date(Date.now() - this.tiempoUsado * 1000),
       completedAt: new Date(),
-      status: this.score >= this.quiz.passingScore ? 'completed' : 'completed'
+      timeSpentSeconds: this.tiempoUsado,
+      status: this.score >= (this.quiz.passingScore || 60) ? 'completed' : 'completed'
     };
 
     this.quizService.saveAttempt(attempt).subscribe({
