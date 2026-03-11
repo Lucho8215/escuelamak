@@ -9,6 +9,7 @@ import { environment } from '../../environments/environment';
   providedIn: 'root'
 })
 export class QuizService {
+  private readonly assignmentsTable = 'quiz_assignments';
 
   private supabase: SupabaseClient = createClient(
     environment.supabaseUrl,
@@ -295,14 +296,14 @@ export class QuizService {
   assignQuizToStudent(quizId: string, studentId: string, assignedBy: string, dueDate?: Date): Observable<QuizAssignment> {
     return from(
       this.supabase
-        .from('quiz_assignments')
-        .insert([{
+        .from(this.assignmentsTable)
+        .upsert([{
           quiz_id:      quizId,
           student_id:   studentId,
           assigned_by:  assignedBy,
           due_date:     dueDate || null,
           is_completed: false
-        }])
+        }], { onConflict: 'quiz_id,student_id', ignoreDuplicates: true })
         .select()
         .single()
     ).pipe(
@@ -326,8 +327,8 @@ export class QuizService {
 
     return from(
       this.supabase
-        .from('quiz_assignments')
-        .insert(assignments)
+        .from(this.assignmentsTable)
+        .upsert(assignments, { onConflict: 'quiz_id,student_id', ignoreDuplicates: true })
         .select()
     ).pipe(
       map(({ data, error }) => {
@@ -342,7 +343,7 @@ export class QuizService {
   getStudentQuizzes(userId: string): Observable<StudentQuiz[]> {
     return from(
       this.supabase
-        .from('quiz_assignments')
+        .from(this.assignmentsTable)
         .select(`
           id,
           quiz_id,
@@ -408,7 +409,7 @@ export class QuizService {
   getQuizAssignments(quizId: string): Observable<QuizAssignment[]> {
     return from(
       this.supabase
-        .from('quiz_assignments')
+        .from(this.assignmentsTable)
         .select(`
           *,
           app_users (id, name, email),
@@ -452,7 +453,7 @@ export class QuizService {
   removeQuizAssignment(assignmentId: string): Observable<void> {
     return from(
       this.supabase
-        .from('quiz_assignments')
+        .from(this.assignmentsTable)
         .delete()
         .eq('id', assignmentId)
     ).pipe(
@@ -484,7 +485,7 @@ export class QuizService {
   markAssignmentComplete(assignmentId: string): Observable<void> {
     return from(
       this.supabase
-        .from('quiz_assignments')
+        .from(this.assignmentsTable)
         .update({
           is_completed: true,
           completed_at: new Date().toISOString()
