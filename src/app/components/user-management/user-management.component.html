@@ -1,37 +1,27 @@
-<div class="module-container">
-  <div class="header-row">
-    <a routerLink="/dashboard" class="btn btn-back">
-      <i class="fas fa-arrow-left"></i>
-      Volver al Panel
-    </a>
+<div class="page-shell">
+  <section class="page-header">
+    <div>
+      <h1 class="page-title">
+        <i class="fas fa-users-cog"></i>
+        Panel de Usuarios
+      </h1>
+      <p class="page-subtitle">
+        Crea usuarios, edita nombre, correo, cédula y rol, y actualiza contraseñas.
+      </p>
+    </div>
 
     <div class="header-actions">
-      <button class="btn btn-refresh" (click)="loadUsers()" [disabled]="loading">
-        <i
-          class="fas"
-          [class.fa-rotate-right]="!loading"
-          [class.fa-spinner]="loading"
-          [class.fa-spin]="loading"
-        ></i>
+      <button type="button" class="btn btn-secondary" (click)="loadUsers()" [disabled]="loading">
+        <i class="fas" [class.fa-rotate-right]="!loading" [class.fa-spinner]="loading" [class.fa-spin]="loading"></i>
         Recargar
       </button>
 
-      <button class="btn btn-kid create-btn" (click)="openCreateUser()">
+      <button type="button" class="btn btn-primary" (click)="openCreateUser()">
         <i class="fas fa-user-plus"></i>
         Crear Usuario
       </button>
     </div>
-  </div>
-
-  <h1>
-    <i class="fas fa-users text-purple"></i>
-    Panel de Usuarios
-    <i class="fas fa-users text-purple"></i>
-  </h1>
-
-  <p class="subtitle">
-    Crea usuarios, edita nombre, correo, cédula y rol, y actualiza contraseñas.
-  </p>
+  </section>
 
   <div *ngIf="successMessage" class="alert alert-success">
     <i class="fas fa-check-circle"></i>
@@ -50,28 +40,34 @@
 
   <div *ngIf="!loading && users.length === 0" class="empty-state">
     <i class="fas fa-user-slash"></i>
-    <p>No hay usuarios disponibles.</p>
-    <button class="btn btn-kid" (click)="openCreateUser()">Crear primer usuario</button>
+    <p>No hay usuarios registrados.</p>
+    <button type="button" class="btn btn-primary" (click)="openCreateUser()">Crear primer usuario</button>
   </div>
 
   <div class="card-grid" *ngIf="!loading && users.length > 0">
-    <div class="kid-card" *ngFor="let user of users; trackBy: trackByUserId">
-      <div class="kid-card-content">
-        <i class="fas fa-user-circle card-icon"></i>
-        <h3>{{ user.name }}</h3>
+    <article class="user-card" *ngFor="let user of users; trackBy: trackByUserId">
+      <div class="user-card-content">
+        <div class="user-avatar">
+          <i class="fas fa-user-circle"></i>
+        </div>
 
-        <div class="user-details">
+        <h3 class="user-name">{{ user.name }}</h3>
+
+        <div class="user-info">
           <p><strong>Correo:</strong> {{ user.email }}</p>
           <p><strong>Cédula:</strong> {{ user.cedula }}</p>
           <p><strong>Rol:</strong> {{ user.role | titlecase }}</p>
+        </div>
 
-          <button class="btn btn-edit-user" (click)="openEditUser(user)">
+        <div class="action-row">
+          <button type="button" class="btn btn-outline" (click)="openEditUser(user)">
             <i class="fas fa-pen"></i>
-            Editar usuario
+            Editar
           </button>
 
           <button
-            class="btn btn-danger-user"
+            type="button"
+            class="btn btn-danger"
             (click)="deleteUser(user)"
             [disabled]="isDeletingUser(user.id)"
           >
@@ -81,24 +77,26 @@
               [class.fa-spinner]="isDeletingUser(user.id)"
               [class.fa-spin]="isDeletingUser(user.id)"
             ></i>
-            {{ isDeletingUser(user.id) ? 'Eliminando...' : 'Eliminar usuario' }}
+            {{ isDeletingUser(user.id) ? 'Eliminando...' : 'Eliminar' }}
           </button>
+        </div>
 
-          <hr class="separator" />
+        <hr class="separator" />
 
-          <div class="form-group">
-            <label>Nueva contraseña</label>
-            <input
-              type="password"
-              [(ngModel)]="newPasswords[user.id]"
-              class="kid-input"
-              placeholder="Nueva contraseña"
-              [disabled]="isUpdatingPassword(user.id)"
-            />
-          </div>
+        <div class="password-section">
+          <label class="input-label" [for]="'password-' + user.id">Nueva contraseña</label>
+          <input
+            [id]="'password-' + user.id"
+            type="password"
+            [(ngModel)]="newPasswords[user.id]"
+            class="form-input"
+            placeholder="Nueva contraseña"
+            [disabled]="isUpdatingPassword(user.id)"
+          />
 
           <button
-            class="btn btn-kid"
+            type="button"
+            class="btn btn-primary full-width"
             (click)="updatePassword(user)"
             [disabled]="!newPasswords[user.id] || isUpdatingPassword(user.id)"
           >
@@ -112,7 +110,7 @@
           </button>
         </div>
       </div>
-    </div>
+    </article>
   </div>
 </div>
 
@@ -124,30 +122,48 @@
         {{ editingUser ? 'Editar Usuario' : 'Crear Usuario' }}
       </h2>
 
-      <button class="modal-close" (click)="closeUserModal()">
+      <button type="button" class="modal-close" (click)="closeUserModal()">
         <i class="fas fa-times"></i>
       </button>
     </div>
 
     <div class="modal-body">
       <div class="form-group">
-        <label class="form-label">Nombre</label>
-        <input class="form-input" [(ngModel)]="userForm.name" placeholder="Nombre completo" />
+        <label class="input-label" for="modal-name">Nombre</label>
+        <input
+          id="modal-name"
+          type="text"
+          [(ngModel)]="userForm.name"
+          class="form-input"
+          placeholder="Nombre completo"
+        />
       </div>
 
       <div class="form-group">
-        <label class="form-label">Correo</label>
-        <input class="form-input" type="email" [(ngModel)]="userForm.email" placeholder="correo@dominio.com" />
+        <label class="input-label" for="modal-email">Correo</label>
+        <input
+          id="modal-email"
+          type="email"
+          [(ngModel)]="userForm.email"
+          class="form-input"
+          placeholder="correo@dominio.com"
+        />
       </div>
 
       <div class="form-group">
-        <label class="form-label">Cédula</label>
-        <input class="form-input" [(ngModel)]="userForm.cedula" placeholder="Número de cédula" />
+        <label class="input-label" for="modal-cedula">Cédula</label>
+        <input
+          id="modal-cedula"
+          type="text"
+          [(ngModel)]="userForm.cedula"
+          class="form-input"
+          placeholder="Número de cédula"
+        />
       </div>
 
       <div class="form-group">
-        <label class="form-label">Rol</label>
-        <select class="form-input" [(ngModel)]="userForm.role">
+        <label class="input-label" for="modal-role">Rol</label>
+        <select id="modal-role" [(ngModel)]="userForm.role" class="form-input">
           <option [ngValue]="UserRole.ADMIN">Administrador</option>
           <option [ngValue]="UserRole.TEACHER">Profesor</option>
           <option [ngValue]="UserRole.TUTOR">Tutor</option>
@@ -156,20 +172,23 @@
       </div>
 
       <div class="form-group" *ngIf="!editingUser">
-        <label class="form-label">Contraseña inicial</label>
+        <label class="input-label" for="modal-password">Contraseña inicial</label>
         <input
-          class="form-input"
+          id="modal-password"
           type="password"
           [(ngModel)]="userForm.password"
+          class="form-input"
           placeholder="Contraseña inicial"
         />
       </div>
     </div>
 
     <div class="modal-footer">
-      <button class="btn btn-secondary-modal" (click)="closeUserModal()">Cancelar</button>
+      <button type="button" class="btn btn-secondary" (click)="closeUserModal()">
+        Cancelar
+      </button>
 
-      <button class="btn btn-kid modal-save-btn" (click)="saveUser()" [disabled]="saving">
+      <button type="button" class="btn btn-primary" (click)="saveUser()" [disabled]="saving">
         <i
           class="fas"
           [class.fa-save]="!saving"

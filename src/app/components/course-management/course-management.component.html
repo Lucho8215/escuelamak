@@ -1,5 +1,4 @@
 <div class="page-shell">
-  <!-- Encabezado principal de la página -->
   <section class="page-header">
     <div>
       <h1 class="page-title">
@@ -7,24 +6,21 @@
         Gestión de Cursos
       </h1>
       <p class="page-subtitle">
-        Crea, edita y administra cursos de la plataforma. Desde aquí también podrás gestionar las clases asociadas.
+        Crea, edita y administra cursos de la plataforma. Desde aquí también podrás gestionar las Lecciones asociadas.
       </p>
     </div>
   </section>
 
-  <!-- Mensaje de error -->
   <div *ngIf="errorMessage" class="alert alert-error">
     <i class="fas fa-circle-exclamation"></i>
     {{ errorMessage }}
   </div>
 
-  <!-- Estado de carga -->
   <div *ngIf="isLoading" class="loading-state">
     <i class="fas fa-spinner fa-spin"></i>
     Procesando información...
   </div>
 
-  <!-- Formulario principal del curso -->
   <section class="panel-card">
     <div class="panel-card-header">
       <div>
@@ -40,7 +36,6 @@
 
     <div class="panel-card-body">
       <form (ngSubmit)="saveCourse()" #courseForm="ngForm" class="course-form">
-        <!-- Primera fila -->
         <div class="form-row">
           <div class="form-group">
             <label for="title">Título del Curso</label>
@@ -70,7 +65,6 @@
           </div>
         </div>
 
-        <!-- Segunda fila -->
         <div class="form-group">
           <label for="description">Descripción</label>
           <textarea
@@ -84,7 +78,6 @@
           ></textarea>
         </div>
 
-        <!-- Tercera fila -->
         <div class="form-row">
           <div class="form-group">
             <label for="videoUrl">URL del Video</label>
@@ -111,7 +104,6 @@
           </div>
         </div>
 
-        <!-- Cuarta fila -->
         <div class="form-row">
           <div class="form-group">
             <label for="price">Precio</label>
@@ -141,7 +133,6 @@
           </div>
         </div>
 
-        <!-- Quinta fila -->
         <div class="form-row">
           <div class="form-group checkbox-group">
             <label class="checkbox-label">
@@ -166,7 +157,6 @@
           </div>
         </div>
 
-        <!-- Acciones -->
         <div class="button-group">
           <button type="submit" class="btn btn-primary" [disabled]="!courseForm.form.valid || isLoading">
             <i class="fas" [class.fa-save]="editingCourse" [class.fa-plus]="!editingCourse"></i>
@@ -182,7 +172,6 @@
     </div>
   </section>
 
-  <!-- Listado de cursos -->
   <section class="panel-card">
     <div class="panel-card-header">
       <div>
@@ -191,7 +180,7 @@
           Cursos Registrados
         </h2>
         <p class="panel-subtitle">
-          Administra el contenido ya creado y abre la gestión de clases por curso.
+          Administra el contenido ya creado y abre la gestión de Lecciones por curso.
         </p>
       </div>
     </div>
@@ -241,10 +230,14 @@
               <i class="fas fa-trash"></i>
               Eliminar
             </button>
+           <!--  <a class="btn btn-secondary" [routerLink]="['/lesson-management', course.id]">
+                <i class="fas fa-book-reader"></i>
+              Lecciones
+              </a> -->
 
             <button class="btn btn-primary" (click)="manageClasses(course)">
               <i class="fas fa-chalkboard"></i>
-              Gestionar Clases
+              Gestionar Lecciones
             </button>
           </div>
         </article>
@@ -253,14 +246,13 @@
   </section>
 </div>
 
-<!-- Modal de clases -->
 <div class="modal-overlay" *ngIf="showClassModal" (click)="closeClassModal()">
   <div class="modal-box" (click)="$event.stopPropagation()">
     <div class="modal-header">
       <div>
         <h2 class="modal-title">
           <i class="fas fa-chalkboard"></i>
-          Gestión de Clases
+          Gestión de Lecciones
         </h2>
         <p class="modal-subtitle">
           Curso: <strong>{{ selectedCourse?.title }}</strong>
@@ -273,17 +265,16 @@
     </div>
 
     <div class="modal-body">
-      <!-- Formulario de clase -->
       <section class="inner-panel">
         <h3 class="inner-title">
           <i class="fas" [class.fa-pen]="editingClass" [class.fa-plus-circle]="!editingClass"></i>
-          {{ editingClass ? 'Editar Clase' : 'Crear Clase' }}
+          {{ editingClass ? 'Editar Leccion' : 'Crear Leccion' }}
         </h3>
 
         <form (ngSubmit)="saveClass()" #classForm="ngForm" class="class-form">
           <div class="form-row">
             <div class="form-group">
-              <label for="className">Nombre de la Clase</label>
+              <label for="className">Nombre de la Leccion</label>
               <input
                 type="text"
                 id="className"
@@ -314,7 +305,7 @@
 
           <div class="form-row">
             <div class="form-group">
-              <label for="classNumber">Número de Clase</label>
+              <label for="classNumber">Número de Leccion</label>
               <input
                 type="number"
                 id="classNumber"
@@ -380,7 +371,7 @@
             </div>
 
             <div class="form-group">
-              <label for="classImage">Imagen de la Clase</label>
+              <label for="classImage">Imagen de la Leccion</label>
               <input
                 type="file"
                 id="classImage"
@@ -390,7 +381,7 @@
                 (change)="onClassImageSelected($event)"
               >
             </div>
-         
+          </div>
 
           <div class="form-row">
             <div class="form-group">
@@ -404,23 +395,23 @@
               >
             </div>
           </div>
+
           <div class="form-group">
             <label for="observation">Observación</label>
-              <textarea
+            <textarea
               id="observation"
               name="observation"
-               [(ngModel)]="newClass.observation"
+              [(ngModel)]="newClass.observation"
               class="form-input"
               rows="3"
-               placeholder="Observaciones del docente o del administrador sobre esta clase"
-               ></textarea>
+              placeholder="Observaciones del docente o del administrador sobre esta clase"
+            ></textarea>
           </div>
-           </div>
 
           <div class="button-group">
             <button type="submit" class="btn btn-primary" [disabled]="!classForm.form.valid || isLoading">
               <i class="fas" [class.fa-save]="editingClass" [class.fa-plus]="!editingClass"></i>
-              {{ editingClass ? 'Guardar Cambios' : 'Crear Clase' }}
+              {{ editingClass ? 'Guardar Cambios' : 'Crear Leccion' }}
             </button>
 
             <button type="button" class="btn btn-secondary" (click)="resetClassForm()">
@@ -431,16 +422,15 @@
         </form>
       </section>
 
-      <!-- Lista de clases -->
       <section class="inner-panel">
         <h3 class="inner-title">
           <i class="fas fa-list"></i>
-          Clases Registradas
+          Lecciones Registradas
         </h3>
 
         <div *ngIf="classes.length === 0" class="empty-state compact">
           <i class="fas fa-chalkboard"></i>
-          <p>No hay clases registradas para este curso.</p>
+          <p>No hay Lecciones registradas para este curso.</p>
         </div>
 
         <div class="class-list" *ngIf="classes.length > 0">
@@ -455,10 +445,11 @@
             </div>
 
             <div class="class-details">
-              <p><strong>Clase:</strong> #{{ class.classNumber }}</p>
+              <p><strong>Leccion:</strong> #{{ class.classNumber }}</p>
               <p><strong>Estudiantes:</strong> {{ class.enrollmentCount }}/{{ class.maxStudents }}</p>
               <p *ngIf="class.resourceLink"><strong>Link:</strong> {{ class.resourceLink }}</p>
               <p *ngIf="class.resourceFileUrl"><strong>Archivo:</strong> Material cargado</p>
+              <p *ngIf="class.observation"><strong>Observación:</strong> {{ class.observation }}</p>
             </div>
 
             <div class="button-group">
@@ -484,6 +475,117 @@
 
     <div class="modal-footer">
       <button class="btn btn-secondary" (click)="closeClassModal()">
+        <i class="fas fa-times"></i>
+        Cerrar
+      </button>
+    </div>
+   </div>
+</div>
+<div class="modal-overlay" *ngIf="showEnrollmentModal" (click)="closeEnrollmentModal()">
+  <div class="modal-box" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <div>
+        <h2 class="modal-title">
+          <i class="fas fa-user-plus"></i>
+          Gestionar Inscripciones
+        </h2>
+        <p class="modal-subtitle">
+          Leccion: <strong>{{ selectedEnrollmentClass?.name }}</strong>
+        </p>
+      </div>
+
+      <button class="modal-close" (click)="closeEnrollmentModal()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <section class="inner-panel">
+        <h3 class="inner-title">
+          <i class="fas fa-users"></i>
+          Estudiantes Disponibles
+        </h3>
+
+        <div class="class-list">
+          <article class="class-card" *ngFor="let student of students">
+            <div class="class-card-header">
+              <h4>{{ student.name }}</h4>
+              <span
+                class="visibility-badge"
+                [class.visible]="!isStudentEnrolled(student.id)"
+                [class.hidden]="isStudentEnrolled(student.id)"
+              >
+                {{ isStudentEnrolled(student.id) ? 'Ya inscrito' : 'Disponible' }}
+              </span>
+            </div>
+
+            <div class="class-details">
+              <p><strong>Correo:</strong> {{ student.email }}</p>
+              <p><strong>Cédula:</strong> {{ student.cedula }}</p>
+            </div>
+
+            <div class="button-group">
+              <button
+                class="btn btn-primary"
+                (click)="enrollStudent(student)"
+                [disabled]="isStudentEnrolled(student.id)"
+              >
+                <i class="fas fa-user-plus"></i>
+                Inscribir
+              </button>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="inner-panel">
+        <h3 class="inner-title">
+          <i class="fas fa-list-check"></i>
+          Estudiantes Inscritos
+        </h3>
+
+        <div *ngIf="classEnrollments.length === 0" class="empty-state compact">
+          <i class="fas fa-user-slash"></i>
+          <p>No hay estudiantes inscritos en esta clase.</p>
+        </div>
+
+        <div class="class-list" *ngIf="classEnrollments.length > 0">
+          <article class="class-card" *ngFor="let enrollment of classEnrollments">
+            <div class="class-card-header">
+              <h4>{{ enrollment.studentName || enrollment.studentId }}</h4>
+
+              <span
+                class="visibility-badge"
+                [class.visible]="enrollment.status === 'active'"
+                [class.hidden]="enrollment.status !== 'active'"
+              >
+                {{ enrollment.status }}
+              </span>
+            </div>
+
+            <div class="class-details">
+              <p><strong>Correo:</strong> {{ enrollment.studentEmail || 'Sin correo' }}</p>
+              <p><strong>Fecha:</strong> {{ enrollment.enrollmentDate | date:'dd/MM/yyyy HH:mm' }}</p>
+            </div>
+
+            <div class="button-group">
+              <button class="btn btn-outline" (click)="toggleEnrollmentStatus(enrollment)">
+                <i class="fas fa-power-off"></i>
+                {{ enrollment.status === 'active' ? 'Desactivar' : 'Activar' }}
+              </button>
+
+              <button class="btn btn-danger" (click)="removeEnrollment(enrollment)">
+                <i class="fas fa-user-minus"></i>
+                Quitar
+              </button>
+            </div>
+          </article>
+        </div>
+      </section>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-secondary" (click)="closeEnrollmentModal()">
         <i class="fas fa-times"></i>
         Cerrar
       </button>

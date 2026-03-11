@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { CourseService } from '../../services/course.service';
-import { Course, Class } from '../../models/course.model';
+import { Course, Class, ClassEnrollment } from '../../models/course.model';
 import { UserService } from '../../services/user.service';
 import { User, UserRole } from '../../models/user.model';
 
@@ -60,13 +60,15 @@ export class CourseManagementComponent implements OnInit {
   selectedCourse: Course | null = null;
   selectedClass: Class | null = null;
 
+  showEnrollmentModal = false;
+  selectedEnrollmentClass: Class | null = null;
+
+  students: User[] = [];
+classEnrollments: ClassEnrollment[] = []
+
   newCourse: CourseForm = this.getEmptyCourseForm();
   newClass: ClassForm = this.getEmptyClassForm();
 
-  /**
-   * Archivos seleccionados temporalmente.
-   * En el siguiente paso los subiremos a Storage.
-   */
   selectedCourseImageFile: File | null = null;
   selectedClassImageFile: File | null = null;
   selectedClassResourceFile: File | null = null;
@@ -155,25 +157,16 @@ export class CourseManagementComponent implements OnInit {
     return `${year}-${month}-${day}T${hours}:${minutes}`;
   }
 
-  /**
-   * Guarda temporalmente la imagen del curso seleccionada.
-   */
   onCourseImageSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     this.selectedCourseImageFile = input.files?.[0] ?? null;
   }
 
-  /**
-   * Guarda temporalmente la imagen de la clase seleccionada.
-   */
   onClassImageSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     this.selectedClassImageFile = input.files?.[0] ?? null;
   }
 
-  /**
-   * Guarda temporalmente el archivo adjunto de la clase.
-   */
   onClassFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     this.selectedClassResourceFile = input.files?.[0] ?? null;
@@ -192,6 +185,7 @@ export class CourseManagementComponent implements OnInit {
       this.userService.getUsers().subscribe({
         next: (users) => {
           this.teachers = users.filter((user) => user.role === UserRole.TEACHER);
+          this.students = users.filter((user) => user.role === UserRole.STUDENT);
           resolve();
         },
         error: (error) => {
@@ -209,7 +203,7 @@ export class CourseManagementComponent implements OnInit {
       const payload: Partial<Course> = {
         title: this.newCourse.title.trim(),
         description: this.newCourse.description.trim(),
-        category: this.newCourse.category as 'education' | 'mathematics',
+        category: this.newCourse.category,
         isVisible: this.newCourse.isVisible,
         videoUrl: this.newCourse.videoUrl.trim(),
         imageUrl: this.newCourse.imageUrl?.trim() || '',
@@ -254,10 +248,7 @@ export class CourseManagementComponent implements OnInit {
 
   async deleteCourse(id: string): Promise<void> {
     const confirmed = confirm('¿Estás seguro de que deseas eliminar este curso?');
-
-    if (!confirmed) {
-      return;
-    }
+    if (!confirmed) return;
 
     try {
       this.isLoading = true;
@@ -300,7 +291,7 @@ export class CourseManagementComponent implements OnInit {
       const payload: Partial<Class> = {
         name: this.newClass.name.trim(),
         teacherId: this.newClass.teacherId,
-        status: this.newClass.status as 'open' | 'closed',
+        status: this.newClass.status,
         classNumber: Number(this.newClass.classNumber),
         maxStudents: Number(this.newClass.maxStudents),
         enrollmentCount: Number(this.newClass.enrollmentCount),
@@ -309,8 +300,8 @@ export class CourseManagementComponent implements OnInit {
         imageUrl: this.newClass.imageUrl?.trim() || '',
         resourceLink: this.newClass.resourceLink?.trim() || '',
         resourceFileUrl: this.newClass.resourceFileUrl?.trim() || '',
-        enrolledStudents: this.newClass.enrolledStudents,
         observation: this.newClass.observation,
+        enrolledStudents: this.newClass.enrolledStudents,
         courseId: this.selectedCourse.id
       };
 
@@ -357,16 +348,14 @@ export class CourseManagementComponent implements OnInit {
       imageUrl: classItem.imageUrl ?? '',
       resourceLink: classItem.resourceLink ?? '',
       resourceFileUrl: classItem.resourceFileUrl ?? '',
+      observation: classItem.observation ?? '',
       enrolledStudents: classItem.enrolledStudents ?? []
     };
   }
 
   async deleteClass(id: string): Promise<void> {
     const confirmed = confirm('¿Estás seguro de que deseas eliminar esta clase?');
-
-    if (!confirmed) {
-      return;
-    }
+    if (!confirmed) return;
 
     try {
       this.isLoading = true;
@@ -381,11 +370,125 @@ export class CourseManagementComponent implements OnInit {
       this.isLoading = false;
     }
   }
-
+/*
   manageEnrollments(classItem: Class): void {
     console.log('Gestión de inscripciones pendiente para:', classItem);
     alert(`Próximo paso: gestionar inscripciones de la clase "${classItem.name}"`);
+ 
+    }*/
+async manageEnrollments(classItem: Class): Promise<void> {
+
+  // guardamos la clase seleccionada
+  this.selectedEnrollmentClass = classItem;
+
+  // abrimos el modal de inscripciones
+  this.showEnrollmentModal = true;
+
+  // cargamos los estudiantes inscritos
+  await this.loadClassEnrollments(classItem.id);
+
+}
+async loadClassEnrollments(classId: string): Promise<void> {
+  try {
+    this.isLoading = true;
+
+    const enrollments = await this.courseService.getClassEnrollments(classId);
+
+    this.classEnrollments = enrollments.map((enrollment) => {
+      const student = this.students.find((s) => s.id === enrollment.studentId);
+
+      return {
+        ...enrollment,
+        studentName: student?.name || enrollment.studentName,
+        studentEmail: student?.email || enrollment.studentEmail
+      };
+    });
+  } catch (error) {
+    this.handleError('Error al cargar inscripciones', error);
+  } finally {
+    this.isLoading = false;
   }
+}
+
+isStudentEnrolled(studentId: string): boolean {
+  return this.classEnrollments.some((e) => e.studentId === studentId);
+}
+
+async enrollStudent(student: User): Promise<void> {
+  if (!this.selectedEnrollmentClass || !this.selectedCourse) {
+    return;
+  }
+
+  if (this.isStudentEnrolled(student.id)) {
+    this.handleError('El estudiante ya está inscrito en esta clase', null);
+    return;
+  }
+
+  try {
+    this.isLoading = true;
+
+    await this.courseService.createClassEnrollment({
+      courseId: this.selectedCourse.id,
+      classId: this.selectedEnrollmentClass.id,
+      studentId: student.id,
+      studentName: student.name,
+      studentEmail: student.email,
+      status: 'active',
+      enrollmentDate: new Date()
+    });
+
+    await this.loadClassEnrollments(this.selectedEnrollmentClass.id);
+  } catch (error) {
+    this.handleError('Error al inscribir estudiante', error);
+  } finally {
+    this.isLoading = false;
+  }
+}
+
+async removeEnrollment(enrollment: ClassEnrollment): Promise<void> {
+  const confirmed = confirm(`¿Quitar a ${enrollment.studentName || enrollment.studentId} de esta clase?`);
+
+  if (!confirmed) {
+    return;
+  }
+
+  try {
+    this.isLoading = true;
+    await this.courseService.deleteClassEnrollment(enrollment.id);
+
+    if (this.selectedEnrollmentClass) {
+      await this.loadClassEnrollments(this.selectedEnrollmentClass.id);
+    }
+  } catch (error) {
+    this.handleError('Error al quitar estudiante', error);
+  } finally {
+    this.isLoading = false;
+  }
+}
+
+async toggleEnrollmentStatus(enrollment: ClassEnrollment): Promise<void> {
+  const nextStatus = enrollment.status === 'active' ? 'inactive' : 'active';
+
+  try {
+    this.isLoading = true;
+    await this.courseService.updateClassEnrollmentStatus(enrollment.id, nextStatus);
+
+    if (this.selectedEnrollmentClass) {
+      await this.loadClassEnrollments(this.selectedEnrollmentClass.id);
+    }
+  } catch (error) {
+    this.handleError('Error al cambiar estado de inscripción', error);
+  } finally {
+    this.isLoading = false;
+  }
+}
+
+closeEnrollmentModal(): void {
+  this.showEnrollmentModal = false;
+  this.selectedEnrollmentClass = null;
+  this.classEnrollments = [];
+}
+    
 
   closeClassModal(): void {
     this.showClassModal = false;

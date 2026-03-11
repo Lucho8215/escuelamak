@@ -11,11 +11,17 @@ import { SupabaseTestComponent } from './components/supabase-test/supabase-test.
 import { ParametersComponent } from './components/parameters/parameters.component';
 import { QuizManagementComponent } from './components/quiz-management/quiz-management.component';
 import { QuizTakingComponent } from './components/quiz-taking/quiz-taking.component';
+import { StudentQuizzesComponent } from './components/student-quizzes/student-quizzes.component';
 import { ClassManagementComponent } from './components/class-management/class-management.component';
 import { AppLayoutComponent } from './components/layout/app-layout.component';
 import { authGuard } from './guards/auth.guard';
 import { roleGuard } from './guards/role.guard';
 import { UserRole } from './models/user.model';
+import { LessonManagementComponent } from './components/lesson-management/lesson-management.component';
+import { StudentLessonsComponent } from './components/student-lessons/student-lessons.component';
+import { StudentDashboardComponent } from './components/student-dashboard/student-dashboard.component';
+import { GradientGeneratorComponent } from './components/gradient-generator/gradient-generator.component';
+
 
 export const routes: Routes = [
   /**
@@ -34,10 +40,38 @@ export const routes: Routes = [
   },
 
   /**
+   * Dashboard del estudiante (ruta pública)
+   */
+  {
+    path: 'student-dashboard',
+    component: StudentDashboardComponent
+  },
+
+  /**
+   * Lecciones del estudiante
+   */
+  {
+    path: 'lesson-management/:courseId',
+    component: LessonManagementComponent
+  },
+  {
+    path: 'my-lessons',
+    component: StudentLessonsComponent
+  },
+
+  /**
+   * Quizzes del estudiante
+   */
+  {
+    path: 'my-quizzes',
+    component: StudentQuizzesComponent
+  },
+
+  /**
    * Grupo de rutas privadas:
    * todas usan AppLayoutComponent como contenedor
    */
-  {
+  { 
     path: '',
     component: AppLayoutComponent,
     canActivate: [authGuard],
@@ -98,6 +132,11 @@ export const routes: Routes = [
       {
         path: 'class-management',
         component: ClassManagementComponent,
+        canActivate: [roleGuard([UserRole.ADMIN, UserRole.TEACHER])]
+      },
+      {
+        path: 'gradient-generator',
+        component: GradientGeneratorComponent,
         canActivate: [roleGuard([UserRole.ADMIN, UserRole.TEACHER])]
       }
     ]

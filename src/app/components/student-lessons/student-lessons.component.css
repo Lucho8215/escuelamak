@@ -1,0 +1,208 @@
+:host {
+  display: block;
+}
+
+.student-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.page-header h1 {
+  margin: 0;
+  font-size: 2rem;
+  color: #1f2937;
+}
+
+.page-header p {
+  margin: 0.35rem 0 0;
+  color: #64748b;
+}
+
+.alert {
+  padding: 0.95rem 1rem;
+  border-radius: 14px;
+  font-weight: 700;
+}
+
+.alert.success {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.alert.error {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.overview-card {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.overview-card > div {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border-radius: 18px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.overview-card strong {
+  font-size: 1.8rem;
+}
+
+.lesson-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1rem;
+}
+
+.lesson-card {
+  background: white;
+  border-radius: 22px;
+  padding: 1.2rem;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.lesson-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.lesson-top h3 {
+  margin: 0;
+  color: #1f2937;
+}
+
+.lesson-top p {
+  margin: 0.2rem 0 0;
+  color: #64748b;
+}
+
+.summary {
+  color: #475569;
+}
+
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.status-chip.assigned {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-chip.in_progress {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.status-chip.completed {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status-chip.inactive {
+  background: #e2e8f0;
+  color: #475569;
+}
+
+.progress-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 12px;
+  background: #e2e8f0;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 999px;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  color: #64748b;
+  font-size: 0.85rem;
+}
+
+.actions {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.btn {
+  border: none;
+  border-radius: 12px;
+  padding: 0.75rem 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn.primary {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+}
+
+.btn.secondary {
+  background: #e2e8f0;
+  color: #1f2937;
+}
+
+.btn.success {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.content-box {
+  background: #f8fafc;
+  border-radius: 16px;
+  padding: 0.9rem;
+}
+
+.content-box h4 {
+  margin: 0 0 0.35rem;
+  color: #334155;
+}
+
+.content-box p {
+  margin: 0 0 0.8rem;
+  color: #475569;
+}
+
+.empty-box {
+  background: white;
+  border-radius: 18px;
+  padding: 1.25rem;
+  text-align: center;
+  color: #64748b;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+}
+
+@media (max-width: 768px) {
+  .overview-card {
+    grid-template-columns: 1fr;
+  }
+}
