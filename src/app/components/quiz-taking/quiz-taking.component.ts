@@ -42,7 +42,7 @@ import { Quiz, Question, QuizAttempt } from '../../models/quiz.model';
               </div>
               <div class="info-item">
                 <i class="fas fa-question"></i>
-                <span>{{quiz.questions?.length || 0}} preguntas</span>
+                <span>{{quiz.questions.length || 0}} preguntas</span>
               </div>
               <div class="info-item">
                 <i class="fas fa-signal"></i>
