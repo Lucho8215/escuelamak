@@ -1,61 +1,265 @@
-﻿<div class="module-container">
-  <a routerLink="/dashboard" class="btn btn-back">
-    <i class="fas fa-arrow-left"></i> Volver al Panel
-  </a>
+﻿<div class="student-container">
 
-  <h1>
-    <i class="fas fa-magic text-purple"></i>
-    Aventuras Matematicas
-    <i class="fas fa-magic text-purple"></i>
-  </h1>
+  <!-- ═══════════════════════════════════
+       ENCABEZADO DE LA PÁGINA
+  ════════════════════════════════════ -->
+  <div class="student-header">
+    <a routerLink="/dashboard" class="btn-back">← Volver al Panel</a>
+    <h1>📚 {{ isStudent ? 'Mis Cursos Asignados' : 'Todos los Cursos' }}</h1>
+    <p>{{ isStudent ? 'Aquí están todos tus cursos asignados' : 'Cursos disponibles en la plataforma' }}</p>
+  </div>
 
-  <div class="card-grid">
-    <div class="kid-card" *ngFor="let course of courses">
-      <div class="kid-card-content">
-        <i class="fas fa-book-open card-icon"></i>
-        <h3>{{course.title}}</h3>
-        <p>{{course.description}}</p>
-        <div class="course-details">
-          <p><strong>Categoria:</strong> {{course.category}}</p>
-          <p><strong>Duracion:</strong> {{course.duration}} horas</p>
-          <p><strong>Precio:</strong> ${{course.price}}</p>
+  <!-- ═══════════════════════════════════
+       PANTALLA DE CARGA
+  ════════════════════════════════════ -->
+  <div *ngIf="isLoading" class="estado-card">
+    <div class="estado-emoji">⏳</div>
+    <p>Cargando tus cursos...</p>
+  </div>
+
+  <!-- ═══════════════════════════════════
+       SIN CURSOS DISPONIBLES
+  ════════════════════════════════════ -->
+  <div *ngIf="!isLoading && courses.length === 0" class="estado-card">
+    <div class="estado-emoji">📭</div>
+    <h3>{{ isStudent ? '¡Aún no tienes cursos asignados!' : 'No hay cursos disponibles' }}</h3>
+    <p>{{ isStudent ? 'Habla con tu profesor para que te asigne cursos.' : 'Crea cursos desde el panel de administración.' }}</p>
+  </div>
+
+  <!-- ═══════════════════════════════════
+       GRID DE TARJETAS DE CURSOS
+       Muestra todos los cursos en tarjetas
+  ════════════════════════════════════ -->
+  <div class="courses-grid" *ngIf="!isLoading && courses.length > 0">
+    <div *ngFor="let course of courses"
+         class="course-card"
+         (click)="viewCourseDetails(course)">
+
+      <!-- Imagen del curso o emoji por defecto -->
+      <div class="course-image">
+        <img *ngIf="course.imageUrl" [src]="course.imageUrl" [alt]="course.title">
+        <div *ngIf="!course.imageUrl" class="course-emoji">
+          {{ getCourseEmoji(course.category) }}
         </div>
-        <button class="btn btn-kid" (click)="viewCourseDetails(course)">Ver Detalles</button>
+      </div>
+
+      <!-- Información del curso -->
+      <div class="course-info">
+        <span class="course-category">{{ course.category | uppercase }}</span>
+        <h3 class="course-title">{{ course.title }}</h3>
+        <p class="course-desc">{{ course.description }}</p>
+        <div class="course-meta" *ngIf="course.durationMonths">
+          📅 {{ course.durationMonths }} meses
+        </div>
+        <button class="btn-ver">Ver mis clases →</button>
       </div>
     </div>
   </div>
 
-  <div class="modal" *ngIf="selectedCourse">
-    <div class="modal-content kid-card">
-      <div class="kid-card-content">
-        <h2>{{selectedCourse.title}}</h2>
-        <p>{{selectedCourse.description}}</p>
-        <div class="course-details">
-          <p><strong>Categoria:</strong> {{selectedCourse.category}}</p>
-          <p><strong>Duracion:</strong> {{selectedCourse.duration}} horas</p>
-          <p><strong>Precio:</strong> ${{selectedCourse.price}}</p>
-        </div>
+  <!-- ═══════════════════════════════════
+       MODAL LISTA DE CLASES
+       Se abre al hacer clic en un curso
+  ════════════════════════════════════ -->
+  <div class="modal-overlay" *ngIf="selectedCourse" (click)="closeModal()">
+    <div class="modal-box" (click)="$event.stopPropagation()">
 
-        <div *ngIf="selectedCourse.videoUrl" class="video-preview">
-          <h3>Video Introductorio</h3>
-          <iframe
-            [src]="selectedCourse.videoUrl | safe"
-            width="100%"
-            height="315"
-            frameborder="0"
-            allowfullscreen>
-          </iframe>
+      <!-- Encabezado del modal con nombre del curso -->
+      <div class="modal-header">
+        <div class="modal-header-info">
+          <span class="course-category">{{ selectedCourse.category | uppercase }}</span>
+          <h2>{{ selectedCourse.title }}</h2>
+          <p>{{ selectedCourse.description }}</p>
         </div>
+        <button class="btn-close" (click)="closeModal()">✕</button>
+      </div>
 
-        <div *ngIf="!selectedCourse.videoUrl" class="video-preview">
-          <p style="text-align:center; color:#999;">Sin video introductorio</p>
-        </div>
+      <!-- Indicador mientras cargan las clases -->
+      <div *ngIf="loadingClasses" class="loading-small">
+        ⏳ Cargando clases...
+      </div>
 
-        <div class="classes-list">
-          <h3>Clases Disponibles</h3>
-          <div *ngIf="classes.length === 0" style="text-align:center; padding:1rem; color:#999;">
-            No hay clases disponibles aun
+      <!-- Mensaje si no hay clases asignadas -->
+      <div *ngIf="!loadingClasses && classes.length === 0" class="sin-clases">
+        <p>📭 {{ isStudent ? 'No tienes clases asignadas en este curso aún.' : 'Este curso no tiene clases todavía.' }}</p>
+      </div>
+
+      <!-- ─────────────────────────────────
+           LISTA DE CLASES DEL CURSO
+      ────────────────────────────────── -->
+      <div *ngIf="!loadingClasses && classes.length > 0">
+        <h3 class="clases-titulo">
+          📖 {{ isStudent ? 'Tus Clases Asignadas' : 'Clases del Curso' }}
+        </h3>
+
+        <!-- Tarjeta de cada clase -->
+        <div *ngFor="let clase of classes"
+             class="class-card"
+             [class.class-activa]="clase.status === 'open'"
+             [class.class-seleccionada]="selectedClass?.id === clase.id"
+             (click)="selectClass(clase)">
+
+          <!-- Fila principal: número, nombre y estado -->
+          <div class="class-header">
+            <div class="class-numero">{{ clase.classNumber }}</div>
+            <div class="class-datos">
+              <h4>{{ clase.name }}</h4>
+              <span class="class-estado" [class.abierta]="clase.status === 'open'">
+                {{ clase.status === 'open' ? '🟢 Abierta' : '🔴 Cerrada' }}
+              </span>
+            </div>
+            <!-- Chips que indican qué contenido tiene la clase -->
+            <div class="class-chips">
+              <span *ngIf="hasVideo(clase)" class="chip video">▶ Video</span>
+              <span *ngIf="hasPdf(clase)" class="chip pdf">📄 PDF</span>
+              <span *ngIf="hasImage(clase)" class="chip imagen">🖼️ Imagen</span>
+              <span *ngIf="clase.resourceLink && !hasVideo(clase)" class="chip enlace">🔗 Enlace</span>
+            </div>
           </div>
-          <div *ngFor="let clase of classes" class="class-item kid-card">
-            <div class="kid-card-content">
-              <h4>{{clase.name}}</h4>
+
+          <!-- Nota del profesor si existe -->
+          <p *ngIf="clase.observation" class="class-nota">
+            📝 {{ clase.observation }}
+          </p>
+
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════
+           DETALLE INTERACTIVO DE LA CLASE SELECCIONADA
+           Aparece debajo cuando el alumno hace clic en una clase
+      ════════════════════════════════════════════ -->
+      <div *ngIf="selectedClass" class="detalle-interactivo">
+
+        <!-- Título del detalle -->
+        <div class="detalle-top">
+          <h3>{{ selectedClass.name }}</h3>
+          <button (click)="selectedClass = null" class="btn-close-small">✕</button>
+        </div>
+
+        <!-- ─────────────────────────────────
+             PESTAÑAS DE NAVEGACIÓN
+             Solo aparecen las pestañas que tienen contenido
+        ────────────────────────────────── -->
+        <div class="tabs">
+          <!-- Pestaña Info: siempre visible -->
+          <button class="tab" [class.activo]="activeTab === 'info'" (click)="setTab('info')">
+            📋 Info
+          </button>
+          <!-- Pestaña Video: solo si tiene videoUrl -->
+          <button *ngIf="hasVideo(selectedClass)" class="tab"
+                  [class.activo]="activeTab === 'video'" (click)="setTab('video')">
+            🎬 Video
+          </button>
+          <!-- Pestaña PDF: solo si el archivo adjunto es PDF -->
+          <button *ngIf="hasPdf(selectedClass)" class="tab"
+                  [class.activo]="activeTab === 'pdf'" (click)="setTab('pdf')">
+            📄 PDF
+          </button>
+          <!-- Pestaña Imagen: solo si tiene imageUrl -->
+          <button *ngIf="hasImage(selectedClass)" class="tab"
+                  [class.activo]="activeTab === 'imagen'" (click)="setTab('imagen')">
+            🖼️ Imagen
+          </button>
+          <!-- Pestaña Recurso: si tiene enlace externo que no es video -->
+          <button *ngIf="selectedClass.resourceLink && !hasVideo(selectedClass)" class="tab"
+                  [class.activo]="activeTab === 'recurso'" (click)="setTab('recurso')">
+            🔗 Recurso
+          </button>
+        </div>
+
+        <!-- ─────────────────────────────────
+             CONTENIDO DE CADA PESTAÑA
+        ────────────────────────────────── -->
+
+        <!-- PESTAÑA INFO: Fechas, cupo, observación -->
+        <div *ngIf="activeTab === 'info'" class="tab-content">
+          <div class="info-grid">
+            <div class="info-item">
+              <span class="info-label">🗓️ Fecha inicio</span>
+              <span>{{ selectedClass.startDate | date:'dd/MM/yyyy' }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">🏁 Fecha fin</span>
+              <span>{{ selectedClass.endDate | date:'dd/MM/yyyy' }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">👥 Cupo</span>
+              <span>{{ selectedClass.enrollmentCount }} / {{ selectedClass.maxStudents }} estudiantes</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">📊 Estado</span>
+              <span [class.verde]="selectedClass.status === 'open'">
+                {{ selectedClass.status === 'open' ? '🟢 Abierta' : '🔴 Cerrada' }}
+              </span>
+            </div>
+          </div>
+          <!-- Observación del profesor en un recuadro destacado -->
+          <div *ngIf="selectedClass.observation" class="observacion-box">
+            <strong>💬 Nota del profesor:</strong>
+            <p>{{ selectedClass.observation }}</p>
+          </div>
+          <!-- Si tiene archivo no-PDF, ofrece descargarlo -->
+          <div *ngIf="selectedClass.resourceFileUrl && !hasPdf(selectedClass)" class="recurso-descarga">
+            <a [href]="selectedClass.resourceFileUrl" target="_blank" class="btn-descargar">
+              ⬇️ Descargar archivo adjunto
+            </a>
+          </div>
+        </div>
+
+        <!-- PESTAÑA VIDEO: Reproductor embebido de YouTube -->
+        <div *ngIf="activeTab === 'video'" class="tab-content">
+          <div class="video-wrapper">
+            <!-- El iframe embebe el video de YouTube de forma segura -->
+            <iframe
+              [src]="getVideoEmbedUrl(selectedClass.resourceLink || '')"
+              frameborder="0"
+              allowfullscreen
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope">
+            </iframe>
+          </div>
+          <p class="video-hint">💡 Si el video no carga, revisa tu conexión a internet.</p>
+        </div>
+
+        <!-- PESTAÑA PDF: Visor embebido usando Google Docs Viewer -->
+        <div *ngIf="activeTab === 'pdf'" class="tab-content">
+          <div class="pdf-wrapper">
+            <!-- Google Docs Viewer muestra el PDF sin necesidad de descargarlo -->
+            <iframe [src]="getPdfViewerUrl(selectedClass.resourceFileUrl || '')"
+                    frameborder="0">
+            </iframe>
+          </div>
+          <!-- Opción de descarga directa por si el visor falla -->
+          <a [href]="selectedClass.resourceFileUrl" target="_blank" class="btn-descargar">
+            ⬇️ Descargar PDF
+          </a>
+        </div>
+
+        <!-- PESTAÑA IMAGEN: Muestra la imagen de la clase a tamaño completo -->
+        <div *ngIf="activeTab === 'imagen'" class="tab-content">
+          <div class="imagen-wrapper">
+            <img [src]="selectedClass.imageUrl" [alt]="selectedClass.name">
+          </div>
+        </div>
+
+        <!-- PESTAÑA RECURSO: Enlace externo con vista previa -->
+        <div *ngIf="activeTab === 'recurso'" class="tab-content">
+          <div class="recurso-box">
+            <div class="recurso-icono">🔗</div>
+            <p>Este recurso está disponible en un enlace externo.</p>
+            <a [href]="selectedClass.resourceLink" target="_blank" class="btn-recurso-grande">
+              Abrir Recurso →
+            </a>
+          </div>
+        </div>
+
+      </div>
+      <!-- Fin del detalle interactivo -->
+
+      <!-- Botón para cerrar el modal completo -->
+      <button class="btn-cerrar" (click)="closeModal()">Cerrar</button>
+
+    </div>
+  </div>
+  <!-- Fin del modal -->
+
+</div>
