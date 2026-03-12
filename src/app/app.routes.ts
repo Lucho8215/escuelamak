@@ -21,6 +21,7 @@ import { LessonManagementComponent } from './components/lesson-management/lesson
 import { StudentLessonsComponent } from './components/student-lessons/student-lessons.component';
 import { StudentDashboardComponent } from './components/student-dashboard/student-dashboard.component';
 import { GradientGeneratorComponent } from './components/gradient-generator/gradient-generator.component';
+import { PasswordResetComponent } from './components/password-reset/password-reset.component';
 
 
 export const routes: Routes = [
@@ -38,7 +39,11 @@ export const routes: Routes = [
     path: 'login',
     component: LoginComponent
   },
-
+  {
+    path: 'password-reset',
+    component: PasswordResetComponent
+  },
+  
   /**
    * Dashboard del estudiante (ruta pública)
    */

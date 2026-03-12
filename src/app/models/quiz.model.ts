@@ -72,3 +72,36 @@ export interface StudentQuiz {
   lastAttemptDate?: Date;
   attemptCount: number;
 }
+
+/**
+ * Interfaz para solicitudes de recursos relacionadas con quizzes
+ * Los estudiantes pueden solicitar recursos cuando realizan un cuestionario
+ */
+export interface QuizResourceRequest {
+  id: string;
+  quizId: string;
+  studentId: string;
+  questionId?: string;
+  requestType: 'explanation' | 'material' | 'clarification' | 'technical' | 'other';
+  description: string;
+  status: 'pending' | 'approved' | 'rejected' | 'completed';
+  response?: string;
+  respondedBy?: string;
+  respondedAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+  // Datos relacionados para mostrar
+  student?: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  quiz?: {
+    id: string;
+    title: string;
+  };
+  question?: {
+    id: string;
+    text: string;
+  };
+}

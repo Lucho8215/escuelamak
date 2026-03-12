@@ -4,7 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { QuizService } from '../../services/quiz.service';
 import { AuthService } from '../../services/auth.service';
-import { Quiz, Question, QuizAssignment } from '../../models/quiz.model';
+import { Quiz, Question, QuizAssignment, QuizResourceRequest } from '../../models/quiz.model';
+import { forkJoin } from 'rxjs';
 
 @Component({
   selector: 'app-quiz-management',
@@ -18,26 +19,28 @@ export class QuizManagementComponent implements OnInit {
   students: any[] = [];
   assignments: QuizAssignment[] = [];
   selectedQuiz: Quiz | null = null;
-  
-  // UI States
-  activeTab: 'list' | 'create' | 'assign' | 'results' = 'list';
-  editingQuiz: boolean = false;
-  loading: boolean = false;
-  loadingAssignments: boolean = false;
-  successMessage: string = '';
-  errorMessage: string = '';
-  
-  // Form
+
+  activeTab: 'list' | 'create' | 'assign' | 'results' | 'requests' = 'list';
+  editingQuiz = false;
+  loading = false;
+  loadingAssignments = false;
+  successMessage = '';
+  errorMessage = '';
+
   newQuiz: Partial<Quiz> = this.getEmptyQuiz();
-  
-  // Assignment
+
   selectedStudentIds: string[] = [];
-  dueDate: string = '';
-  
-  // Search and filter
-  searchTerm: string = '';
-  filterCategory: string = '';
-  filterDifficulty: string = '';
+  dueDate = '';
+
+  // Resource requests
+  resourceRequests: QuizResourceRequest[] = [];
+  loadingRequests = false;
+  selectedRequest: QuizResourceRequest | null = null;
+  requestResponse = '';
+
+  searchTerm = '';
+  filterCategory = '';
+  filterDifficulty = '';
 
   constructor(
     private quizService: QuizService,
@@ -51,26 +54,26 @@ export class QuizManagementComponent implements OnInit {
 
   getEmptyQuiz(): Partial<Quiz> {
     return {
-      title: '', 
-      description: '', 
+      title: '',
+      description: '',
       questions: [],
-      isEnabled: true, 
+      isEnabled: true,
       isVisible: true,
       category: 'general',
-      difficulty: 'easy', 
-      timeLimit: 10, 
+      difficulty: 'easy',
+      timeLimit: 10,
       passingScore: 60,
-      createdBy: this.authService.getCurrentUser()?.email || 'admin'
+      createdBy: this.authService.getCurrentUser()?.id || ''
     };
   }
 
   getEmptyQuestion(): Question {
     return {
       id: Date.now().toString(),
-      text: '', 
+      text: '',
       options: ['', '', '', ''],
-      correctAnswer: 0, 
-      explanation: '', 
+      correctAnswer: 0,
+      explanation: '',
       points: 10
     };
   }
@@ -92,13 +95,17 @@ export class QuizManagementComponent implements OnInit {
   loadStudents() {
     this.quizService.getStudents().subscribe({
       next: (students) => this.students = students,
-      error: (e) => console.error('Error loading students:', e)
+      error: (e) => {
+        console.error('Error loading students:', e);
+        this.errorMessage = 'Error cargando estudiantes';
+      }
     });
   }
 
   loadAssignments(quiz: Quiz) {
     this.loadingAssignments = true;
     this.selectedQuiz = quiz;
+
     this.quizService.getQuizAssignments(quiz.id).subscribe({
       next: (assignments) => {
         this.assignments = assignments;
@@ -111,9 +118,10 @@ export class QuizManagementComponent implements OnInit {
     });
   }
 
-  // ─── CRUD Operations ───────────────────────────────────────────────────
   addQuestion() {
-    if (!this.newQuiz.questions) this.newQuiz.questions = [];
+    if (!this.newQuiz.questions) {
+      this.newQuiz.questions = [];
+    }
     this.newQuiz.questions.push(this.getEmptyQuestion());
   }
 
@@ -130,7 +138,6 @@ export class QuizManagementComponent implements OnInit {
   removeOption(question: Question, j: number) {
     if (question.options && question.options.length > 2) {
       question.options.splice(j, 1);
-      // Adjust correct answer if needed
       if (question.correctAnswer >= j) {
         question.correctAnswer = Math.max(0, question.correctAnswer - 1);
       }
@@ -143,11 +150,10 @@ export class QuizManagementComponent implements OnInit {
       return;
     }
 
-    // Validate questions
-    const invalidQuestions = this.newQuiz.questions.filter(q => 
+    const invalidQuestions = this.newQuiz.questions.filter(q =>
       !q.text || !q.options || q.options.length < 2 || q.options.some(o => !o)
     );
-    
+
     if (invalidQuestions.length > 0) {
       this.errorMessage = 'Todas las preguntas deben tener texto y al menos 2 opciones válidas';
       return;
@@ -173,18 +179,19 @@ export class QuizManagementComponent implements OnInit {
       error: (e) => {
         this.loading = false;
         this.errorMessage = 'Error: ' + e.message;
+        console.error('Error guardando quiz:', e);
       }
     });
   }
 
   editQuiz(quiz: Quiz) {
     this.editingQuiz = true;
-    this.newQuiz = { 
-      ...quiz, 
+    this.newQuiz = {
+      ...quiz,
       questions: quiz.questions?.map(q => ({
         ...q,
         options: [...q.options]
-      })) || [] 
+      })) || []
     };
     this.activeTab = 'create';
     window.scrollTo(0, 0);
@@ -193,7 +200,10 @@ export class QuizManagementComponent implements OnInit {
   toggleQuiz(quiz: Quiz) {
     this.quizService.toggleQuizStatus(quiz.id).subscribe({
       next: () => this.loadQuizzes(),
-      error: (e) => this.errorMessage = 'Error: ' + e.message
+      error: (e) => {
+        this.errorMessage = 'Error: ' + e.message;
+        console.error('Error cambiando estado del quiz:', e);
+      }
     });
   }
 
@@ -205,7 +215,10 @@ export class QuizManagementComponent implements OnInit {
           this.loadQuizzes();
           setTimeout(() => this.successMessage = '', 3000);
         },
-        error: (e) => this.errorMessage = 'Error: ' + e.message
+        error: (e) => {
+          this.errorMessage = 'Error: ' + e.message;
+          console.error('Error eliminando quiz:', e);
+        }
       });
     }
   }
@@ -215,7 +228,6 @@ export class QuizManagementComponent implements OnInit {
     this.newQuiz = this.getEmptyQuiz();
   }
 
-  // ─── Assignment Operations ─────────────────────────────────────────────
   openAssignTab(quiz: Quiz) {
     this.selectedQuiz = quiz;
     this.selectedStudentIds = [];
@@ -241,35 +253,50 @@ export class QuizManagementComponent implements OnInit {
     }
   }
 
-  assignQuiz() {
-    if (!this.selectedQuiz || this.selectedStudentIds.length === 0) {
-      this.errorMessage = 'Selecciona al menos un estudiante';
-      return;
-    }
+assignQuiz() {
+  if (!this.selectedQuiz || this.selectedStudentIds.length === 0) {
+    this.errorMessage = 'Selecciona al menos un estudiante';
+    return;
+  }
 
-    this.loading = true;
-    const dueDateObj = this.dueDate ? new Date(this.dueDate) : undefined;
-    const assignedBy = this.authService.getCurrentUser()?.email || 'admin';
+  const currentUser = this.authService.getCurrentUser();
 
-    this.quizService.assignQuizToStudents(
-      this.selectedQuiz.id,
-      this.selectedStudentIds,
+  if (!currentUser?.id) {
+    this.errorMessage = 'No se pudo identificar el usuario autenticado';
+    return;
+  }
+
+  this.loading = true;
+  this.errorMessage = '';
+  this.successMessage = '';
+
+  const dueDateObj = this.dueDate ? new Date(this.dueDate) : undefined;
+  const assignedBy = currentUser.id;
+
+  const requests = this.selectedStudentIds.map((studentId) =>
+    this.quizService.assignQuizToStudent(
+      this.selectedQuiz!.id,
+      studentId,
       assignedBy,
       dueDateObj
-    ).subscribe({
-      next: () => {
-        this.loading = false;
-        this.successMessage = `¡Quiz asignado a ${this.selectedStudentIds.length} estudiante(s)!`;
-        this.selectedStudentIds = [];
-        this.loadAssignments(this.selectedQuiz!);
-        setTimeout(() => this.successMessage = '', 3000);
-      },
-      error: (e) => {
-        this.loading = false;
-        this.errorMessage = 'Error: ' + e.message;
-      }
-    });
-  }
+    )
+  );
+
+  forkJoin(requests).subscribe({
+    next: () => {
+      this.loading = false;
+      this.successMessage = `¡Quiz asignado a ${this.selectedStudentIds.length} estudiante(s)!`;
+      this.selectedStudentIds = [];
+      this.loadAssignments(this.selectedQuiz!);
+      setTimeout(() => this.successMessage = '', 3000);
+    },
+    error: (e: any) => {
+      this.loading = false;
+      this.errorMessage = 'Error: ' + (e?.message || 'No se pudo asignar el cuestionario');
+      console.error('Error asignando quiz:', e);
+    }
+  });
+}
 
   removeAssignment(assignmentId: string) {
     if (confirm('¿Eliminar esta asignación?')) {
@@ -281,21 +308,23 @@ export class QuizManagementComponent implements OnInit {
           }
           setTimeout(() => this.successMessage = '', 3000);
         },
-        error: (e) => this.errorMessage = 'Error: ' + e.message
+        error: (e) => {
+          this.errorMessage = 'Error: ' + e.message;
+          console.error('Error eliminando asignación:', e);
+        }
       });
     }
   }
 
-  // ─── Filtering ─────────────────────────────────────────────────────────
   get filteredQuizzes(): Quiz[] {
     return this.quizzes.filter(quiz => {
-      const matchesSearch = !this.searchTerm || 
+      const matchesSearch = !this.searchTerm ||
         quiz.title.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
         quiz.description.toLowerCase().includes(this.searchTerm.toLowerCase());
-      
+
       const matchesCategory = !this.filterCategory || quiz.category === this.filterCategory;
       const matchesDifficulty = !this.filterDifficulty || quiz.difficulty === this.filterDifficulty;
-      
+
       return matchesSearch && matchesCategory && matchesDifficulty;
     });
   }
@@ -304,7 +333,6 @@ export class QuizManagementComponent implements OnInit {
     return [...new Set(this.quizzes.map(q => q.category).filter(c => c))];
   }
 
-  // ─── Utility ──────────────────────────────────────────────────────────
   getDifficultyClass(difficulty: string): string {
     const classes: Record<string, string> = {
       easy: 'difficulty-easy',
@@ -333,5 +361,181 @@ export class QuizManagementComponent implements OnInit {
     if (assignment.isCompleted) return 'status-completed';
     if (assignment.bestScore !== undefined) return 'status-in-progress';
     return 'status-pending';
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // MÉTODOS PARA SOLICITUDES DE RECURSOS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Abre la pestaña de solicitudes de recursos
+   */
+  openRequestsTab() {
+    this.activeTab = 'requests';
+    this.loadResourceRequests();
+  }
+
+  /**
+   * Carga las solicitudes de recursos
+   */
+  loadResourceRequests() {
+    this.loadingRequests = true;
+    this.quizService.getAllResourceRequests().subscribe({
+      next: (requests) => {
+        this.resourceRequests = requests;
+        this.loadingRequests = false;
+      },
+      error: (e) => {
+        this.errorMessage = 'Error cargando solicitudes: ' + e.message;
+        this.loadingRequests = false;
+      }
+    });
+  }
+
+  /**
+   * Abre el modal para responder una solicitud
+   */
+  openRespondRequestModal(request: QuizResourceRequest) {
+    this.selectedRequest = request;
+    this.requestResponse = request.response || '';
+  }
+
+  /**
+   * Cierra el modal de respuesta
+   */
+  closeRequestModal() {
+    this.selectedRequest = null;
+    this.requestResponse = '';
+  }
+
+  /**
+   * Aprueba una solicitud
+   */
+  approveRequest() {
+    if (!this.selectedRequest) return;
+    
+    const currentUser = this.authService.getCurrentUser();
+    if (!currentUser?.id) {
+      this.errorMessage = 'No se pudo identificar el usuario';
+      return;
+    }
+
+    this.quizService.respondToResourceRequest(
+      this.selectedRequest.id,
+      this.requestResponse,
+      'approved',
+      currentUser.id
+    ).subscribe({
+      next: () => {
+        this.successMessage = 'Solicitud aprobada';
+        this.closeRequestModal();
+        this.loadResourceRequests();
+        setTimeout(() => this.successMessage = '', 3000);
+      },
+      error: (e) => {
+        this.errorMessage = 'Error: ' + e.message;
+      }
+    });
+  }
+
+  /**
+   * Rechaza una solicitud
+   */
+  rejectRequest() {
+    if (!this.selectedRequest) return;
+    
+    const currentUser = this.authService.getCurrentUser();
+    if (!currentUser?.id) {
+      this.errorMessage = 'No se pudo identificar el usuario';
+      return;
+    }
+
+    this.quizService.respondToResourceRequest(
+      this.selectedRequest.id,
+      this.requestResponse,
+      'rejected',
+      currentUser.id
+    ).subscribe({
+      next: () => {
+        this.successMessage = 'Solicitud rechazada';
+        this.closeRequestModal();
+        this.loadResourceRequests();
+        setTimeout(() => this.successMessage = '', 3000);
+      },
+      error: (e) => {
+        this.errorMessage = 'Error: ' + e.message;
+      }
+    });
+  }
+
+  /**
+   * Marca una solicitud como completada
+   */
+  completeRequest() {
+    if (!this.selectedRequest) return;
+    
+    const currentUser = this.authService.getCurrentUser();
+    if (!currentUser?.id) {
+      this.errorMessage = 'No se pudo identificar el usuario';
+      return;
+    }
+
+    this.quizService.respondToResourceRequest(
+      this.selectedRequest.id,
+      this.requestResponse,
+      'completed',
+      currentUser.id
+    ).subscribe({
+      next: () => {
+        this.successMessage = 'Solicitud marcada como completada';
+        this.closeRequestModal();
+        this.loadResourceRequests();
+        setTimeout(() => this.successMessage = '', 3000);
+      },
+      error: (e) => {
+        this.errorMessage = 'Error: ' + e.message;
+      }
+    });
+  }
+
+  /**
+   * Obtiene el tipo de solicitud en texto legible
+   */
+  getRequestTypeLabel(type: string): string {
+    const labels: Record<string, string> = {
+      'explanation': 'Explicación adicional',
+      'material': 'Material de estudio',
+      'clarification': 'Aclaración de pregunta',
+      'technical': 'Problema técnico',
+      'other': 'Otro'
+    };
+    return labels[type] || type;
+  }
+
+  /**
+   * Obtiene la clase CSS para el estado de la solicitud
+   */
+  getRequestStatusClass(status: string): string {
+    const classes: Record<string, string> = {
+      'pending': 'status-pending',
+      'approved': 'status-approved',
+      'rejected': 'status-rejected',
+      'completed': 'status-completed'
+    };
+    return classes[status] || '';
+  }
+
+  /**
+   * Obtiene el icono para el tipo de solicitud
+   */
+  getRequestTypeIcon(type: string): string {
+    const icons: Record<string, string> = {
+      'explanation': 'fa-lightbulb',
+      'material': 'fa-book',
+      'clarification': 'fa-question-circle',
+      'technical': 'fa-tools',
+      'other': 'fa-comment'
+    };
+    return icons[type] || 'fa-comment';
   }
 }

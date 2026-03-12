@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable, from, throwError } from 'rxjs';
 import { map, catchError, switchMap } from 'rxjs/operators';
-import { Quiz, Question, QuizAttempt, QuizAssignment, StudentQuiz } from '../models/quiz.model';
+import { Quiz, Question, QuizAttempt, QuizAssignment, StudentQuiz, QuizResourceRequest } from '../models/quiz.model';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { environment } from '../../environments/environment';
 
@@ -9,8 +9,10 @@ import { environment } from '../../environments/environment';
   providedIn: 'root'
 })
 export class QuizService {
+    private readonly assignmentsTable = 'quiz_assignments';
 
-  private supabase: SupabaseClient = createClient(
+ 
+    private supabase: SupabaseClient = createClient(
     environment.supabaseUrl,
     environment.supabaseKey
   );
@@ -292,30 +294,49 @@ export class QuizService {
   }
 
   // ─── Asignar quiz a un estudiante ───────────────────────────────────────
-  assignQuizToStudent(quizId: string, studentId: string, assignedBy: string, dueDate?: Date): Observable<QuizAssignment> {
-    return from(
-      this.supabase
-        .from('quiz_assignments')
-        .insert([{
-          quiz_id:      quizId,
-          student_id:   studentId,
-          assigned_by:  assignedBy,
-          due_date:     dueDate || null,
-          is_completed: false
-        }])
-        .select()
-        .single()
-    ).pipe(
-      map(({ data, error }) => {
-        if (error) throw new Error(error.message);
-        return this.mapToAssignment(data);
-      }),
-      catchError(error => throwError(() => new Error(error.message)))
-    );
-  }
+  assignQuizToStudent(
+  quizId: string,
+  studentId: string,
+  assignedBy: string,
+  dueDate?: Date
+): Observable<QuizAssignment> {
+  const payload = {
+    quiz_id: quizId,
+    student_id: studentId,
+    assigned_by: assignedBy,
+    due_date: dueDate ? dueDate.toISOString() : null,
+    is_completed: false
+  };
+  
+
+  return from(
+    this.supabase
+      .from('quiz_assignments')
+      .upsert([payload], { onConflict: 'quiz_id,student_id' })
+      .select()
+      .single()
+  ).pipe(
+    map(({ data, error }) => {
+      if (error) {
+        throw new Error(error.message);
+      }
+      return this.mapToAssignment(data);
+    }),
+    catchError((error) => {
+      console.error('Error en assignQuizToStudent:', error);
+      return throwError(() => new Error(error.message || 'No se pudo asignar el quiz'));
+    })
+  );
+}
 
   // ─── Asignar quiz a múltiples estudiantes ───────────────────────────────
-  assignQuizToStudents(quizId: string, studentIds: string[], assignedBy: string, dueDate?: Date): Observable<QuizAssignment[]> {
+  assignQuizToStudents
+   (quizId: string,
+    studentIds: string[], 
+    assignedBy: string, 
+    dueDate?: Date): Observable<QuizAssignment[]> 
+    
+    {
     const assignments = studentIds.map(studentId => ({
       quiz_id:      quizId,
       student_id:   studentId,
@@ -327,7 +348,7 @@ export class QuizService {
     return from(
       this.supabase
         .from('quiz_assignments')
-        .insert(assignments)
+        .upsert(assignments, { onConflict: 'quiz_id,student_id' })
         .select()
     ).pipe(
       map(({ data, error }) => {
@@ -498,6 +519,142 @@ export class QuizService {
     );
   }
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SOLICITUDES DE RECURSOS - Sistema para que estudiantes soliciten recursos
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Crea una nueva solicitud de recurso
+   * @param request Datos de la solicitud
+   */
+  createResourceRequest(request: Omit<QuizResourceRequest, 'id' | 'createdAt' | 'updatedAt' | 'status'>): Observable<QuizResourceRequest> {
+    return from(
+      this.supabase
+        .from('quiz_resource_requests')
+        .insert([{
+          quiz_id: request.quizId,
+          student_id: request.studentId,
+          question_id: request.questionId || null,
+          request_type: request.requestType,
+          description: request.description,
+          status: 'pending'
+        }])
+        .select()
+        .single()
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) throw new Error(error.message);
+        return this.mapToResourceRequest(data);
+      }),
+      catchError(error => throwError(() => new Error(error.message)))
+    );
+  }
+
+  /**
+   * Obtiene las solicitudes de recursos de un estudiante
+   * @param studentId ID del estudiante
+   */
+  getStudentResourceRequests(studentId: string): Observable<QuizResourceRequest[]> {
+    return from(
+      this.supabase
+        .from('quiz_resource_requests')
+        .select(`
+          *,
+          quizzes (id, title),
+          questions (id, text)
+        `)
+        .eq('student_id', studentId)
+        .order('created_at', { ascending: false })
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) throw new Error(error.message);
+        return (data || []).map((item: any) => this.mapToResourceRequest(item));
+      }),
+      catchError(error => throwError(() => new Error(error.message)))
+    );
+  }
+
+  /**
+   * Obtiene todas las solicitudes de recursos (para profesores/admin)
+   * @param quizId Opcional: filtrar por quiz
+   */
+  getAllResourceRequests(quizId?: string): Observable<QuizResourceRequest[]> {
+    let query = this.supabase
+      .from('quiz_resource_requests')
+      .select(`
+        *,
+        app_users (id, name, email),
+        quizzes (id, title),
+        questions (id, text)
+      `)
+      .order('created_at', { ascending: false });
+
+    if (quizId) {
+      query = query.eq('quiz_id', quizId);
+    }
+
+    return from(query).pipe(
+      map(({ data, error }) => {
+        if (error) throw new Error(error.message);
+        return (data || []).map((item: any) => this.mapToResourceRequest(item));
+      }),
+      catchError(error => throwError(() => new Error(error.message)))
+    );
+  }
+
+  /**
+   * Responde a una solicitud de recurso (profesor/admin)
+   * @param requestId ID de la solicitud
+   * @param response Respuesta del profesor
+   * @param status Nuevo estado
+   * @param responderId ID de quien responde
+   */
+  respondToResourceRequest(
+    requestId: string,
+    response: string,
+    status: 'approved' | 'rejected' | 'completed',
+    responderId: string
+  ): Observable<QuizResourceRequest> {
+    return from(
+      this.supabase
+        .from('quiz_resource_requests')
+        .update({
+          response: response,
+          status: status,
+          responded_by: responderId,
+          responded_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', requestId)
+        .select()
+        .single()
+    ).pipe(
+      map(({ data, error }) => {
+        if (error) throw new Error(error.message);
+        return this.mapToResourceRequest(data);
+      }),
+      catchError(error => throwError(() => new Error(error.message)))
+    );
+  }
+
+  /**
+   * Obtiene el conteo de solicitudes pendientes
+   */
+  getPendingRequestsCount(): Observable<number> {
+    return from(
+      this.supabase
+        .from('quiz_resource_requests')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'pending')
+    ).pipe(
+      map(({ count, error }) => {
+        if (error) throw new Error(error.message);
+        return count || 0;
+      }),
+      catchError(error => throwError(() => new Error(error.message)))
+    );
+  }
+
   // ─── Convertir datos de Supabase al modelo Quiz ──────────────────────────
   private mapToQuiz(data: any): Quiz {
     return {
@@ -538,6 +695,40 @@ export class QuizService {
       isCompleted:  data.is_completed,
       assignedAt:   new Date(data.assigned_at),
       completedAt:  data.completed_at ? new Date(data.completed_at) : undefined
+    };
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Método auxiliar para convertir datos de recurso al modelo
+  // ═══════════════════════════════════════════════════════════════════════════
+  private mapToResourceRequest(data: any): QuizResourceRequest {
+    return {
+      id:           data.id,
+      quizId:       data.quiz_id,
+      studentId:    data.student_id,
+      questionId:   data.question_id || undefined,
+      requestType:  data.request_type,
+      description:  data.description,
+      status:       data.status,
+      response:     data.response || undefined,
+      respondedBy:  data.responded_by || undefined,
+      respondedAt:  data.responded_at ? new Date(data.responded_at) : undefined,
+      createdAt:    new Date(data.created_at),
+      updatedAt:    new Date(data.updated_at),
+      // Datos relacionados
+      student: data.app_users ? {
+        id:    data.app_users.id,
+        name:  data.app_users.name,
+        email: data.app_users.email
+      } : undefined,
+      quiz: data.quizzes ? {
+        id:    data.quizzes.id,
+        title: data.quizzes.title
+      } : undefined,
+      question: data.questions ? {
+        id:   data.questions.id,
+        text: data.questions.text
+      } : undefined
     };
   }
 }

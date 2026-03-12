@@ -42,16 +42,24 @@
           <a routerLink="/user-management" class="btn btn-kid">Gestionar</a>
         </div>
       </div>
-
       <div class="kid-card completed-card" *ngIf="canReviewExercises()">
         <div class="kid-card-content">
           <i class="fas fa-star card-icon"></i>
-          <h3>Ejercicios y Quizzes</h3>
+          <h3>Ejercicios </h3>
           <p>Practica y revisa cuestionarios</p>
           <a routerLink="/review" class="btn btn-kid">Practicar</a>
         </div>
       </div>
 
+      <div class="kid-card numbers-card" *ngIf="canViewCourses()">
+        <div class="kid-card-content">
+          <i class="fas fa-book-open card-icon"></i>
+          <h3>Mis Cursos</h3>
+          <p>Explora el mundo de las matemáticas</p>
+          <a routerLink="/courses" class="btn btn-kid">Ver Cursos</a>
+        </div>
+      </div>
+      
       <div class="kid-card numbers-card" *ngIf="canViewCourses()">
         <div class="kid-card-content">
           <i class="fas fa-book-open card-icon"></i>

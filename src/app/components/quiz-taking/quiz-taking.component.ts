@@ -136,6 +136,13 @@ import { Quiz, Question, QuizAttempt } from '../../models/quiz.model';
                 (click)="finishQuiz()">
                 Terminar <i class="fas fa-check"></i>
               </button>
+
+              <!-- Botón para solicitar ayuda -->
+              <button class="btn btn-kid btn-secondary"
+                      (click)="openResourceModal()"
+                      style="margin-left: auto;">
+                <i class="fas fa-question-circle"></i> Solicitar ayuda
+              </button>
             </div>
           </div>
 
@@ -232,6 +239,58 @@ import { Quiz, Question, QuizAttempt } from '../../models/quiz.model';
             </button>
           </div>
 
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: Solicitar ayuda/recursos -->
+    <div *ngIf="showResourceModal" class="resource-modal-overlay" (click)="closeResourceModal()">
+      <div class="resource-modal" (click)="$event.stopPropagation()">
+        <div class="resource-modal-header">
+          <h3><i class="fas fa-question-circle"></i> Solicitar Ayuda</h3>
+          <button class="btn-icon" (click)="closeResourceModal()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+        <div class="resource-modal-body" *ngIf="!resourceRequestSent">
+          <p>Pregunta actual: {{ currentQuestion?.text | slice:0:80 }}...</p>
+
+          <div class="form-group">
+            <label>Tipo de solicitud</label>
+            <select [(ngModel)]="resourceType" class="form-input">
+              <option value="explanation">Explicación adicional</option>
+              <option value="material">Material de estudio</option>
+              <option value="clarification">Aclaración de pregunta</option>
+              <option value="technical">Problema técnico</option>
+              <option value="other">Otro</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Describe tu solicitud</label>
+            <textarea [(ngModel)]="resourceDescription" rows="4" 
+                      class="form-input" 
+                      placeholder="¿Qué necesitas? Ejemplo: No entiendo esta pregunta..."></textarea>
+          </div>
+
+          <p *ngIf="resourceRequestError" class="error-text">{{ resourceRequestError }}</p>
+        </div>
+
+        <div class="resource-modal-body" *ngIf="resourceRequestSent">
+          <div class="success-message">
+            <i class="fas fa-check-circle"></i>
+            <p>¡Solicitud enviada! Tu profesor la revisará pronto.</p>
+          </div>
+        </div>
+
+        <div class="resource-modal-footer" *ngIf="!resourceRequestSent">
+          <button class="btn btn-kid btn-secondary" (click)="closeResourceModal()">
+            Cancelar
+          </button>
+          <button class="btn btn-kid" (click)="submitResourceRequest()">
+            <i class="fas fa-paper-plane"></i> Enviar Solicitud
+          </button>
         </div>
       </div>
     </div>
@@ -440,6 +499,107 @@ import { Quiz, Question, QuizAttempt } from '../../models/quiz.model';
       50% { opacity: 0.5; }
       100% { opacity: 1; }
     }
+    /* Estilos para modal de solicitud de recursos */
+    .resource-modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 1rem;
+    }
+    .resource-modal {
+      background: white;
+      border-radius: 15px;
+      width: 100%;
+      max-width: 450px;
+      overflow: hidden;
+    }
+    .resource-modal-header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 1rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .resource-modal-header h3 {
+      margin: 0;
+      font-family: 'Comic Sans MS', cursive;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .resource-modal-header .btn-icon {
+      background: transparent;
+      border: none;
+      color: white;
+      cursor: pointer;
+      font-size: 1.2rem;
+    }
+    .resource-modal-body {
+      padding: 1.5rem;
+    }
+    .resource-modal-body p {
+      color: #6b7280;
+      margin-bottom: 1rem;
+      font-family: 'Comic Sans MS', cursive;
+    }
+    .resource-modal-body .form-group {
+      margin-bottom: 1rem;
+    }
+    .resource-modal-body label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+      color: #374151;
+      font-family: 'Comic Sans MS', cursive;
+    }
+    .resource-modal-body .form-input {
+      width: 100%;
+      padding: 0.75rem;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-family: 'Comic Sans MS', cursive;
+    }
+    .resource-modal-body .form-input:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    .error-text {
+      color: #ef4444 !important;
+      font-size: 0.9rem;
+    }
+    .success-message {
+      text-align: center;
+      padding: 2rem;
+    }
+    .success-message i {
+      font-size: 3rem;
+      color: #10b981;
+    }
+    .success-message p {
+      color: #10b981 !important;
+      font-size: 1.1rem;
+      margin-top: 1rem;
+    }
+    .resource-modal-footer {
+      padding: 1rem 1.5rem;
+      background: #f9fafb;
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.75rem;
+    }
+    .btn-secondary {
+      background: #6b7280;
+      color: white;
+    }
   `]
 })
 export class QuizTakingComponent implements OnInit, OnDestroy {
@@ -457,6 +617,13 @@ export class QuizTakingComponent implements OnInit, OnDestroy {
   loading: boolean = true;
   savingResult: boolean = false;
   resultSaved: boolean = false;
+
+  // Solicitar recursos
+  showResourceModal: boolean = false;
+  resourceType: string = 'explanation';
+  resourceDescription: string = '';
+  resourceRequestSent: boolean = false;
+  resourceRequestError: string = '';
 
   constructor(
     private quizService: QuizService,
@@ -610,5 +777,77 @@ export class QuizTakingComponent implements OnInit, OnDestroy {
     this.correctAnswers = 0;
     this.tiempoUsado = 0;
     this.resultSaved = false;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // MÉTODOS PARA SOLICITAR RECURSOS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Abre el modal para solicitar un recurso
+   */
+  openResourceModal() {
+    this.showResourceModal = true;
+    this.resourceType = 'explanation';
+    this.resourceDescription = '';
+    this.resourceRequestSent = false;
+    this.resourceRequestError = '';
+  }
+
+  /**
+   * Cierra el modal de solicitud de recurso
+   */
+  closeResourceModal() {
+    this.showResourceModal = false;
+  }
+
+  /**
+   * Envía la solicitud de recurso
+   */
+  submitResourceRequest() {
+    const currentUser = this.authService.getCurrentUser();
+    if (!currentUser || !this.quiz) {
+      this.resourceRequestError = 'No se pudo identificar al usuario';
+      return;
+    }
+
+    if (!this.resourceDescription.trim()) {
+      this.resourceRequestError = 'Por favor describe tu solicitud';
+      return;
+    }
+
+    const questionId = this.quiz.questions[this.currentQuestionIndex]?.id;
+
+    this.quizService.createResourceRequest({
+      quizId: this.quiz.id,
+      studentId: currentUser.id,
+      questionId: questionId,
+      requestType: this.resourceType as any,
+      description: this.resourceDescription
+    }).subscribe({
+      next: () => {
+        this.resourceRequestSent = true;
+        setTimeout(() => {
+          this.closeResourceModal();
+        }, 2000);
+      },
+      error: (e) => {
+        this.resourceRequestError = 'Error al enviar solicitud: ' + e.message;
+      }
+    });
+  }
+
+  /**
+   * Obtiene el tipo de solicitud en texto legible
+   */
+  getResourceTypeLabel(type: string): string {
+    const labels: Record<string, string> = {
+      'explanation': 'Explicación adicional',
+      'material': 'Material de estudio',
+      'clarification': 'Aclaración de pregunta',
+      'technical': 'Problema técnico',
+      'other': 'Otro'
+    };
+    return labels[type] || type;
   }
 }

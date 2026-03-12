@@ -25,7 +25,10 @@ export interface Course {
 }
 
 export interface Class {
+  videoUrl?: any;
   id: string;
+
+  
 
   /* Relación con curso */
   courseId: string;

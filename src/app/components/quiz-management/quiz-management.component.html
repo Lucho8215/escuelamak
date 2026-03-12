@@ -13,6 +13,9 @@
         <button class="btn btn-primary" (click)="activeTab = 'list'; resetForm()">
           <i class="fas fa-list"></i> Ver Cuestionarios
         </button>
+        <button class="btn btn-info" (click)="openRequestsTab()">
+          <i class="fas fa-envelope"></i> Solicitudes
+        </button>
         <button class="btn btn-success" (click)="activeTab = 'create'; resetForm()">
           <i class="fas fa-plus-circle"></i> Nuevo Cuestionario
         </button>
@@ -79,7 +82,7 @@
           <div class="quiz-meta">
             <div class="meta-item">
               <i class="fas fa-question-circle"></i>
-              <span>{{ quiz.questions?.length || 0 }} preguntas</span>
+              <span>{{ quiz.questions ? quiz.questions.length : 0 }} preguntas</span>
             </div>
             <div class="meta-item">
               <i class="fas fa-clock"></i>
@@ -396,4 +399,128 @@
       </div>
     </div>
   </section>
+
+  <!-- TAB: Solicitudes de Recursos -->
+  <section *ngIf="activeTab === 'requests'" class="tab-content">
+    <div class="requests-container">
+      <div class="requests-header">
+        <button class="btn btn-outline" (click)="activeTab = 'list'">
+          <i class="fas fa-arrow-left"></i> Volver
+        </button>
+        <h2>
+          <i class="fas fa-envelope"></i>
+          Solicitudes de Recursos
+        </h2>
+      </div>
+
+      <!-- Loading -->
+      <div *ngIf="loadingRequests" class="loading-container">
+        <i class="fas fa-spinner fa-spin"></i>
+        <p>Cargando solicitudes...</p>
+      </div>
+
+      <!-- Requests List -->
+      <div *ngIf="!loadingRequests" class="requests-list">
+        <div *ngFor="let request of resourceRequests" class="request-card">
+          <div class="request-header">
+            <div class="request-type">
+              <i class="fas" [class]="getRequestTypeIcon(request.requestType)"></i>
+              <span>{{ getRequestTypeLabel(request.requestType) }}</span>
+            </div>
+            <span class="status-badge" [class]="getRequestStatusClass(request.status)">
+              {{ request.status | titlecase }}
+            </span>
+          </div>
+
+          <div class="request-body">
+            <div class="request-student">
+              <i class="fas fa-user"></i>
+              <span>{{ request.student?.name || 'Estudiante' }}</span>
+              <small>{{ request.student?.email }}</small>
+            </div>
+            <div class="request-quiz">
+              <i class="fas fa-clipboard"></i>
+              <span>{{ request.quiz?.title || 'Cuestionario' }}</span>
+            </div>
+            <div *ngIf="request.question" class="request-question">
+              <i class="fas fa-question"></i>
+              <span>{{ request.question.text | slice:0:100 }}...</span>
+            </div>
+          </div>
+
+          <div class="request-description">
+            <strong>Descripción:</strong>
+            <p>{{ request.description }}</p>
+          </div>
+
+          <div *ngIf="request.response" class="request-response">
+            <strong>Respuesta:</strong>
+            <p>{{ request.response }}</p>
+          </div>
+
+          <div class="request-footer">
+            <span class="request-date">
+              <i class="fas fa-clock"></i>
+              {{ formatDate(request.createdAt) }}
+            </span>
+            <button *ngIf="request.status === 'pending'" 
+                    class="btn btn-sm btn-primary"
+                    (click)="openRespondRequestModal(request)">
+              <i class="fas fa-reply"></i> Responder
+            </button>
+            <button *ngIf="request.status === 'approved'" 
+                    class="btn btn-sm btn-success"
+                    (click)="openRespondRequestModal(request)">
+              <i class="fas fa-check"></i> Marcar completada
+            </button>
+          </div>
+        </div>
+
+        <div *ngIf="resourceRequests.length === 0" class="empty-state">
+          <i class="fas fa-envelope-open"></i>
+          <h3>No hay solicitudes</h3>
+          <p>Las solicitudes de recursos aparecerán aquí</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Modal para responder solicitud -->
+  <div *ngIf="selectedRequest" class="modal-overlay" (click)="closeRequestModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>Responder Solicitud</h3>
+        <button class="btn-icon" (click)="closeRequestModal()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="request-info">
+          <p><strong>Estudiante:</strong> {{ selectedRequest.student?.name }}</p>
+          <p><strong>Tipo:</strong> {{ getRequestTypeLabel(selectedRequest.requestType) }}</p>
+          <p><strong>Descripción:</strong> {{ selectedRequest.description }}</p>
+        </div>
+        <div class="form-group">
+          <label>Respuesta</label>
+          <textarea [(ngModel)]="requestResponse" rows="4" 
+                    class="form-input" 
+                    placeholder="Escribe tu respuesta..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="closeRequestModal()">Cancelar</button>
+        <button class="btn btn-danger" (click)="rejectRequest()">
+          <i class="fas fa-times"></i> Rechazar
+        </button>
+        <button class="btn btn-primary" (click)="approveRequest()">
+          <i class="fas fa-check"></i> Aprobar
+        </button>
+        <button *ngIf="selectedRequest.status === 'approved'" 
+                class="btn btn-success" 
+                (click)="completeRequest()">
+          <i class="fas fa-check-double"></i> Completar
+        </button>
+      </div>
+    </div>
+  </div>
 </div>
