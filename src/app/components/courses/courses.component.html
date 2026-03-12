@@ -1,69 +1,42 @@
-﻿<div class="student-container">
-
-  <!-- ═══════════════════════════════════
-       ENCABEZADO DE LA PÁGINA
-  ════════════════════════════════════ -->
+<div class="student-container">
+  <!-- ENCABEZADO -->
   <div class="student-header">
     <a routerLink="/dashboard" class="btn-back">← Volver al Panel</a>
     <h1>📚 {{ isStudent ? 'Mis Cursos Asignados' : 'Todos los Cursos' }}</h1>
     <p>{{ isStudent ? 'Aquí están todos tus cursos asignados' : 'Cursos disponibles en la plataforma' }}</p>
   </div>
-
-  <!-- ═══════════════════════════════════
-       PANTALLA DE CARGA
-  ════════════════════════════════════ -->
+  <!-- CARGANDO -->
   <div *ngIf="isLoading" class="estado-card">
     <div class="estado-emoji">⏳</div>
     <p>Cargando tus cursos...</p>
   </div>
-
-  <!-- ═══════════════════════════════════
-       SIN CURSOS DISPONIBLES
-  ════════════════════════════════════ -->
+  <!-- SIN CURSOS -->
   <div *ngIf="!isLoading && courses.length === 0" class="estado-card">
     <div class="estado-emoji">📭</div>
     <h3>{{ isStudent ? '¡Aún no tienes cursos asignados!' : 'No hay cursos disponibles' }}</h3>
     <p>{{ isStudent ? 'Habla con tu profesor para que te asigne cursos.' : 'Crea cursos desde el panel de administración.' }}</p>
   </div>
-
-  <!-- ═══════════════════════════════════
-       GRID DE TARJETAS DE CURSOS
-       Muestra todos los cursos en tarjetas
-  ════════════════════════════════════ -->
+  <!-- GRID DE CURSOS -->
   <div class="courses-grid" *ngIf="!isLoading && courses.length > 0">
-    <div *ngFor="let course of courses"
-         class="course-card"
-         (click)="viewCourseDetails(course)">
-
-      <!-- Imagen del curso o emoji por defecto -->
+    <div *ngFor="let course of courses" class="course-card" (click)="viewCourseDetails(course)">
       <div class="course-image">
         <img *ngIf="course.imageUrl" [src]="course.imageUrl" [alt]="course.title">
-        <div *ngIf="!course.imageUrl" class="course-emoji">
-          {{ getCourseEmoji(course.category) }}
-        </div>
+        <div *ngIf="!course.imageUrl" class="course-emoji">{{ getCourseEmoji(course.category) }}</div>
       </div>
-
-      <!-- Información del curso -->
       <div class="course-info">
         <span class="course-category">{{ course.category | uppercase }}</span>
         <h3 class="course-title">{{ course.title }}</h3>
         <p class="course-desc">{{ course.description }}</p>
-        <div class="course-meta" *ngIf="course.durationMonths">
-          📅 {{ course.durationMonths }} meses
-        </div>
         <button class="btn-ver">Ver mis clases →</button>
       </div>
     </div>
   </div>
-
-  <!-- ═══════════════════════════════════
-       MODAL LISTA DE CLASES
-       Se abre al hacer clic en un curso
-  ════════════════════════════════════ -->
+  <!-- ═══════════════════════════════════════════
+       MODAL: Lista de Clases del Curso
+  ════════════════════════════════════════════ -->
   <div class="modal-overlay" *ngIf="selectedCourse" (click)="closeModal()">
-    <div class="modal-box" (click)="$event.stopPropagation()">
-
-      <!-- Encabezado del modal con nombre del curso -->
+    <div class="modal-box modal-wide" (click)="$event.stopPropagation()">
+      <!-- Header del modal -->
       <div class="modal-header">
         <div class="modal-header-info">
           <span class="course-category">{{ selectedCourse.category | uppercase }}</span>
@@ -72,33 +45,18 @@
         </div>
         <button class="btn-close" (click)="closeModal()">✕</button>
       </div>
-
-      <!-- Indicador mientras cargan las clases -->
-      <div *ngIf="loadingClasses" class="loading-small">
-        ⏳ Cargando clases...
-      </div>
-
-      <!-- Mensaje si no hay clases asignadas -->
+      <div *ngIf="loadingClasses" class="loading-small">⏳ Cargando clases...</div>
       <div *ngIf="!loadingClasses && classes.length === 0" class="sin-clases">
         <p>📭 {{ isStudent ? 'No tienes clases asignadas en este curso aún.' : 'Este curso no tiene clases todavía.' }}</p>
       </div>
-
-      <!-- ─────────────────────────────────
-           LISTA DE CLASES DEL CURSO
-      ────────────────────────────────── -->
+      <!-- LISTA DE CLASES -->
       <div *ngIf="!loadingClasses && classes.length > 0">
-        <h3 class="clases-titulo">
-          📖 {{ isStudent ? 'Tus Clases Asignadas' : 'Clases del Curso' }}
-        </h3>
-
-        <!-- Tarjeta de cada clase -->
+        <h3 class="clases-titulo">📖 {{ isStudent ? 'Tus Clases Asignadas' : 'Clases del Curso' }}</h3>
         <div *ngFor="let clase of classes"
              class="class-card"
              [class.class-activa]="clase.status === 'open'"
              [class.class-seleccionada]="selectedClass?.id === clase.id"
              (click)="selectClass(clase)">
-
-          <!-- Fila principal: número, nombre y estado -->
           <div class="class-header">
             <div class="class-numero">{{ clase.classNumber }}</div>
             <div class="class-datos">
@@ -107,159 +65,154 @@
                 {{ clase.status === 'open' ? '🟢 Abierta' : '🔴 Cerrada' }}
               </span>
             </div>
-            <!-- Chips que indican qué contenido tiene la clase -->
-            <div class="class-chips">
-              <span *ngIf="hasVideo(clase)" class="chip video">▶ Video</span>
-              <span *ngIf="hasPdf(clase)" class="chip pdf">📄 PDF</span>
-              <span *ngIf="hasImage(clase)" class="chip imagen">🖼️ Imagen</span>
-              <span *ngIf="clase.resourceLink && !hasVideo(clase)" class="chip enlace">🔗 Enlace</span>
-            </div>
           </div>
-
-          <!-- Nota del profesor si existe -->
-          <p *ngIf="clase.observation" class="class-nota">
-            📝 {{ clase.observation }}
-          </p>
-
         </div>
       </div>
-
       <!-- ═══════════════════════════════════════════
-           DETALLE INTERACTIVO DE LA CLASE SELECCIONADA
-           Aparece debajo cuando el alumno hace clic en una clase
+           DETALLE DE CLASE SELECCIONADA + LECCIONES
       ════════════════════════════════════════════ -->
       <div *ngIf="selectedClass" class="detalle-interactivo">
-
-        <!-- Título del detalle -->
         <div class="detalle-top">
-          <h3>{{ selectedClass.name }}</h3>
-          <button (click)="selectedClass = null" class="btn-close-small">✕</button>
+          <h3>📖 {{ selectedClass.name }}</h3>
+          <button (click)="selectedClass = null; lessons = []; selectedLesson = null" class="btn-close-small">✕</button>
         </div>
-
-        <!-- ─────────────────────────────────
-             PESTAÑAS DE NAVEGACIÓN
-             Solo aparecen las pestañas que tienen contenido
-        ────────────────────────────────── -->
-        <div class="tabs">
-          <!-- Pestaña Info: siempre visible -->
-          <button class="tab" [class.activo]="activeTab === 'info'" (click)="setTab('info')">
-            📋 Info
-          </button>
-          <!-- Pestaña Video: solo si tiene videoUrl -->
-          <button *ngIf="hasVideo(selectedClass)" class="tab"
-                  [class.activo]="activeTab === 'video'" (click)="setTab('video')">
-            🎬 Video
-          </button>
-          <!-- Pestaña PDF: solo si el archivo adjunto es PDF -->
-          <button *ngIf="hasPdf(selectedClass)" class="tab"
-                  [class.activo]="activeTab === 'pdf'" (click)="setTab('pdf')">
-            📄 PDF
-          </button>
-          <!-- Pestaña Imagen: solo si tiene imageUrl -->
-          <button *ngIf="hasImage(selectedClass)" class="tab"
-                  [class.activo]="activeTab === 'imagen'" (click)="setTab('imagen')">
-            🖼️ Imagen
-          </button>
-          <!-- Pestaña Recurso: si tiene enlace externo que no es video -->
-          <button *ngIf="selectedClass.resourceLink && !hasVideo(selectedClass)" class="tab"
-                  [class.activo]="activeTab === 'recurso'" (click)="setTab('recurso')">
-            🔗 Recurso
-          </button>
-        </div>
-
-        <!-- ─────────────────────────────────
-             CONTENIDO DE CADA PESTAÑA
-        ────────────────────────────────── -->
-
-        <!-- PESTAÑA INFO: Fechas, cupo, observación -->
-        <div *ngIf="activeTab === 'info'" class="tab-content">
-          <div class="info-grid">
-            <div class="info-item">
-              <span class="info-label">🗓️ Fecha inicio</span>
-              <span>{{ selectedClass.startDate | date:'dd/MM/yyyy' }}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">🏁 Fecha fin</span>
-              <span>{{ selectedClass.endDate | date:'dd/MM/yyyy' }}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">👥 Cupo</span>
-              <span>{{ selectedClass.enrollmentCount }} / {{ selectedClass.maxStudents }} estudiantes</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">📊 Estado</span>
-              <span [class.verde]="selectedClass.status === 'open'">
-                {{ selectedClass.status === 'open' ? '🟢 Abierta' : '🔴 Cerrada' }}
-              </span>
-            </div>
+        <!-- Info de la clase -->
+        <div class="info-grid">
+          <div class="info-item">
+            <span class="info-label">🗓️ Fecha inicio</span>
+            <span>{{ selectedClass.startDate | date:'dd/MM/yyyy' }}</span>
           </div>
-          <!-- Observación del profesor en un recuadro destacado -->
-          <div *ngIf="selectedClass.observation" class="observacion-box">
-            <strong>💬 Nota del profesor:</strong>
-            <p>{{ selectedClass.observation }}</p>
+          <div class="info-item">
+            <span class="info-label">🏁 Fecha fin</span>
+            <span>{{ selectedClass.endDate | date:'dd/MM/yyyy' }}</span>
           </div>
-          <!-- Si tiene archivo no-PDF, ofrece descargarlo -->
-          <div *ngIf="selectedClass.resourceFileUrl && !hasPdf(selectedClass)" class="recurso-descarga">
-            <a [href]="selectedClass.resourceFileUrl" target="_blank" class="btn-descargar">
-              ⬇️ Descargar archivo adjunto
-            </a>
+          <div class="info-item">
+            <span class="info-label">👥 Cupo</span>
+            <span>{{ selectedClass.enrollmentCount }} / {{ selectedClass.maxStudents }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">📊 Estado</span>
+            <span [class.verde]="selectedClass.status === 'open'">
+              {{ selectedClass.status === 'open' ? '🟢 Abierta' : '🔴 Cerrada' }}
+            </span>
           </div>
         </div>
-
-        <!-- PESTAÑA VIDEO: Reproductor embebido de YouTube -->
-        <div *ngIf="activeTab === 'video'" class="tab-content">
-          <div class="video-wrapper">
-            <!-- El iframe embebe el video de YouTube de forma segura -->
-            <iframe
-              [src]="getVideoEmbedUrl(selectedClass.resourceLink || '')"
-              frameborder="0"
-              allowfullscreen
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope">
-            </iframe>
-          </div>
-          <p class="video-hint">💡 Si el video no carga, revisa tu conexión a internet.</p>
+        <!-- CARGANDO LECCIONES -->
+        <div *ngIf="loadingLessons" class="loading-small" style="margin-top:1rem;">
+          ⏳ Cargando lecciones...
         </div>
-
-        <!-- PESTAÑA PDF: Visor embebido usando Google Docs Viewer -->
-        <div *ngIf="activeTab === 'pdf'" class="tab-content">
-          <div class="pdf-wrapper">
-            <!-- Google Docs Viewer muestra el PDF sin necesidad de descargarlo -->
-            <iframe [src]="getPdfViewerUrl(selectedClass.resourceFileUrl || '')"
+        <!-- SIN LECCIONES -->
+        <div *ngIf="!loadingLessons && lessons.length === 0" class="sin-clases" style="margin-top:1rem;">
+          <p>📭 Esta clase no tiene lecciones asignadas aún.</p>
+        </div>
+        <!-- ─────────────────────────────────────
+             LISTA DE LECCIONES
+        ────────────────────────────────────── -->
+        <div *ngIf="!loadingLessons && lessons.length > 0" class="lecciones-section">
+          <h4 class="lecciones-titulo">🎓 Lecciones ({{ lessons.length }})</h4>
+          <div *ngFor="let lesson of lessons"
+               class="leccion-card"
+               [class.leccion-seleccionada]="selectedLesson?.id === lesson.id"
+               (click)="selectLesson(lesson)">
+            <div class="leccion-header">
+              <div class="leccion-numero">{{ getLessonNumber(lesson) }}</div>
+              <div class="leccion-datos">
+                <h5>{{ getLessonName(lesson) }}</h5>
+                <div class="leccion-chips">
+                  <span *ngIf="lessonHasVideo(lesson)" class="chip video">▶ Video</span>
+                  <span *ngIf="lessonHasPdf(lesson)" class="chip pdf">📄 PDF</span>
+                  <span *ngIf="lessonHasImage(lesson)" class="chip imagen">🖼️ Imagen</span>
+                  <span *ngIf="lessonHasLink(lesson)" class="chip enlace">🔗 Enlace</span>
+                </div>
+              </div>
+              <span class="leccion-expand">{{ selectedLesson?.id === lesson.id ? '▲' : '▼' }}</span>
+            </div>
+            <!-- ═══════════════════════════════════
+                 CONTENIDO EXPANDIDO DE LA LECCION
+            ════════════════════════════════════ -->
+            <div *ngIf="selectedLesson?.id === lesson.id"
+                 class="leccion-contenido"
+                 (click)="$event.stopPropagation()">
+              <!-- PESTANAS -->
+              <div class="tabs">
+                <button class="tab" [class.activo]="activeTab === 'info'" (click)="setTab('info')">
+                  📋 Info
+                </button>
+                <button *ngIf="lessonHasVideo(lesson)" class="tab"
+                        [class.activo]="activeTab === 'video'" (click)="setTab('video')">
+                  🎬 Video
+                </button>
+                <button *ngIf="lessonHasPdf(lesson)" class="tab"
+                        [class.activo]="activeTab === 'pdf'" (click)="setTab('pdf')">
+                  📄 PDF
+                </button>
+                <button *ngIf="lessonHasImage(lesson)" class="tab"
+                        [class.activo]="activeTab === 'imagen'" (click)="setTab('imagen')">
+                  🖼️ Imagen
+                </button>
+                <button *ngIf="lessonHasLink(lesson)" class="tab"
+                        [class.activo]="activeTab === 'recurso'" (click)="setTab('recurso')">
+                  🔗 Recurso
+                </button>
+              </div>
+              <!-- TAB INFO -->
+              <div *ngIf="activeTab === 'info'" class="tab-content">
+                <p *ngIf="getLessonObservation(lesson)" class="leccion-obs">
+                  💬 {{ getLessonObservation(lesson) }}
+                </p>
+                <p *ngIf="!getLessonObservation(lesson)" style="color:#888; font-style:italic;">
+                  Sin observaciones para esta lección.
+                </p>
+              </div>
+              <!-- TAB VIDEO: Embebido en la misma pagina -->
+              <div *ngIf="activeTab === 'video'" class="tab-content">
+                <div class="video-wrapper">
+                  <iframe
+                    [src]="getVideoEmbedUrl(getLessonVideoUrl(lesson))"
+                    frameborder="0"
+                    allowfullscreen
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope">
+                  </iframe>
+                </div>
+                <p class="video-hint">💡 Si el video no carga, revisa tu conexión a internet.</p>
+              </div>
+              <!-- TAB PDF: Visor embebido en la misma pagina -->
+              <div *ngIf="activeTab === 'pdf'" class="tab-content">
+                <div class="pdf-wrapper">
+                  <iframe
+                    [src]="getPdfViewerUrl(getLessonPdfUrl(lesson))"
                     frameborder="0">
-            </iframe>
+                  </iframe>
+                </div>
+                <a [href]="getLessonPdfUrl(lesson)" target="_blank" class="btn-descargar">
+                  ⬇️ Descargar PDF
+                </a>
+              </div>
+              <!-- TAB IMAGEN -->
+              <div *ngIf="activeTab === 'imagen'" class="tab-content">
+                <div class="imagen-wrapper">
+                  <img [src]="getLessonImageUrl(lesson)" [alt]="getLessonName(lesson)">
+                </div>
+              </div>
+              <!-- TAB RECURSO EXTERNO -->
+              <div *ngIf="activeTab === 'recurso'" class="tab-content">
+                <div class="recurso-box">
+                  <div class="recurso-icono">🔗</div>
+                  <p>Este recurso está disponible en un enlace externo.</p>
+                  <a [href]="getLessonLink(lesson)" target="_blank" class="btn-recurso-grande">
+                    Abrir Recurso →
+                  </a>
+                </div>
+              </div>
+            </div>
+            <!-- Fin contenido expandido -->
           </div>
-          <!-- Opción de descarga directa por si el visor falla -->
-          <a [href]="selectedClass.resourceFileUrl" target="_blank" class="btn-descargar">
-            ⬇️ Descargar PDF
-          </a>
+          <!-- Fin ngFor lecciones -->
         </div>
-
-        <!-- PESTAÑA IMAGEN: Muestra la imagen de la clase a tamaño completo -->
-        <div *ngIf="activeTab === 'imagen'" class="tab-content">
-          <div class="imagen-wrapper">
-            <img [src]="selectedClass.imageUrl" [alt]="selectedClass.name">
-          </div>
-        </div>
-
-        <!-- PESTAÑA RECURSO: Enlace externo con vista previa -->
-        <div *ngIf="activeTab === 'recurso'" class="tab-content">
-          <div class="recurso-box">
-            <div class="recurso-icono">🔗</div>
-            <p>Este recurso está disponible en un enlace externo.</p>
-            <a [href]="selectedClass.resourceLink" target="_blank" class="btn-recurso-grande">
-              Abrir Recurso →
-            </a>
-          </div>
-        </div>
-
+        <!-- Fin lecciones section -->
       </div>
-      <!-- Fin del detalle interactivo -->
-
-      <!-- Botón para cerrar el modal completo -->
+      <!-- Fin detalle interactivo -->
       <button class="btn-cerrar" (click)="closeModal()">Cerrar</button>
-
     </div>
   </div>
-  <!-- Fin del modal -->
-
 </div>

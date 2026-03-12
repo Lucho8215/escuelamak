@@ -6,7 +6,6 @@ import { CourseService } from '../../services/course.service';
 import { AuthService } from '../../services/auth.service';
 import { Course, Class } from '../../models/course.model';
 import { UserRole } from '../../models/user.model';
-
 @Component({
   selector: 'app-courses',
   standalone: true,
@@ -15,44 +14,27 @@ import { UserRole } from '../../models/user.model';
   styleUrls: ['./courses.component.css']
 })
 export class CoursesComponent implements OnInit {
-
-  // ─── DATOS ───────────────────────────────────────
-  // Lista de cursos visibles para el usuario
+  // --- DATOS ---
   courses: Course[] = [];
-
-  // Clases del curso que se abrió en el modal
   classes: Class[] = [];
-
-  // ─── SELECCIÓN ───────────────────────────────────
-  // Curso que el usuario abrió (muestra el modal)
+  lessons: any[] = [];  // Lecciones de la clase seleccionada
+  // --- SELECCION ---
   selectedCourse: Course | null = null;
-
-  // Clase que el usuario abrió para ver su contenido
   selectedClass: Class | null = null;
-
-  // Pestaña activa dentro del detalle de la clase
-  // Puede ser: 'info' | 'video' | 'pdf' | 'imagen'
+  selectedLesson: any | null = null;  // Leccion abierta para ver video/PDF
   activeTab: string = 'info';
-
-  // ─── ESTADOS ─────────────────────────────────────
+  // --- ESTADOS ---
   isLoading = false;
   loadingClasses = false;
-
-  // ─── USUARIO ─────────────────────────────────────
-  // true si el usuario logueado es estudiante
+  loadingLessons = false;
+  // --- USUARIO ---
   isStudent = false;
-
-  // ID del usuario actual para filtrar inscripciones
   currentUserId = '';
-
   constructor(
     private courseService: CourseService,
     private authService: AuthService,
-    // DomSanitizer: permite embeber URLs de video de forma segura
     private sanitizer: DomSanitizer
   ) {}
-
-  // Se ejecuta automáticamente al cargar el componente
   async ngOnInit() {
     const user = this.authService.getCurrentUser();
     if (!user) return;
@@ -60,9 +42,7 @@ export class CoursesComponent implements OnInit {
     this.isStudent = user.role === UserRole.STUDENT;
     await this.loadCourses();
   }
-
-  // ─── EMOJIS ──────────────────────────────────────
-  // Devuelve un emoji según la categoría del curso
+  // --- EMOJIS ---
   getCourseEmoji(category: string): string {
     const emojis: any = {
       'mathematics': '🔢',
@@ -71,10 +51,7 @@ export class CoursesComponent implements OnInit {
     };
     return emojis[category] || '📖';
   }
-
-  // ─── INSCRIPCIONES ───────────────────────────────
-  // Consulta directamente en Supabase las clases
-  // donde el alumno actual está inscrito y activo
+  // --- INSCRIPCIONES ---
   async getMyEnrollments(): Promise<any[]> {
     try {
       const supabase = (this.courseService as any).supabase;
@@ -91,10 +68,7 @@ export class CoursesComponent implements OnInit {
       return [];
     }
   }
-
-  // ─── CARGAR CURSOS ───────────────────────────────
-  // Si es alumno → solo ve sus cursos asignados
-  // Si es admin/profesor → ve todos los cursos visibles
+  // --- CARGAR CURSOS ---
   async loadCourses() {
     try {
       this.isLoading = true;
@@ -112,15 +86,12 @@ export class CoursesComponent implements OnInit {
       this.isLoading = false;
     }
   }
-
-  // ─── ABRIR MODAL DE CLASES ───────────────────────
-  // Al hacer clic en una tarjeta de curso:
-  // 1. Guarda el curso seleccionado
-  // 2. Carga sus clases desde Supabase
-  // 3. Si es alumno, filtra solo sus clases
+  // --- ABRIR MODAL DE CLASES ---
   async viewCourseDetails(course: Course) {
     this.selectedCourse = course;
     this.selectedClass = null;
+    this.selectedLesson = null;
+    this.lessons = [];
     this.classes = [];
     try {
       this.loadingClasses = true;
@@ -140,34 +111,105 @@ export class CoursesComponent implements OnInit {
       this.loadingClasses = false;
     }
   }
-
-  // ─── ABRIR DETALLE DE CLASE ──────────────────────
-  // Al hacer clic en una clase de la lista:
-  // - Si ya estaba abierta → la cierra
-  // - Si es nueva → la abre y muestra la pestaña 'info'
-  selectClass(clase: Class) {
+  // --- SELECCIONAR CLASE Y CARGAR LECCIONES ---
+  async selectClass(clase: Class) {
     if (this.selectedClass?.id === clase.id) {
       this.selectedClass = null;
-    } else {
-      this.selectedClass = clase;
-      this.activeTab = 'info'; // Siempre empieza en Info
+      this.lessons = [];
+      this.selectedLesson = null;
+      return;
+    }
+    this.selectedClass = clase;
+    this.selectedLesson = null;
+    this.activeTab = 'info';
+    this.lessons = [];
+    try {
+      this.loadingLessons = true;
+      const allLessons = await this.courseService.getLessonsByClass(clase.id);
+      this.lessons = allLessons;
+    } catch (error) {
+      console.error('Error al cargar lecciones:', error);
+    } finally {
+      this.loadingLessons = false;
     }
   }
-
-  // ─── PESTAÑAS ────────────────────────────────────
-  // Cambia la pestaña activa dentro del detalle de clase
+  // --- SELECCIONAR LECCION ---
+  selectLesson(lesson: any) {
+    if (this.selectedLesson?.id === lesson.id) {
+      this.selectedLesson = null;
+    } else {
+      this.selectedLesson = lesson;
+      // Auto-seleccionar la mejor pestana
+      if (this.lessonHasVideo(lesson)) {
+        this.activeTab = 'video';
+      } else if (this.lessonHasPdf(lesson)) {
+        this.activeTab = 'pdf';
+      } else {
+        this.activeTab = 'info';
+      }
+    }
+  }
+  // --- PESTANAS ---
   setTab(tab: string) {
     this.activeTab = tab;
   }
-
-  // ─── VIDEO YOUTUBE ───────────────────────────────
-  // Convierte una URL normal de YouTube en URL embebible
-  // Ejemplo: youtube.com/watch?v=ABC → youtube.com/embed/ABC
-  // DomSanitizer evita que Angular bloquee la URL como insegura
+  // --- DETECTAR CONTENIDO DE LECCION ---
+  lessonHasVideo(lesson: any): boolean {
+    const link = lesson.resource_link || lesson.resourceLink || '';
+    const video = lesson.video_url || lesson.videoUrl || '';
+    return !!(link.includes('youtube') || link.includes('vimeo') || link.includes('embed') ||
+              video.includes('youtube') || video.includes('vimeo') || video.includes('embed'));
+  }
+  lessonHasPdf(lesson: any): boolean {
+    const file = lesson.resource_file_url || lesson.resourceFileUrl || '';
+    return file.toLowerCase().includes('.pdf');
+  }
+  lessonHasImage(lesson: any): boolean {
+    const img = lesson.image_url || lesson.imageUrl || lesson.cover_image_url || lesson.coverImageUrl || '';
+    return !!img;
+  }
+  lessonHasLink(lesson: any): boolean {
+    const link = lesson.resource_link || lesson.resourceLink || '';
+    return !!link && !this.lessonHasVideo(lesson);
+  }
+  // --- OBTENER URLs DE LECCION ---
+  getLessonVideoUrl(lesson: any): string {
+    return lesson.resource_link || lesson.resourceLink ||
+           lesson.video_url || lesson.videoUrl || '';
+  }
+  getLessonPdfUrl(lesson: any): string {
+    return lesson.resource_file_url || lesson.resourceFileUrl || '';
+  }
+  getLessonImageUrl(lesson: any): string {
+    return lesson.image_url || lesson.imageUrl ||
+           lesson.cover_image_url || lesson.coverImageUrl || '';
+  }
+  getLessonLink(lesson: any): string {
+    return lesson.resource_link || lesson.resourceLink || '';
+  }
+  getLessonObservation(lesson: any): string {
+    return lesson.observation || lesson.summary || '';
+  }
+  getLessonName(lesson: any): string {
+    return lesson.name || lesson.title || 'Sin nombre';
+  }
+  getLessonNumber(lesson: any): number {
+    return lesson.order || lesson.order_index || lesson.orderIndex || 0;
+  }
+  // --- CHIPS DE CLASE (basado en sus lecciones) ---
+  hasVideo(clase: Class): boolean {
+    return this.lessons.some(l => this.lessonHasVideo(l));
+  }
+  hasPdf(clase: Class): boolean {
+    return this.lessons.some(l => this.lessonHasPdf(l));
+  }
+  hasImage(clase: Class): boolean {
+    return this.lessons.some(l => this.lessonHasImage(l));
+  }
+  // --- VIDEO YOUTUBE ---
   getVideoEmbedUrl(url: string): SafeResourceUrl {
     if (!url) return '';
     let videoId = '';
-
     if (url.includes('watch?v=')) {
       videoId = url.split('watch?v=')[1].split('&')[0];
     } else if (url.includes('youtu.be/')) {
@@ -175,52 +217,28 @@ export class CoursesComponent implements OnInit {
     } else if (url.includes('embed/')) {
       videoId = url.split('embed/')[1].split('?')[0];
     }
-
     if (videoId) {
       return this.sanitizer.bypassSecurityTrustResourceUrl(
         `https://www.youtube.com/embed/${videoId}`
       );
     }
-    // Si no es YouTube, embebe directamente (p.ej. Vimeo)
     return this.sanitizer.bypassSecurityTrustResourceUrl(url);
   }
-
-  // ─── PDF ─────────────────────────────────────────
-  // Convierte una URL de PDF en URL segura para el iframe
-  // Usa Google Docs Viewer para mostrar el PDF en el navegador
+  // --- PDF ---
   getPdfViewerUrl(url: string): SafeResourceUrl {
     if (!url) return '';
-    // Google Docs Viewer permite ver PDFs sin descargarlos
     const viewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
     return this.sanitizer.bypassSecurityTrustResourceUrl(viewerUrl);
   }
-
-  // ─── DETECTAR TIPO DE RECURSO ────────────────────
-  // Revisa si la URL termina en .pdf para saber cómo mostrarlo
   isPdf(url: string): boolean {
     return url?.toLowerCase().includes('.pdf') || false;
   }
-
-  // ─── VERIFICAR PESTAÑAS DISPONIBLES ─────────────
-  // Solo muestra la pestaña de video si hay videoUrl en la clase
-  hasVideo(clase: Class): boolean {
-    return !!(clase.videoUrl?.includes('youtube') || clase.videoUrl?.includes('vimeo') || clase.videoUrl);}
-
-  // Solo muestra la pestaña de imagen si hay imageUrl
-  hasImage(clase: Class): boolean {
-    return !!clase.imageUrl;
-  }
-
-  // Solo muestra pestaña PDF si el archivo adjunto es un PDF
-  hasPdf(clase: Class): boolean {
-    return !!clase.resourceFileUrl && this.isPdf(clase.resourceFileUrl);
-  }
-
-  // ─── CERRAR MODALES ──────────────────────────────
-  // Cierra el modal principal y limpia todo
+  // --- CERRAR MODALES ---
   closeModal() {
     this.selectedCourse = null;
     this.selectedClass = null;
+    this.selectedLesson = null;
     this.classes = [];
+    this.lessons = [];
   }
 }

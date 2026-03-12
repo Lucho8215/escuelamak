@@ -362,4 +362,56 @@
   .modal-box { padding: 1.25rem; }
   .tabs { gap: 0.35rem; }
   .pdf-wrapper iframe { height: 350px; }
+}/* ═══════════════════════════════════
+   LECCIONES
+═══════════════════════════════════ */
+.lecciones-section { margin-top: 1.5rem; }
+.lecciones-titulo {
+  color: #333; font-size: 1.05rem;
+  margin: 0 0 0.75rem; font-weight: 700;
 }
+.leccion-card {
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  margin-bottom: 0.6rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  overflow: hidden;
+  background: white;
+}
+.leccion-card:hover { border-color: #764ba2; }
+.leccion-seleccionada { border-color: #764ba2; background: #faf5ff; }
+.leccion-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.8rem 1rem;
+}
+.leccion-numero {
+  width: 30px; height: 30px;
+  background: linear-gradient(135deg, #f093fb, #f5576c);
+  color: white; border-radius: 50%;
+  display: flex; align-items: center;
+  justify-content: center;
+  font-weight: 700; font-size: 0.85rem;
+  flex-shrink: 0;
+}
+.leccion-datos { flex: 1; }
+.leccion-datos h5 { margin: 0; color: #333; font-size: 0.95rem; }
+.leccion-chips { display: flex; gap: 0.3rem; margin-top: 0.3rem; flex-wrap: wrap; }
+.leccion-expand { color: #764ba2; font-size: 0.9rem; flex-shrink: 0; }
+.leccion-contenido {
+  padding: 0 1rem 1rem;
+  border-top: 1px solid #f0eeff;
+  cursor: default;
+}
+.leccion-obs {
+  background: #fffbf0;
+  border-left: 3px solid #fab005;
+  padding: 0.6rem 0.8rem;
+  border-radius: 0 8px 8px 0;
+  color: #555; font-size: 0.9rem;
+  margin: 0;
+}
+/* Modal mas ancho para lecciones con video */
+.modal-wide { max-width: 900px; }
