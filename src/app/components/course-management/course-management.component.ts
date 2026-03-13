@@ -288,6 +288,24 @@ classEnrollments: ClassEnrollment[] = []
     try {
       this.isLoading = true;
 
+      // Subir imagen y PDF si el usuario seleccionó archivos (antes no se guardaban)
+      let imageUrl = this.newClass.imageUrl?.trim() || '';
+      let resourceFileUrl = this.newClass.resourceFileUrl?.trim() || '';
+      if (this.selectedClassImageFile || this.selectedClassResourceFile) {
+        try {
+          const uploaded = await this.courseService.uploadClassFiles(
+            this.selectedClassImageFile,
+            this.selectedClassResourceFile
+          );
+          if (uploaded.imageUrl) imageUrl = uploaded.imageUrl;
+          if (uploaded.resourceFileUrl) resourceFileUrl = uploaded.resourceFileUrl;
+        } catch (e) {
+          this.handleError('Error al subir archivos. ¿Existe el bucket "class-resources" en Supabase?', e);
+          this.isLoading = false;
+          return;
+        }
+      }
+
       const payload: Partial<Class> = {
         name: this.newClass.name.trim(),
         teacherId: this.newClass.teacherId,
@@ -297,9 +315,9 @@ classEnrollments: ClassEnrollment[] = []
         enrollmentCount: Number(this.newClass.enrollmentCount),
         startDate: new Date(this.newClass.startDate),
         endDate: new Date(this.newClass.endDate),
-        imageUrl: this.newClass.imageUrl?.trim() || '',
+        imageUrl,
         resourceLink: this.newClass.resourceLink?.trim() || '',
-        resourceFileUrl: this.newClass.resourceFileUrl?.trim() || '',
+        resourceFileUrl,
         observation: this.newClass.observation,
         enrolledStudents: this.newClass.enrolledStudents,
         courseId: this.selectedCourse.id

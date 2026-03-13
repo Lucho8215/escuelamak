@@ -287,27 +287,53 @@
 }
 .btn-descargar:hover { opacity: 0.85; }
 
-/* PESTAÑA VIDEO: ratio 16:9 responsivo */
+/* Pestaña multimedia: video y PDF embebidos en el mismo modal */
+.multimedia-tab { display: flex; flex-direction: column; gap: 1.5rem; }
+.media-block {
+  background: white;
+  border-radius: 12px;
+  padding: 1rem;
+  border: 1px solid #e5e7eb;
+}
+.media-label {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+  color: #333;
+}
+.media-hint { color: #888; font-size: 0.82rem; margin: 0.5rem 0 0; }
+
+/* Video: ratio 16:9 responsivo (YouTube, Vimeo, MP4) */
 .video-wrapper {
-  position: relative; padding-bottom: 56.25%;
-  height: 0; overflow: hidden;
-  border-radius: 12px; margin-bottom: 0.75rem;
+  position: relative;
+  padding-bottom: 56.25%;
+  height: 0;
+  overflow: hidden;
+  border-radius: 12px;
   background: #000;
 }
 .video-wrapper iframe {
-  position: absolute; top: 0; left: 0;
+  position: absolute;
+  top: 0; left: 0;
   width: 100%; height: 100%;
 }
-.video-hint { color: #888; font-size: 0.82rem; margin: 0; }
+.video-wrapper .video-native {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  object-fit: contain;
+}
 
-/* PESTAÑA PDF: altura fija con scroll */
+/* PDF: visor embebido directo, sin redirigir a URL externa */
 .pdf-wrapper {
-  border-radius: 12px; overflow: hidden;
-  margin-bottom: 0.75rem;
+  border-radius: 12px;
+  overflow: hidden;
   border: 1px solid #e5e7eb;
+  background: #f9fafb;
 }
 .pdf-wrapper iframe {
-  width: 100%; height: 500px; display: block;
+  width: 100%;
+  height: 520px;
+  display: block;
 }
 
 /* PESTAÑA IMAGEN */
@@ -361,7 +387,8 @@
   .info-grid { grid-template-columns: 1fr; }
   .modal-box { padding: 1.25rem; }
   .tabs { gap: 0.35rem; }
-  .pdf-wrapper iframe { height: 350px; }
+  .pdf-wrapper iframe { height: 320px; }
+  .modal-wide { max-width: 95vw; }
 }/* ═══════════════════════════════════
    LECCIONES
 ═══════════════════════════════════ */

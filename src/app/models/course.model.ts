@@ -1,3 +1,4 @@
+/** Curso del catálogo. Define título, categoría (educación/matemáticas), precio y visibilidad. */
 export interface Course {
   id: string;
 
@@ -24,11 +25,12 @@ export interface Course {
   isVisible: boolean;
 }
 
+/**
+ * Representa una clase (grupo/instancia) de un curso.
+ * Una clase tiene un profesor, fechas, cupo y estudiantes inscritos.
+ */
 export interface Class {
-  videoUrl?: any;
   id: string;
-
-  
 
   /* Relación con curso */
   courseId: string;
@@ -49,8 +51,9 @@ export interface Class {
   startDate: Date;
   endDate: Date;
 
-  /* Recursos */
+  /* Recursos (vídeos, enlaces, archivos) */
   imageUrl?: string;
+  videoUrl?: string;
   resourceLink?: string;
   resourceFileUrl?: string;
 

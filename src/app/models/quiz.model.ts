@@ -1,3 +1,4 @@
+/** Pregunta individual de un quiz. Incluye texto, opciones, respuesta correcta y explicación opcional. */
 export interface Question {
   id: string;
   text: string;
@@ -8,6 +9,7 @@ export interface Question {
   orderNumber?: number;
 }
 
+/** Cuestionario completo. Define título, preguntas, dificultad, tiempo límite y puntuación mínima para aprobar. */
 export interface Quiz {
   id: string;
   title: string;
@@ -24,6 +26,7 @@ export interface Quiz {
   passingScore: number;
 }
 
+/** Intento de un estudiante al responder un quiz. Registra respuestas, puntuación y tiempo. */
 export interface QuizAttempt {
   id: string;
   quizId: string;
@@ -37,6 +40,7 @@ export interface QuizAttempt {
   status: 'in-progress' | 'completed' | 'abandoned';
 }
 
+/** Asignación de un quiz a un estudiante. Incluye fecha límite y estado de completado. */
 export interface QuizAssignment {
   id: string;
   quizId: string;
@@ -55,6 +59,7 @@ export interface QuizAssignment {
   bestScore?: number;
 }
 
+/** Vista resumida de un quiz para el estudiante: datos del quiz + estado de asignación y mejor puntuación. */
 export interface StudentQuiz {
   id: string;
   quizId: string;

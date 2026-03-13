@@ -448,7 +448,8 @@
               <p><strong>Leccion:</strong> #{{ class.classNumber }}</p>
               <p><strong>Estudiantes:</strong> {{ class.enrollmentCount }}/{{ class.maxStudents }}</p>
               <p *ngIf="class.resourceLink"><strong>Link:</strong> {{ class.resourceLink }}</p>
-              <p *ngIf="class.resourceFileUrl"><strong>Archivo:</strong> Material cargado</p>
+              <p *ngIf="class.imageUrl"><strong>Imagen:</strong> Cargada</p>
+              <p *ngIf="class.resourceFileUrl"><strong>Archivo PDF:</strong> Cargado</p>
               <p *ngIf="class.observation"><strong>Observación:</strong> {{ class.observation }}</p>
             </div>
 

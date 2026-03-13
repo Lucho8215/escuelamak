@@ -1,10 +1,17 @@
-﻿import { Injectable } from '@angular/core';
+import { Injectable } from '@angular/core';
 import { Observable, of } from 'rxjs';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { environment } from '../../environments/environment';
 import { Course, Class, CourseEnrollment, ClassEnrollment } from '../models/course.model';
 
-
+/**
+ * CourseService - Servicio de cursos, clases e inscripciones
+ *
+ * QUÉ HACE: Gestiona cursos, clases, inscripciones, asignaciones de lecciones y estudiantes.
+ * POR QUÉ: Centraliza toda la lógica de negocio relacionada con cursos en un solo lugar.
+ * PARA QUÉ SIRVE: Que los componentes obtengan datos de Supabase sin conocer los detalles
+ * de la API. Incluye retry, timeout y transformación snake_case <-> camelCase.
+ */
 @Injectable({
   providedIn: 'root'
 })
@@ -293,7 +300,11 @@ async createClass(classData: Omit<Class, 'id'>): Promise<Class> {
         max_students: classData.maxStudents || 30,
         start_date: classData.startDate || null,
         end_date: classData.endDate || null,
-        enrolled_students: classData.enrolledStudents || []
+        enrolled_students: classData.enrolledStudents || [],
+        image_url: classData.imageUrl || null,
+        resource_link: classData.resourceLink || null,
+        resource_file_url: classData.resourceFileUrl || null,
+        observation: classData.observation || null
       };
 
       const { data, error } = await this.supabase
@@ -366,14 +377,14 @@ async getEnrollments(classId: string): Promise<CourseEnrollment[]> {
       return this.transformToCamelCase(data || []);
     });
   }
-// Asignar una lecciÃ³n a un alumno especÃ­fico
+/** Asignar una lección a un alumno específico */
 async assignLessonToStudent(lessonId: string, studentId: string) {
   return await this.supabase
     .from('student_lesson_assignments')
     .insert([{ lesson_id: lessonId, student_id: studentId }]);
 }
 
-// Obtener quÃ© alumnos tienen asignada una lecciÃ³n
+/** Obtener qué alumnos tienen asignada una lección */
 async getLessonAssignments(lessonId: string): Promise<any[]> {
     return this.retryOperation(async () => {
       const { data, error } = await this.supabase
@@ -423,8 +434,47 @@ async getLessonAssignments(lessonId: string): Promise<any[]> {
       return data;
     });
   }
-  // AÃ±adir al final de CourseService
-   async createLesson(lessonData: any): Promise<any> {
+  /**
+   * Sube imagen y/o archivo (PDF) a Supabase Storage y devuelve las URLs públicas.
+   * Para qué: Que los archivos seleccionados en el formulario de clase se guarden
+   * y sus URLs se usen en imageUrl y resourceFileUrl de la clase.
+   * Requiere: bucket "class-resources" creado en Supabase con política de lectura pública.
+   */
+  async uploadClassFiles(imageFile?: File | null, resourceFile?: File | null): Promise<{ imageUrl?: string; resourceFileUrl?: string }> {
+    const result: { imageUrl?: string; resourceFileUrl?: string } = {};
+    const bucket = 'class-resources';
+    const ts = Date.now();
+
+    if (imageFile) {
+      const ext = imageFile.name.split('.').pop() || 'jpg';
+      const path = `images/${ts}-${imageFile.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+      const { data, error } = await this.supabase.storage.from(bucket).upload(path, imageFile, {
+        cacheControl: '3600',
+        upsert: true
+      });
+      if (!error && data) {
+        const { data: urlData } = this.supabase.storage.from(bucket).getPublicUrl(data.path);
+        result.imageUrl = urlData.publicUrl;
+      }
+    }
+
+    if (resourceFile) {
+      const path = `files/${ts}-${resourceFile.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+      const { data, error } = await this.supabase.storage.from(bucket).upload(path, resourceFile, {
+        cacheControl: '3600',
+        upsert: true
+      });
+      if (!error && data) {
+        const { data: urlData } = this.supabase.storage.from(bucket).getPublicUrl(data.path);
+        result.resourceFileUrl = urlData.publicUrl;
+      }
+    }
+
+    return result;
+  }
+
+  /** Crea una nueva lección en la base de datos */
+  async createLesson(lessonData: any): Promise<any> {
     return this.retryOperation(async () => {
       const { data, error } = await this.supabase
         .from('lessons')
@@ -449,7 +499,7 @@ async getLessonsByClass(classId: string): Promise<any[]> {
     });
   }
 
-// AsegÃºra de que este mÃ©todo devuelva los usuarios correctamente formateados, especialmente si quieres mostrar solo profesores en la gestiÃ³n de clases
+/** Obtiene usuarios filtrados por rol (ej. solo profesores para la gestión de clases) */
 async getUsersByRole(roles: string[]): Promise<any[]> {
     return this.retryOperation(async () => {
       const { data, error } = await this.supabase

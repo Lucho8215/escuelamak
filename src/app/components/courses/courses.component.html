@@ -133,18 +133,14 @@
             <div *ngIf="selectedLesson?.id === lesson.id"
                  class="leccion-contenido"
                  (click)="$event.stopPropagation()">
-              <!-- PESTANAS -->
+              <!-- PESTAÑAS -->
               <div class="tabs">
                 <button class="tab" [class.activo]="activeTab === 'info'" (click)="setTab('info')">
                   📋 Info
                 </button>
-                <button *ngIf="lessonHasVideo(lesson)" class="tab"
-                        [class.activo]="activeTab === 'video'" (click)="setTab('video')">
-                  🎬 Video
-                </button>
-                <button *ngIf="lessonHasPdf(lesson)" class="tab"
-                        [class.activo]="activeTab === 'pdf'" (click)="setTab('pdf')">
-                  📄 PDF
+                <button *ngIf="lessonHasVideo(lesson) || lessonHasPdf(lesson)" class="tab"
+                        [class.activo]="activeTab === 'multimedia'" (click)="setTab('multimedia')">
+                  🎬 Video &amp; PDF
                 </button>
                 <button *ngIf="lessonHasImage(lesson)" class="tab"
                         [class.activo]="activeTab === 'imagen'" (click)="setTab('imagen')">
@@ -164,29 +160,42 @@
                   Sin observaciones para esta lección.
                 </p>
               </div>
-              <!-- TAB VIDEO: Embebido en la misma pagina -->
-              <div *ngIf="activeTab === 'video'" class="tab-content">
-                <div class="video-wrapper">
-                  <iframe
-                    [src]="getVideoEmbedUrl(getLessonVideoUrl(lesson))"
-                    frameborder="0"
-                    allowfullscreen
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope">
-                  </iframe>
+              <!-- TAB MULTIMEDIA: Video y PDF embebidos en el mismo modal, sin redirigir -->
+              <div *ngIf="activeTab === 'multimedia'" class="tab-content multimedia-tab">
+                <!-- Video embebido (YouTube, Vimeo o MP4 directo) -->
+                <div *ngIf="lessonHasVideo(lesson)" class="media-block">
+                  <h4 class="media-label">🎬 Video</h4>
+                  <div class="video-wrapper">
+                    <video *ngIf="isDirectVideoUrl(getLessonVideoUrl(lesson))"
+                           [src]="getVideoEmbedUrl(getLessonVideoUrl(lesson))"
+                           controls
+                           playsinline
+                           class="video-native">
+                      Tu navegador no soporta video.
+                    </video>
+                    <iframe *ngIf="!isDirectVideoUrl(getLessonVideoUrl(lesson)) && getLessonVideoUrl(lesson)"
+                            [src]="getVideoEmbedUrl(getLessonVideoUrl(lesson))"
+                            frameborder="0"
+                            allowfullscreen
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope">
+                    </iframe>
+                  </div>
+                  <p class="media-hint">Video cargado en la página. No se abre en otra ventana.</p>
                 </div>
-                <p class="video-hint">💡 Si el video no carga, revisa tu conexión a internet.</p>
-              </div>
-              <!-- TAB PDF: Visor embebido en la misma pagina -->
-              <div *ngIf="activeTab === 'pdf'" class="tab-content">
-                <div class="pdf-wrapper">
-                  <iframe
-                    [src]="getPdfViewerUrl(getLessonPdfUrl(lesson))"
-                    frameborder="0">
-                  </iframe>
-                </div>
-                <a [href]="getLessonPdfUrl(lesson)" target="_blank" class="btn-descargar">
+                <!-- PDF embebido directamente en iframe (sin Google Viewer) -->
+                <div *ngIf="lessonHasPdf(lesson)" class="media-block">
+                  <h4 class="media-label">📄 PDF</h4>
+                  <div class="pdf-wrapper">
+                    <iframe
+                      [src]="getPdfEmbedUrl(getLessonPdfUrl(lesson))"
+                      frameborder="0"
+                      type="application/pdf">
+                    </iframe>
+                  </div>
+                <a [href]="getLessonPdfUrl(lesson)" target="_blank" class="btn-descargar" download>
                   ⬇️ Descargar PDF
                 </a>
+                </div>
               </div>
               <!-- TAB IMAGEN -->
               <div *ngIf="activeTab === 'imagen'" class="tab-content">

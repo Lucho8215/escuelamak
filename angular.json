@@ -5,7 +5,7 @@
   },
   "newProjectRoot": "projects",
   "projects": {
-    "demo": {
+    "escuelamak": {
       "architect": {
         "build": {
           "builder": "@angular-devkit/build-angular:browser",
@@ -29,7 +29,7 @@
             "assets": [],
             "index": "src/index.html",
             "main": "src/main.ts",
-            "outputPath": "dist/demo",
+            "outputPath": "dist/escuelamak",
             "polyfills": ["zone.js"],
             "scripts": [],
             "styles": ["src/global_styles.css"],
@@ -40,10 +40,10 @@
           "builder": "@angular-devkit/build-angular:dev-server",
           "configurations": {
             "development": {
-              "browserTarget": "demo:build:development"
+              "browserTarget": "escuelamak:build:development"
             },
             "production": {
-              "browserTarget": "demo:build:production"
+              "browserTarget": "escuelamak:build:production"
             }
           },
           "defaultConfiguration": "development"

@@ -3,10 +3,23 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 
+/**
+ * Par de color y posición para un punto del gradiente CSS.
+ * - color: valor hex (ej. #667eea)
+ * - position: porcentaje 0-100
+ */
 interface ColorStop {
   color: string;
   position: number;
 }
+
+/**
+ * Componente Generador de Gradientes CSS.
+ * Permite crear gradientes lineales, radiales y cónicos, ver el código CSS
+ * y exportarlo (copiar, descargar .css o .scss).
+ * Para qué sirve: Herramienta de diseño para admin/profesor crear estilos
+ * visuales para el LMS (fondos, botones, etc.).
+ */
 
 @Component({
   selector: 'app-gradient-generator',
@@ -489,20 +502,29 @@ interface ColorStop {
   `]
 })
 export class GradientGeneratorComponent {
+  /** Tipo de gradiente: lineal, radial o cónico */
   gradientType: 'linear' | 'radial' | 'conic' = 'linear';
+  /** Ángulo en grados para gradientes lineales (0-360) */
   angle: number = 90;
+  /** Forma del gradiente radial: circular o elíptica */
   radialShape: 'circle' | 'ellipse' = 'circle';
+  /** Ángulo inicial para gradientes cónicos */
   conicAngle: number = 0;
+  /** Indica si el código CSS se copió al portapapeles */
   copied: boolean = false;
 
+  /** Lista de colores y posiciones del gradiente */
   colorStops: ColorStop[] = [
     { color: '#667eea', position: 0 },
     { color: '#764ba2', position: 100 }
   ];
 
+  /** Estilo CSS aplicado a la vista previa */
   gradientStyle: string = '';
+  /** Código CSS generado para copiar/exportar */
   cssCode: string = '';
 
+  /** Preajustes de gradientes predefinidos para aplicar rápidamente */
   presets = [
     { name: 'Aurora', colors: ['#667eea', '#764ba2'], preview: 'linear-gradient(90deg, #667eea, #764ba2)' },
     { name: 'Sunset', colors: ['#f093fb', '#f5576c'], preview: 'linear-gradient(90deg, #f093fb, #f5576c)' },
@@ -522,11 +544,13 @@ export class GradientGeneratorComponent {
     this.updateGradient();
   }
 
+  /** Establece el ángulo del gradiente lineal y actualiza la vista previa */
   setAngle(value: number) {
     this.angle = value;
     this.updateGradient();
   }
 
+  /** Añade un nuevo color al gradiente con posición automática */
   addColorStop() {
     const newPosition = this.colorStops.length > 0 
       ? Math.max(...this.colorStops.map(s => s.position)) + 10
@@ -538,6 +562,7 @@ export class GradientGeneratorComponent {
     this.updateGradient();
   }
 
+  /** Elimina un color del gradiente (mínimo 2 colores) */
   removeColorStop(index: number) {
     if (this.colorStops.length > 2) {
       this.colorStops.splice(index, 1);
@@ -545,6 +570,7 @@ export class GradientGeneratorComponent {
     }
   }
 
+  /** Genera un color hex aleatorio para nuevos puntos del gradiente */
   getRandomColor(): string {
     const letters = '0123456789ABCDEF';
     let color = '#';
@@ -554,6 +580,7 @@ export class GradientGeneratorComponent {
     return color;
   }
 
+  /** Aplica un preajuste de gradiente (reemplaza los colores actuales) */
   applyPreset(preset: any) {
     this.colorStops = preset.colors.map((color: string, index: number) => ({
       color,
@@ -562,6 +589,7 @@ export class GradientGeneratorComponent {
     this.updateGradient();
   }
 
+  /** Genera la cadena CSS del gradiente según tipo y colores */
   generateGradientString(): string {
     const sortedStops = [...this.colorStops].sort((a, b) => a.position - b.position);
     const stopsString = sortedStops
@@ -580,12 +608,14 @@ export class GradientGeneratorComponent {
     }
   }
 
+  /** Actualiza la vista previa y el código CSS tras cambios */
   updateGradient() {
     const gradient = this.generateGradientString();
     this.gradientStyle = `background: ${gradient};`;
     this.cssCode = `background: ${gradient};`;
   }
 
+  /** Copia el código CSS al portapapeles */
   copyToClipboard() {
     navigator.clipboard.writeText(this.cssCode).then(() => {
       this.copied = true;
@@ -595,6 +625,7 @@ export class GradientGeneratorComponent {
     });
   }
 
+  /** Descarga el gradiente como archivo .css */
   exportAsCSS(): void {
     const css = `/* Generated Gradient CSS */
 .gradient {
@@ -604,6 +635,7 @@ export class GradientGeneratorComponent {
     this.downloadFile(css, 'gradient.css', 'text/css');
   }
 
+  /** Descarga el gradiente como archivo .scss con mixin */
   exportAsSCSS(): void {
     const scss = `// Generated Gradient SCSS
 $gradient-direction: ${this.gradientType === 'linear' ? this.angle + 'deg' : this.gradientType};
@@ -622,10 +654,12 @@ ${this.colorStops.map(stop => `  ${stop.position}%: ${stop.color}`).join(',\n')}
     this.downloadFile(scss, 'gradient.scss', 'text/x-scss');
   }
 
+  /** Descarga el gradiente como archivo (usa exportAsCSS internamente) */
   downloadAsFile(): void {
     this.exportAsCSS();
   }
 
+  /** Utilidad interna: crea un Blob y dispara la descarga del archivo */
   private downloadFile(content: string, filename: string, mimeType: string): void {
     const blob = new Blob([content], { type: mimeType });
     const url = URL.createObjectURL(blob);

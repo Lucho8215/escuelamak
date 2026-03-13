@@ -1,3 +1,23 @@
+/**
+ * fix-dashboard.js
+ *
+ * QUÉ HACE:
+ * Script de Node.js que sobrescribe el componente class-management.component.ts
+ * con una versión que usa async/await en lugar de callbacks/then.
+ *
+ * POR QUÉ EXISTE:
+ * Se creó para corregir un problema puntual en el componente de gestión de clases
+ * (posiblemente errores de compilación o manejo asíncrono incorrecto).
+ *
+ * CUÁNDO USARLO:
+ * Solo si se necesita reaplicar esa corrección manualmente. En proyectos normales,
+ * el componente ya debería estar corregido en el código fuente.
+ *
+ * PARA QUÉ SIRVE:
+ * Evitar tener que editar manualmente el archivo TS si se pierde la versión corregida.
+ *
+ * NOTA: Tras ejecutarlo, verificar que el componente funcione correctamente.
+ */
 const fs = require('fs');
 
 const ts = `import { Component, OnInit } from '@angular/core';
