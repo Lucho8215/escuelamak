@@ -324,15 +324,7 @@ classEnrollments: ClassEnrollment[] = []
       };
 
       if (this.editingClass && this.selectedClass) {
-        const courseServiceWithUpdate = this.courseService as CourseService & {
-          updateClass?: (classId: string, data: Class) => Promise<void>;
-        };
-
-        if (courseServiceWithUpdate.updateClass) {
-          await courseServiceWithUpdate.updateClass(this.selectedClass.id, payload as Class);
-        } else {
-          throw new Error('El servicio todavía no implementa updateClass');
-        }
+        await this.courseService.updateClass(this.selectedClass.id, payload as Class);
       } else {
         await this.courseService.createClass(payload as Class);
       }

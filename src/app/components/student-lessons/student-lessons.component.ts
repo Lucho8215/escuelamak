@@ -106,6 +106,16 @@ export class StudentLessonsComponent implements OnInit {
     return this.sanitizer.bypassSecurityTrustResourceUrl(url);
   }
 
+  // Detecta si el recurso/link es un video (YouTube, Vimeo, o archivo de video directo)
+  isVideoResource(url: string | undefined): boolean {
+    if (!url) return false;
+    const u = url.toLowerCase();
+    return u.includes('youtube.com') || 
+           u.includes('youtu.be') || 
+           u.includes('vimeo.com') || 
+           u.match(/\.(mp4|webm|ogg)(\?|$)/i) !== null;
+  }
+
   // Marca la lección como iniciada
   async startLesson(lesson: StudentLesson): Promise<void> {
     try {

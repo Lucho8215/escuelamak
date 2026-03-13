@@ -88,7 +88,8 @@
         <!-- Indicadores de contenido -->
         <div class="leccion-recursos">
           <span *ngIf="lesson.videoUrl" class="recurso-chip video">▶ Video</span>
-          <span *ngIf="lesson.resourceLink" class="recurso-chip enlace">🔗 Enlace</span>
+          <span *ngIf="lesson.resourceLink && isVideoResource(lesson.resourceLink)" class="recurso-chip video">▶ Video</span>
+          <span *ngIf="lesson.resourceLink && !isVideoResource(lesson.resourceLink)" class="recurso-chip enlace">🔗 Enlace</span>
           <span *ngIf="lesson.resourceFileUrl" class="recurso-chip archivo">📄 Archivo</span>
           <span *ngIf="lesson.content" class="recurso-chip contenido">📝 Contenido</span>
         </div>
@@ -171,8 +172,22 @@
       <!-- RECURSOS -->
       <div class="seccion-recursos" *ngIf="selectedLesson.resourceLink || selectedLesson.resourceFileUrl">
         <h3>📎 Recursos de Apoyo</h3>
+        <!-- Si el recurso es un video, mostrarlo embebido -->
+        <div *ngIf="isVideoResource(selectedLesson?.resourceLink)" class="media-block" style="margin-bottom: 1rem;">
+          <h4 style="margin-bottom: 0.5rem;">🎬 Video</h4>
+          <div class="video-container" style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 8px;">
+            <iframe 
+              [src]="getVideoEmbedUrl(selectedLesson?.resourceLink || '')"
+              style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"
+              frameborder="0"
+              allowfullscreen
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope">
+            </iframe>
+          </div>
+          <p style="font-size: 0.85rem; color: #888; margin-top: 0.5rem;">Video embebido en la página.</p>
+        </div>
         <div class="recursos-botones">
-          <a *ngIf="selectedLesson.resourceLink"
+          <a *ngIf="selectedLesson.resourceLink && !isVideoResource(selectedLesson?.resourceLink)"
              [href]="selectedLesson.resourceLink"
              target="_blank"
              class="btn-recurso enlace">

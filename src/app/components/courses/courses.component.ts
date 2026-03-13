@@ -296,6 +296,33 @@ export class CoursesComponent implements OnInit {
   isPdf(url: string): boolean {
     return url?.toLowerCase().includes('.pdf') || false;
   }
+
+  /**
+   * Detecta si el recurso/link es un video (YouTube, Vimeo, o archivo de video directo)
+   */
+  isVideoResource(url: string | undefined): boolean {
+    if (!url) return false;
+    const u = url.toLowerCase();
+    return u.includes('youtube.com') || 
+           u.includes('youtu.be') || 
+           u.includes('vimeo.com') || 
+           u.match(/\.(mp4|webm|ogg)(\?|$)/i) !== null;
+  }
+
+  /**
+   * Obtiene la URL embedida para el recurso (si es un video)
+   */
+  getVideoEmbedUrlFromResource(url: string | undefined): SafeResourceUrl {
+    return this.getVideoEmbedUrl(url || '');
+  }
+
+  /**
+   * Indica si la URL del recurso es un video directo (MP4, WebM) para usar video en lugar de iframe
+   */
+  isDirectVideoResource(url: string | undefined): boolean {
+    return this.isDirectVideoUrl(url || '');
+  }
+
   // --- CERRAR MODALES ---
   closeModal() {
     this.selectedCourse = null;

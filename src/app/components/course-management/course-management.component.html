@@ -385,12 +385,13 @@
 
           <div class="form-row">
             <div class="form-group">
-              <label for="classFile">Archivo Adjunto</label>
+              <label for="classFile">Archivo Adjunto (PDF)</label>
               <input
                 type="file"
                 id="classFile"
                 name="classFile"
                 class="form-input"
+                accept=".pdf"
                 (change)="onClassFileSelected($event)"
               >
             </div>

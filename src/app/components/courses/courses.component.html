@@ -122,7 +122,8 @@
                   <span *ngIf="lessonHasVideo(lesson)" class="chip video">▶ Video</span>
                   <span *ngIf="lessonHasPdf(lesson)" class="chip pdf">📄 PDF</span>
                   <span *ngIf="lessonHasImage(lesson)" class="chip imagen">🖼️ Imagen</span>
-                  <span *ngIf="lessonHasLink(lesson)" class="chip enlace">🔗 Enlace</span>
+                  <span *ngIf="lessonHasLink(lesson) && isVideoResource(getLessonLink(lesson))" class="chip video">▶ Video</span>
+                  <span *ngIf="lessonHasLink(lesson) && !isVideoResource(getLessonLink(lesson))" class="chip enlace">🔗 Enlace</span>
                 </div>
               </div>
               <span class="leccion-expand">{{ selectedLesson?.id === lesson.id ? '▲' : '▼' }}</span>
@@ -148,7 +149,7 @@
                 </button>
                 <button *ngIf="lessonHasLink(lesson)" class="tab"
                         [class.activo]="activeTab === 'recurso'" (click)="setTab('recurso')">
-                  🔗 Recurso
+                  {{ isVideoResource(getLessonLink(lesson)) ? '🎬 Video' : '🔗 Recurso' }}
                 </button>
               </div>
               <!-- TAB INFO -->
@@ -205,7 +206,28 @@
               </div>
               <!-- TAB RECURSO EXTERNO -->
               <div *ngIf="activeTab === 'recurso'" class="tab-content">
-                <div class="recurso-box">
+                <!-- Si el recurso es un video, mostrarlo embebido -->
+                <div *ngIf="isVideoResource(getLessonLink(lesson))" class="media-block">
+                  <h4 class="media-label">🎬 Video</h4>
+                  <div class="video-wrapper">
+                    <video *ngIf="isDirectVideoResource(getLessonLink(lesson))"
+                           [src]="getVideoEmbedUrlFromResource(getLessonLink(lesson))"
+                           controls
+                           playsinline
+                           class="video-native">
+                      Tu navegador no soporta video.
+                    </video>
+                    <iframe *ngIf="!isDirectVideoResource(getLessonLink(lesson))"
+                            [src]="getVideoEmbedUrlFromResource(getLessonLink(lesson))"
+                            frameborder="0"
+                            allowfullscreen
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope">
+                    </iframe>
+                  </div>
+                  <p class="media-hint">Video cargado en la página. No se abre en otra ventana.</p>
+                </div>
+                <!-- Si no es video, mostrar enlace normal -->
+                <div *ngIf="!isVideoResource(getLessonLink(lesson))" class="recurso-box">
                   <div class="recurso-icono">🔗</div>
                   <p>Este recurso está disponible en un enlace externo.</p>
                   <a [href]="getLessonLink(lesson)" target="_blank" class="btn-recurso-grande">
