@@ -485,9 +485,37 @@ async getLessonAssignments(lessonId: string): Promise<any[]> {
       return data;
     });
   }
+// Obtiene las lecciones asignadas a una clase específica
+  // Busca en student_lessons para saber cuáles lecciones
+  // fueron asignadas a esa clase, luego trae el detalle de cada lección
+  async getLessonsByClass(classId: string): Promise<any[]> {
+    return this.retryOperation(async () => {
 
+      // Paso 1: buscar qué lesson_ids están asignados a esta clase
+      const { data: assignments, error: err1 } = await this.supabase
+        .from('student_lessons')
+        .select('lesson_id')
+        .eq('class_id', classId);
 
-async getLessonsByClass(classId: string): Promise<any[]> {
+      if (err1) throw err1;
+      if (!assignments || assignments.length === 0) return [];
+
+      // Paso 2: obtener IDs únicos de lecciones
+      const lessonIds = [...new Set(assignments.map((a: any) => a.lesson_id))];
+
+      // Paso 3: traer el detalle completo de cada lección
+      const { data, error: err2 } = await this.supabase
+        .from('lessons')
+        .select('*')
+        .in('id', lessonIds)
+        .order('order_index', { ascending: true });
+
+      if (err2) throw err2;
+      return data || [];
+    });
+  }
+
+/*async getLessonsByClass(classId: string): Promise<any[]> {
     return this.retryOperation(async () => {
       const { data, error } = await this.supabase
         .from('lessons')

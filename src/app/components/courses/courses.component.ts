@@ -233,9 +233,19 @@ export class CoursesComponent implements OnInit {
   getLessonNumber(lesson: any): number {
     return lesson.order || lesson.order_index || lesson.orderIndex || 0;
   }
-  // --- CHIPS DE CLASE (basado en sus lecciones) ---
+  /* --- CHIPS DE CLASE (basado en sus lecciones) ---
   hasVideo(clase: Class): boolean {
     return this.lessons.some(l => this.lessonHasVideo(l));
+  }*/
+    // Considera que hay video si resource_link contiene YouTube
+  // o si tiene videoUrl directo
+  
+  hasVideo(clase: Class): boolean {
+    const link = clase.resourceLink || '';
+    const video = clase.videoUrl || '';
+    return link.includes('youtube') || link.includes('youtu.be') ||
+           link.includes('embed') || video.includes('youtube') ||
+           video.includes('youtu.be');
   }
   hasPdf(clase: Class): boolean {
     return this.lessons.some(l => this.lessonHasPdf(l));
