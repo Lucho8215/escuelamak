@@ -1025,24 +1025,24 @@ textarea.form-input {
 }
 
 .upload-zone {
-  border: 2px dashed #9ca3af;
+  border: 2px dashed #4b5563;
   border-radius: 16px;
   padding: 3rem;
   text-align: center;
-  background: #f9fafb;
+  background: #f3f4f6;
   transition: all 0.3s ease;
   cursor: pointer;
 }
 
 .upload-zone:hover,
 .upload-zone.dragover {
-  border-color: #667eea;
-  background: #eef2ff;
+  border-color: #10b981;
+  background: #ecfdf5;
 }
 
 .upload-zone i {
   font-size: 3rem;
-  color: #9ca3af;
+  color: #6b7280;
   margin-bottom: 1rem;
 }
 
@@ -1052,7 +1052,7 @@ textarea.form-input {
 }
 
 .upload-zone p {
-  color: #6b7280;
+  color: #4b5563;
   margin: 0.5rem 0;
 }
 
@@ -1067,13 +1067,13 @@ textarea.form-input {
   align-items: center;
   gap: 0.75rem;
   padding: 1rem;
-  background: #e0e7ff;
+  background: #dbeafe;
   border-radius: 10px;
   margin-top: 1rem;
 }
 
 .selected-file i {
-  color: #667eea;
+  color: #2563eb;
   font-size: 1.5rem;
 }
 
@@ -1096,6 +1096,16 @@ textarea.form-input {
   font-family: monospace;
   font-size: 0.9rem;
   line-height: 1.6;
+  background: #ffffff;
+  color: #1f2937;
+  border: 2px solid #d1d5db;
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.import-textarea:focus {
+  border-color: #10b981;
+  outline: none;
 }
 
 .import-options {
@@ -1103,7 +1113,7 @@ textarea.form-input {
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 1rem;
   padding: 1.5rem;
-  background: #f9fafb;
+  background: #f3f4f6;
   border-radius: 12px;
 }
 
@@ -1117,7 +1127,7 @@ textarea.form-input {
 .generated-preview {
   margin-top: 2rem;
   padding: 1.5rem;
-  background: #f9fafb;
+  background: #f3f4f6;
   border-radius: 16px;
 }
 
@@ -1153,7 +1163,7 @@ textarea.form-input {
 
 .q-number {
   font-weight: 600;
-  color: #667eea;
+  color: #10b981;
 }
 
 .q-points {
@@ -1193,7 +1203,7 @@ textarea.form-input {
   justify-content: center;
   width: 24px;
   height: 24px;
-  background: #667eea;
+  background: #10b981;
   color: white;
   border-radius: 50%;
   font-size: 0.75rem;
@@ -1201,7 +1211,7 @@ textarea.form-input {
 }
 
 .q-option.correct .opt-letter {
-  background: #10b981;
+  background: #059669;
 }
 
 .opt-text {
@@ -1218,7 +1228,27 @@ textarea.form-input {
 }
 
 .form-description {
-  color: #6b7280;
+  color: #4b5563;
   margin-top: 0.5rem;
   line-height: 1.6;
+}
+
+/* Botón verde para importar */
+.btn-importar {
+  background: #10b981;
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.3s ease;
+}
+
+.btn-importar:hover {
+  background: #059669;
+  transform: translateY(-2px);
 }

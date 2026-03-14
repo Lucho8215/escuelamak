@@ -422,8 +422,8 @@ Respuesta: B"
             <button type="button" class="btn btn-secondary" (click)="generatedQuestions = []">
               <i class="fas fa-trash"></i> Descartar
             </button>
-            <button type="button" class="btn btn-success" (click)="saveGeneratedQuiz()">
-              <i class="fas fa-save"></i> Guardar Cuestionario
+            <button type="button" class="btn btn-success" (click)="saveGeneratedQuiz()" [disabled]="loading">
+              <i class="fas fa-save"></i> {{ loading ? 'Creando...' : 'Crear Cuestionario' }}
             </button>
           </div>
         </div>
