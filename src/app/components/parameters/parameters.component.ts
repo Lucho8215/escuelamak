@@ -937,24 +937,50 @@ export class ParametersComponent implements OnInit {
     }
   }
 
-  getCourseTitle(courseId?: string | null): string {
-    if (!courseId) {
-      return '—';
-    }
+  
 
-    return this.courses.find(course => course.id === courseId)?.title || '—';
+  // ─── HELPERS ─────────────────────────────────────────────────────────────
+
+  // Convierte el error a texto legible
+  private getErrorMessage(error: unknown): string {
+    if (error instanceof Error) return error.message;
+    if (typeof error === 'object' && error !== null && 'message' in error) {
+      return String((error as { message: unknown }).message);
+    }
+    return 'Error desconocido';
   }
+
+  // Normaliza el rol a minúsculas en inglés
+  normalizeRole(role: string): string {
+    if (!role) return 'student';
+    const normalized = role.toLowerCase();
+    if (normalized === 'estudiante') return 'student';
+    return normalized;
+  }
+
+  // Cuenta usuarios por rol
+  getTotalUsers(): number { return this.users.length; }
+  getTotalClasses(): number { return this.classes.length; }
+  getEnabledCount(): number { return this.permissionCards.filter(c => c.enabled).length; }
+
+
+
+  // Etiqueta de estado de clase
   getClassStatusLabel(status: string): string {
     const map: Record<string, string> = {
-      open: 'Abierta',
-      closed: 'Cerrada',
-      active: 'Activa',
-      inactive: 'Inactiva'
+      open: 'Abierta', closed: 'Cerrada',
+      active: 'Activa', inactive: 'Inactiva'
     };
-
     return map[status] || status;
   }
 
+  // Título del curso por ID
+  getCourseTitle(courseId?: string | null): string {
+    if (!courseId) return '—';
+    return this.courses.find(c => c.id === courseId)?.title || '—';
+  }
+
+  // Seleccionar y aplicar tema
   selectTheme(id: string): void {
     this.selectedTheme = id;
     localStorage.setItem('app_theme', id);
@@ -964,11 +990,7 @@ export class ParametersComponent implements OnInit {
 
   applyTheme(id: string): void {
     const theme = this.themes.find(item => item.id === id);
-
-    if (!theme) {
-      return;
-    }
-
+    if (!theme) return;
     document.documentElement.style.setProperty('--color-primary', theme.primary);
     document.documentElement.style.setProperty('--color-secondary', theme.secondary);
     document.documentElement.style.setProperty('--color-accent', theme.accent);
@@ -979,14 +1001,11 @@ export class ParametersComponent implements OnInit {
     return this.themes.find(theme => theme.id === id);
   }
 
+  // Permisos de tarjetas
   get filteredCards(): PermissionCard[] {
     return this.permissionCards.filter(card => {
-      const matchesCategory =
-        this.filterCardCategory === 'all' || card.category === this.filterCardCategory;
-
-      const matchesRole =
-        this.filterCardRole === 'all' || card.roles.includes(this.filterCardRole);
-
+      const matchesCategory = this.filterCardCategory === 'all' || card.category === this.filterCardCategory;
+      const matchesRole = this.filterCardRole === 'all' || card.roles.includes(this.filterCardRole);
       return matchesCategory && matchesRole;
     });
   }
@@ -1000,13 +1019,11 @@ export class ParametersComponent implements OnInit {
   toggleRoleOnCard(card: PermissionCard, role: string): void {
     const normalizedRole = this.normalizeRole(role);
     const index = card.roles.indexOf(normalizedRole);
-
     if (index >= 0) {
       card.roles.splice(index, 1);
     } else {
       card.roles.push(normalizedRole);
     }
-
     this.savePermissions();
   }
 
@@ -1020,17 +1037,11 @@ export class ParametersComponent implements OnInit {
 
   loadPermissions(): void {
     const saved = localStorage.getItem('app_permissions');
-
-    if (!saved) {
-      return;
-    }
-
+    if (!saved) return;
     try {
       const savedCards = JSON.parse(saved) as PermissionCard[];
-
       savedCards.forEach(savedCard => {
         const currentCard = this.permissionCards.find(card => card.id === savedCard.id);
-
         if (currentCard) {
           currentCard.enabled = savedCard.enabled;
           currentCard.roles = savedCard.roles.map(role => this.normalizeRole(role));
@@ -1039,29 +1050,6 @@ export class ParametersComponent implements OnInit {
     } catch {
       this.showError('No se pudieron cargar los permisos guardados');
     }
-  }
-
-  // ═══════════════════════════════════════════════════════
-  // MÉTODOS AUXILIARES FALTANTES
-  // ═══════════════════════════════════════════════════════
-
-  normalizeRole(role: string): string {
-    if (!role) return 'student';
-    const normalized = role.toLowerCase();
-    if (normalized === 'estudiante') return 'student';
-    return normalized;
-  }
-
-  getTotalUsers(): number {
-    return this.users.length;
-  }
-
-  getTotalClasses(): number {
-    return this.classes.length;
-  }
-
-  getEnabledCount(): number {
-    return this.permissionCards.filter(c => c.enabled).length;
   }
 
   resetPermissions(): void {
@@ -1079,13 +1067,5 @@ export class ParametersComponent implements OnInit {
       ];
       this.showSuccess('✅ Permisos restablecidos');
     }
-  }
-
-  private getErrorMessage(error: unknown): string {
-    if (error instanceof Error) return error.message;
-    if (typeof error === 'object' && error !== null && 'message' in error) {
-      return String((error as { message: unknown }).message);
-    }
-    return 'Error desconocido';
   }
 }
