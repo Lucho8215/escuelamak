@@ -442,3 +442,68 @@
 }
 /* Modal mas ancho para lecciones con video */
 .modal-wide { max-width: 900px; }
+
+/* ========================
+   BOTÓN DE LECTURA EN VOZ ALTA (TTS)
+======================== */
+.btn-leer {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px -1px rgba(99, 102, 241, 0.3);
+  margin-top: 0.75rem;
+}
+
+.btn-leer:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px -2px rgba(99, 102, 241, 0.4);
+}
+
+.btn-leer:active {
+  transform: translateY(0);
+}
+
+.btn-leer.leyendo {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  animation: pulse-leer 1.5s infinite;
+}
+
+@keyframes pulse-leer {
+  0%, 100% {
+    box-shadow: 0 2px 4px -1px rgba(239, 68, 68, 0.3);
+  }
+  50% {
+    box-shadow: 0 4px 8px -2px rgba(239, 68, 68, 0.5);
+  }
+}
+
+/* Botón pequeño para clases */
+.btn-leer-sm {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  color: white;
+  border: none;
+  padding: 0.35rem 0.6rem;
+  border-radius: 50%;
+  font-size: 0.75rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px -1px rgba(99, 102, 241, 0.3);
+  margin-left: auto;
+}
+
+.btn-leer-sm:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 8px -2px rgba(99, 102, 241, 0.4);
+}

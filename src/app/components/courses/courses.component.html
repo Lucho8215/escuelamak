@@ -27,6 +27,12 @@
         <span class="course-category">{{ course.category | uppercase }}</span>
         <h3 class="course-title">{{ course.title }}</h3>
         <p class="course-desc">{{ course.description }}</p>
+        <button *ngIf="ttsSupported && course.description"
+                class="btn-leer"
+                (click)="leerCurso(course)"
+                title="Escuchar información del curso">
+          🔊 Leer
+        </button>
         <button class="btn-ver">Ver mis clases →</button>
       </div>
     </div>
@@ -66,6 +72,12 @@
               </span>
             </div>
           </div>
+          <button *ngIf="ttsSupported && clase.name"
+                  class="btn-leer-sm"
+                  (click)="$event.stopPropagation(); leerClase(clase)"
+                  title="Escuchar nombre de clase">
+            🔊
+          </button>
         </div>
       </div>
       <!-- ═══════════════════════════════════════════
@@ -174,6 +186,13 @@
                 <p *ngIf="getLessonObservation(lesson)" class="leccion-obs">
                   💬 {{ getLessonObservation(lesson) }}
                 </p>
+                <button *ngIf="ttsSupported && getLessonObservation(lesson)"
+                        class="btn-leer"
+                        [class.leyendo]="leyendo && selectedLesson?.id === lesson.id"
+                        (click)="leerLeccion(lesson)"
+                        title="Escuchar esta lección">
+                  {{ (leyendo && selectedLesson?.id === lesson.id) ? '⏹ Detener' : '🔊 Leer en voz alta' }}
+                </button>
                 <p *ngIf="!getLessonObservation(lesson)" style="color:#888; font-style:italic;">
                   Sin observaciones para esta lección.
                 </p>

@@ -358,6 +358,14 @@
               💬 {{ clase.observation }}
             </p>
 
+            <button *ngIf="ttsSupported && clase.observation"
+                    class="btn-leer"
+                    [class.leyendo]="leyendo && selectedClass?.id === clase.id"
+                    (click)="leerClase(clase)"
+                    title="Escuchar esta observación">
+              {{ (leyendo && selectedClass?.id === clase.id) ? '⏹ Detener' : '🔊 Leer' }}
+            </button>
+
             <div class="class-acciones">
               <button class="btn-editar-sm" (click)="editClass(clase)">
                 ✏️ Editar

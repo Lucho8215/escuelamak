@@ -64,7 +64,12 @@ export class CourseManagementComponent implements OnInit {
   selectedEnrollmentClass: Class | null = null;
 
   students: User[] = [];
-classEnrollments: ClassEnrollment[] = []
+  classEnrollments: ClassEnrollment[] = [];
+
+  // --- Text-to-Speech ---
+  ttsSupported = typeof window !== 'undefined' && 'speechSynthesis' in window;
+  leyendo = false;
+  private synth: SpeechSynthesis | null = typeof window !== 'undefined' ? window.speechSynthesis : null;
 
   newCourse: CourseForm = this.getEmptyCourseForm();
   newClass: ClassForm = this.getEmptyClassForm();
@@ -521,5 +526,30 @@ closeEnrollmentModal(): void {
     this.selectedClassImageFile = null;
     this.selectedClassResourceFile = null;
     this.errorMessage = '';
+  }
+
+  // --- LEER EN VOZ ALTA ---
+  leerClase(clase: Class | null): void {
+    if (!clase || !this.ttsSupported || !this.synth) return;
+    if (this.leyendo) {
+      this.synth.cancel();
+      this.leyendo = false;
+      return;
+    }
+    const partes: string[] = [];
+    if (clase.name) partes.push(clase.name);
+    if (clase.observation) partes.push(clase.observation);
+    if (partes.length === 0) {
+      partes.push('Esta clase no tiene contenido de texto para leer.');
+    }
+    const texto = partes.join('. ');
+    const utterance = new SpeechSynthesisUtterance(texto);
+    utterance.lang = 'es-ES';
+    utterance.rate = 0.9;
+    utterance.pitch = 1;
+    utterance.onend = () => { this.leyendo = false; };
+    utterance.onerror = () => { this.leyendo = false; };
+    this.leyendo = true;
+    this.synth.speak(utterance);
   }
 }

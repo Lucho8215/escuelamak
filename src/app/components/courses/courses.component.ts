@@ -30,6 +30,12 @@ export class CoursesComponent implements OnInit {
   // --- USUARIO ---
   isStudent = false;
   currentUserId = '';
+
+  // --- Text-to-Speech ---
+  ttsSupported = typeof window !== 'undefined' && 'speechSynthesis' in window;
+  leyendo = false;
+  private synth: SpeechSynthesis | null = typeof window !== 'undefined' ? window.speechSynthesis : null;
+
   constructor(
     private courseService: CourseService,
     private authService: AuthService,
@@ -340,5 +346,78 @@ export class CoursesComponent implements OnInit {
     this.selectedLesson = null;
     this.classes = [];
     this.lessons = [];
+  }
+
+  // --- LEER EN VOZ ALTA ---
+  leerLeccion(lesson: any | null): void {
+    if (!lesson || !this.ttsSupported || !this.synth) return;
+    if (this.leyendo) {
+      this.synth.cancel();
+      this.leyendo = false;
+      return;
+    }
+    const partes: string[] = [];
+    if (this.getLessonName(lesson)) partes.push(this.getLessonName(lesson));
+    if (this.getLessonObservation(lesson)) partes.push(this.getLessonObservation(lesson));
+    if (partes.length === 0) {
+      partes.push('Esta lección no tiene contenido de texto para leer.');
+    }
+    const texto = partes.join('. ');
+    const utterance = new SpeechSynthesisUtterance(texto);
+    utterance.lang = 'es-ES';
+    utterance.rate = 0.9;
+    utterance.pitch = 1;
+    utterance.onend = () => { this.leyendo = false; };
+    utterance.onerror = () => { this.leyendo = false; };
+    this.leyendo = true;
+    this.synth.speak(utterance);
+  }
+
+  leerCurso(curso: any | null): void {
+    if (!curso || !this.ttsSupported || !this.synth) return;
+    if (this.leyendo) {
+      this.synth.cancel();
+      this.leyendo = false;
+      return;
+    }
+    const partes: string[] = [];
+    if (curso.title) partes.push(curso.title);
+    if (curso.description) partes.push(curso.description);
+    if (partes.length === 0) {
+      partes.push('Este curso no tiene contenido de texto para leer.');
+    }
+    const texto = partes.join('. ');
+    const utterance = new SpeechSynthesisUtterance(texto);
+    utterance.lang = 'es-ES';
+    utterance.rate = 0.9;
+    utterance.pitch = 1;
+    utterance.onend = () => { this.leyendo = false; };
+    utterance.onerror = () => { this.leyendo = false; };
+    this.leyendo = true;
+    this.synth.speak(utterance);
+  }
+
+  leerClase(clase: any | null): void {
+    if (!clase || !this.ttsSupported || !this.synth) return;
+    if (this.leyendo) {
+      this.synth.cancel();
+      this.leyendo = false;
+      return;
+    }
+    const partes: string[] = [];
+    if (clase.name) partes.push(clase.name);
+    if (clase.observation) partes.push(clase.observation);
+    if (partes.length === 0) {
+      partes.push('Esta clase no tiene contenido de texto para leer.');
+    }
+    const texto = partes.join('. ');
+    const utterance = new SpeechSynthesisUtterance(texto);
+    utterance.lang = 'es-ES';
+    utterance.rate = 0.9;
+    utterance.pitch = 1;
+    utterance.onend = () => { this.leyendo = false; };
+    utterance.onerror = () => { this.leyendo = false; };
+    this.leyendo = true;
+    this.synth.speak(utterance);
   }
 }
