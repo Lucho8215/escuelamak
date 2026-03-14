@@ -375,6 +375,24 @@
   border-color: #667eea;
 }
 
+/* Textarea styles for questions and answers */
+.form-input.question-textarea,
+.form-input.option-textarea {
+  resize: vertical;
+  min-height: 70px;
+  font-family: inherit;
+  line-height: 1.5;
+}
+
+.form-input.option-textarea {
+  flex: 1;
+}
+
+textarea.form-input {
+  resize: vertical;
+  min-height: 60px;
+}
+
 .form-row {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -990,5 +1008,247 @@
 
 .btn-info:hover {
   background: #d97706;
+  transform: translateY(-2px);
+}
+
+/* ===================== */
+/* PDF Import Styles */
+/* ===================== */
+.import-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.upload-section {
+  margin-bottom: 1rem;
+}
+
+.upload-zone {
+  border: 2px dashed #4b5563;
+  border-radius: 16px;
+  padding: 3rem;
+  text-align: center;
+  background: #f3f4f6;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.upload-zone:hover,
+.upload-zone.dragover {
+  border-color: #10b981;
+  background: #ecfdf5;
+}
+
+.upload-zone i {
+  font-size: 3rem;
+  color: #6b7280;
+  margin-bottom: 1rem;
+}
+
+.upload-zone h3 {
+  color: #1f2937;
+  margin-bottom: 0.5rem;
+}
+
+.upload-zone p {
+  color: #4b5563;
+  margin: 0.5rem 0;
+}
+
+.upload-hint {
+  font-size: 0.85rem;
+  color: #9ca3af;
+  margin-top: 1rem;
+}
+
+.selected-file {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: #dbeafe;
+  border-radius: 10px;
+  margin-top: 1rem;
+}
+
+.selected-file i {
+  color: #2563eb;
+  font-size: 1.5rem;
+}
+
+.selected-file span {
+  flex: 1;
+  color: #1f2937;
+  font-weight: 500;
+}
+
+.text-input-section h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #1f2937;
+  margin-bottom: 1rem;
+}
+
+.import-textarea {
+  min-height: 300px;
+  font-family: monospace;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  background: #ffffff;
+  color: #1f2937;
+  border: 2px solid #d1d5db;
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.import-textarea:focus {
+  border-color: #10b981;
+  outline: none;
+}
+
+.import-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  padding: 1.5rem;
+  background: #f3f4f6;
+  border-radius: 12px;
+}
+
+.import-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  padding-top: 1rem;
+}
+
+.generated-preview {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background: #f3f4f6;
+  border-radius: 16px;
+}
+
+.generated-preview h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #1f2937;
+  margin-bottom: 1.5rem;
+}
+
+.preview-questions {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-height: 500px;
+  overflow-y: auto;
+  margin-bottom: 1.5rem;
+}
+
+.preview-question {
+  padding: 1rem;
+  background: white;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+}
+
+.preview-q-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.q-number {
+  font-weight: 600;
+  color: #10b981;
+}
+
+.q-points {
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+.q-text {
+  color: #1f2937;
+  margin-bottom: 0.75rem;
+  font-weight: 500;
+}
+
+.q-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.q-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  border-radius: 6px;
+  background: #f9fafb;
+}
+
+.q-option.correct {
+  background: #d1fae5;
+  border: 1px solid #10b981;
+}
+
+.opt-letter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: #10b981;
+  color: white;
+  border-radius: 50%;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.q-option.correct .opt-letter {
+  background: #059669;
+}
+
+.opt-text {
+  flex: 1;
+  color: #374151;
+}
+
+.preview-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.form-description {
+  color: #4b5563;
+  margin-top: 0.5rem;
+  line-height: 1.6;
+}
+
+/* Botón verde para importar */
+.btn-importar {
+  background: #10b981;
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.3s ease;
+}
+
+.btn-importar:hover {
+  background: #059669;
   transform: translateY(-2px);
 }

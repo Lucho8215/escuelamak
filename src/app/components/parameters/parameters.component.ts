@@ -24,6 +24,43 @@ interface PermissionCard {
   category: string;
 }
 
+interface PlatformPermission {
+  id: string;
+  key: string;
+  name: string;
+  description: string;
+  category: string;
+  admin_enabled: boolean;
+  teacher_enabled: boolean;
+  tutor_enabled: boolean;
+  student_enabled: boolean;
+}
+
+interface SchoolConfig {
+  id: string;
+  school_name: string;
+  school_description: string;
+  school_logo_url: string;
+  school_address: string;
+  school_phone: string;
+  school_email: string;
+  primary_color: string;
+  secondary_color: string;
+  accent_color: string;
+  background_color: string;
+  active_theme: string;
+}
+
+interface PlatformMetric {
+  id: string;
+  metric_key: string;
+  metric_name: string;
+  metric_value: string;
+  metric_type: string;
+  is_visible: boolean;
+  display_order: number;
+}
+
 interface ThemeOption {
   id: string;
   name: string;
@@ -67,6 +104,28 @@ interface ClassForm {
   end_date: string;
 }
 
+interface SchoolForm {
+  school_name: string;
+  school_description: string;
+  school_logo_url: string;
+  school_address: string;
+  school_phone: string;
+  school_email: string;
+  primary_color: string;
+  secondary_color: string;
+  accent_color: string;
+  background_color: string;
+}
+
+interface MetricForm {
+  metric_key: string;
+  metric_name: string;
+  metric_value: string;
+  metric_type: string;
+  is_visible: boolean;
+  display_order: number;
+}
+
 interface DeleteConfirm {
   type: string;
   id: string;
@@ -86,6 +145,7 @@ export class ParametersComponent implements OnInit {
   successMsg = '';
   errorMsg = '';
 
+  // Datos de usuarios
   users: AppUser[] = [];
   filteredUsers: AppUser[] = [];
   searchUser = '';
@@ -95,6 +155,7 @@ export class ParametersComponent implements OnInit {
   userForm: UserForm = this.emptyUserForm();
   userFormErrors: Record<string, string> = {};
 
+  // Datos de clases
   classes: ClassItem[] = [];
   filteredClasses: ClassItem[] = [];
   searchClass = '';
@@ -104,6 +165,7 @@ export class ParametersComponent implements OnInit {
 
   courses: CourseOption[] = [];
 
+  // Configuración de temas
   selectedTheme = 'default';
   themes: ThemeOption[] = [
     { id: 'default', name: 'Arcoíris Mágico', primary: '#667eea', secondary: '#764ba2', accent: '#f093fb', bg: '#f0f2ff', preview: ['#667eea', '#764ba2', '#f093fb', '#4facfe'] },
@@ -114,6 +176,7 @@ export class ParametersComponent implements OnInit {
     { id: 'candy', name: 'Dulcería Feliz', primary: '#ff758c', secondary: '#ff7eb3', accent: '#ffd6e0', bg: '#fff0f5', preview: ['#ff758c', '#ff7eb3', '#a78bfa', '#fbbf24'] }
   ];
 
+  // Permisos de tarjetas (locales)
   permissionCards: PermissionCard[] = [
     { id: 'card_courses', title: 'Ver Cursos', description: 'Acceso a la lista de cursos disponibles', icon: 'fas fa-book-open', color: '#667eea', roles: ['admin', 'teacher', 'tutor', 'student'], enabled: true, category: 'Contenido' },
     { id: 'card_classes', title: 'Gestión de Clases', description: 'Crear, editar y eliminar clases', icon: 'fas fa-chalkboard-teacher', color: '#f7971e', roles: ['admin', 'teacher'], enabled: true, category: 'Gestión' },
@@ -125,6 +188,24 @@ export class ParametersComponent implements OnInit {
     { id: 'card_lessons', title: 'Lecciones', description: 'Ver y completar lecciones asignadas', icon: 'fas fa-graduation-cap', color: '#56ab2f', roles: ['admin', 'teacher', 'tutor', 'student'], enabled: true, category: 'Contenido' },
     { id: 'card_review', title: 'Practicar', description: 'Área de práctica y ejercicios', icon: 'fas fa-star', color: '#ffd200', roles: ['admin', 'teacher', 'tutor', 'student'], enabled: true, category: 'Contenido' }
   ];
+
+  // Permisos desde Supabase (backend)
+  platformPermissions: PlatformPermission[] = [];
+  
+  // Configuración de la escuela
+  schoolConfig: SchoolConfig | null = null;
+  showSchoolModal = false;
+  schoolForm: SchoolForm = this.emptySchoolForm();
+  
+  // Métricas
+  platformMetrics: PlatformMetric[] = [];
+  showMetricModal = false;
+  editingMetric: PlatformMetric | null = null;
+  metricForm: MetricForm = this.emptyMetricForm();
+  
+  // Upload
+  uploadingFile = false;
+  uploadedFileUrl = '';
 
   filterCardCategory = 'all';
   filterCardRole = 'all';
@@ -148,6 +229,320 @@ export class ParametersComponent implements OnInit {
     this.loadUsers();
     this.loadCourses();
     this.loadClasses();
+    this.loadPlatformPermissions();
+    this.loadSchoolConfig();
+    this.loadMetrics();
+  }
+
+  // ─── CARGAR PERMISOS DESDE SUPABASE ───────────────────────
+  async loadPlatformPermissions(): Promise<void> {
+    try {
+      const { data, error } = await this.supabase
+        .from('platform_permissions')
+        .select('*')
+        .order('category');
+
+      if (error) {
+        console.log('Error cargando permisos (tabla puede no existir):', error);
+        return;
+      }
+
+      this.platformPermissions = (data ?? []) as PlatformPermission[];
+    } catch (e) {
+      console.log('Error cargando permisos:', e);
+    }
+  }
+
+  // ─── GUARDAR PERMISO ─────────────────────────────────────
+  async savePermission(perm: PlatformPermission): Promise<void> {
+    this.loading = true;
+    try {
+      const { error } = await this.supabase
+        .from('platform_permissions')
+        .update({
+          admin_enabled: perm.admin_enabled,
+          teacher_enabled: perm.teacher_enabled,
+          tutor_enabled: perm.tutor_enabled,
+          student_enabled: perm.student_enabled,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', perm.id);
+
+      if (error) throw error;
+      this.showSuccess('✅ Permiso actualizado');
+    } catch (e: unknown) {
+      this.showError('Error guardando permiso: ' + this.getErrorMessage(e));
+    } finally {
+      this.loading = false;
+    }
+  }
+
+  // ─── CARGAR CONFIGURACIÓN DE LA ESCUELA ──────────────────
+  async loadSchoolConfig(): Promise<void> {
+    try {
+      const { data, error } = await this.supabase
+        .from('school_config')
+        .select('*')
+        .limit(1)
+        .single();
+
+      if (error) {
+        console.log('Error cargando config (tabla puede no existir):', error);
+        return;
+      }
+
+      this.schoolConfig = data as SchoolConfig;
+      this.applySchoolColors();
+    } catch (e) {
+      console.log('Error cargando config:', e);
+    }
+  }
+
+  applySchoolColors(): void {
+    if (!this.schoolConfig) return;
+    
+    document.documentElement.style.setProperty('--color-primary', this.schoolConfig.primary_color);
+    document.documentElement.style.setProperty('--color-secondary', this.schoolConfig.secondary_color);
+    document.documentElement.style.setProperty('--color-accent', this.schoolConfig.accent_color);
+    document.documentElement.style.setProperty('--color-bg', this.schoolConfig.background_color);
+  }
+
+  // ─── ABRIR MODAL ESCUELA ─────────────────────────────────
+  openSchoolModal(): void {
+    if (this.schoolConfig) {
+      this.schoolForm = {
+        school_name: this.schoolConfig.school_name,
+        school_description: this.schoolConfig.school_description || '',
+        school_logo_url: this.schoolConfig.school_logo_url || '',
+        school_address: this.schoolConfig.school_address || '',
+        school_phone: this.schoolConfig.school_phone || '',
+        school_email: this.schoolConfig.school_email || '',
+        primary_color: this.schoolConfig.primary_color,
+        secondary_color: this.schoolConfig.secondary_color,
+        accent_color: this.schoolConfig.accent_color,
+        background_color: this.schoolConfig.background_color
+      };
+    } else {
+      this.schoolForm = this.emptySchoolForm();
+    }
+    this.showSchoolModal = true;
+  }
+
+  closeSchoolModal(): void {
+    this.showSchoolModal = false;
+  }
+
+  // ─── GUARDAR CONFIGURACIÓN ESCUELA ───────────────────────
+  async saveSchoolConfig(): Promise<void> {
+    if (!this.schoolForm.school_name.trim()) {
+      this.showError('El nombre de la escuela es requerido');
+      return;
+    }
+
+    this.loading = true;
+    try {
+      const payload = {
+        school_name: this.schoolForm.school_name,
+        school_description: this.schoolForm.school_description,
+        school_logo_url: this.schoolForm.school_logo_url,
+        school_address: this.schoolForm.school_address,
+        school_phone: this.schoolForm.school_phone,
+        school_email: this.schoolForm.school_email,
+        primary_color: this.schoolForm.primary_color,
+        secondary_color: this.schoolForm.secondary_color,
+        accent_color: this.schoolForm.accent_color,
+        background_color: this.schoolForm.background_color,
+        updated_at: new Date().toISOString()
+      };
+
+      if (this.schoolConfig) {
+        const { error } = await this.supabase
+          .from('school_config')
+          .update(payload)
+          .eq('id', this.schoolConfig.id);
+
+        if (error) throw error;
+      } else {
+        const { error } = await this.supabase
+          .from('school_config')
+          .insert([payload]);
+
+        if (error) throw error;
+      }
+
+      this.showSuccess('✅ Configuración de escuela guardada');
+      this.closeSchoolModal();
+      await this.loadSchoolConfig();
+    } catch (e: unknown) {
+      this.showError('Error guardando: ' + this.getErrorMessage(e));
+    } finally {
+      this.loading = false;
+    }
+  }
+
+  // ─── CARGAR MÉTRICAS ─────────────────────────────────────
+  async loadMetrics(): Promise<void> {
+    try {
+      const { data, error } = await this.supabase
+        .from('platform_metrics')
+        .select('*')
+        .order('display_order');
+
+      if (error) {
+        console.log('Error cargando métricas (tabla puede no existir):', error);
+        return;
+      }
+
+      this.platformMetrics = (data ?? []) as PlatformMetric[];
+    } catch (e) {
+      console.log('Error cargando métricas:', e);
+    }
+  }
+
+  // ─── ABRIR MODAL MÉTRICA ─────────────────────────────────
+  openMetricModal(metric?: PlatformMetric): void {
+    if (metric) {
+      this.editingMetric = metric;
+      this.metricForm = {
+        metric_key: metric.metric_key,
+        metric_name: metric.metric_name,
+        metric_value: metric.metric_value || '',
+        metric_type: metric.metric_type,
+        is_visible: metric.is_visible,
+        display_order: metric.display_order
+      };
+    } else {
+      this.editingMetric = null;
+      this.metricForm = this.emptyMetricForm();
+    }
+    this.showMetricModal = true;
+  }
+
+  closeMetricModal(): void {
+    this.showMetricModal = false;
+    this.editingMetric = null;
+  }
+
+  // ─── GUARDAR MÉTRICA ─────────────────────────────────────
+  async saveMetric(): Promise<void> {
+    if (!this.metricForm.metric_name.trim() || !this.metricForm.metric_key.trim()) {
+      this.showError('El nombre y clave de la métrica son requeridos');
+      return;
+    }
+
+    this.loading = true;
+    try {
+      const payload = {
+        metric_key: this.metricForm.metric_key,
+        metric_name: this.metricForm.metric_name,
+        metric_value: this.metricForm.metric_value,
+        metric_type: this.metricForm.metric_type,
+        is_visible: this.metricForm.is_visible,
+        display_order: this.metricForm.display_order,
+        updated_at: new Date().toISOString()
+      };
+
+      if (this.editingMetric) {
+        const { error } = await this.supabase
+          .from('platform_metrics')
+          .update(payload)
+          .eq('id', this.editingMetric.id);
+
+        if (error) throw error;
+        this.showSuccess('✅ Métrica actualizada');
+      } else {
+        const { error } = await this.supabase
+          .from('platform_metrics')
+          .insert([payload]);
+
+        if (error) throw error;
+        this.showSuccess('✅ Métrica creada');
+      }
+
+      this.closeMetricModal();
+      await this.loadMetrics();
+    } catch (e: unknown) {
+      this.showError('Error guardando: ' + this.getErrorMessage(e));
+    } finally {
+      this.loading = false;
+    }
+  }
+
+  // ─── ELIMINAR MÉTRICA ────────────────────────────────────
+  async deleteMetric(id: string): Promise<void> {
+    if (!confirm('¿Estás seguro de eliminar esta métrica?')) return;
+
+    this.loading = true;
+    try {
+      const { error } = await this.supabase
+        .from('platform_metrics')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      this.showSuccess('✅ Métrica eliminada');
+      await this.loadMetrics();
+    } catch (e: unknown) {
+      this.showError('Error eliminando: ' + this.getErrorMessage(e));
+    } finally {
+      this.loading = false;
+    }
+  }
+
+  // ─── SUBIR ARCHIVO ────────────────────────────────────────
+  async uploadFile(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    if (!input.files || input.files.length === 0) return;
+
+    const file = input.files[0];
+    this.uploadingFile = true;
+
+    try {
+      const fileName = `${Date.now()}_${file.name}`;
+      const { data, error } = await this.supabase.storage
+        .from('files')
+        .upload(fileName, file);
+
+      if (error) throw error;
+
+      const { data: urlData } = this.supabase.storage
+        .from('files')
+        .getPublicUrl(fileName);
+
+      this.uploadedFileUrl = urlData.publicUrl;
+      this.schoolForm.school_logo_url = this.uploadedFileUrl;
+      this.showSuccess('✅ Archivo subido correctamente');
+    } catch (e: unknown) {
+      this.showError('Error subiendo archivo: ' + this.getErrorMessage(e));
+    } finally {
+      this.uploadingFile = false;
+    }
+  }
+
+  // ─── HELPERS DE MÉTRICAS ────────────────────────────────
+  getMetricIcon(type: string): string {
+    const icons: Record<string, string> = {
+      number: 'fas fa-hashtag',
+      percentage: 'fas fa-percent',
+      text: 'fas fa-font',
+      currency: 'fas fa-dollar-sign',
+      date: 'fas fa-calendar'
+    };
+    return icons[type] || 'fas fa-chart-bar';
+  }
+
+  async toggleMetricVisibility(metric: PlatformMetric): Promise<void> {
+    try {
+      const { error } = await this.supabase
+        .from('platform_metrics')
+        .update({ is_visible: !metric.is_visible, updated_at: new Date().toISOString() })
+        .eq('id', metric.id);
+
+      if (error) throw error;
+      await this.loadMetrics();
+    } catch (e: unknown) {
+      this.showError('Error actualizando métrica: ' + this.getErrorMessage(e));
+    }
   }
 
   private get supabase() {
@@ -186,6 +581,32 @@ export class ParametersComponent implements OnInit {
       email: '',
       role: 'student',
       password: ''
+    };
+  }
+
+  emptySchoolForm(): SchoolForm {
+    return {
+      school_name: '',
+      school_description: '',
+      school_logo_url: '',
+      school_address: '',
+      school_phone: '',
+      school_email: '',
+      primary_color: '#667eea',
+      secondary_color: '#764ba2',
+      accent_color: '#f093fb',
+      background_color: '#f0f2ff'
+    };
+  }
+
+  emptyMetricForm(): MetricForm {
+    return {
+      metric_key: '',
+      metric_name: '',
+      metric_value: '',
+      metric_type: 'text',
+      is_visible: true,
+      display_order: 0
     };
   }
 
@@ -620,16 +1041,15 @@ export class ParametersComponent implements OnInit {
     }
   }
 
-  resetPermissions(): void {
-    localStorage.removeItem('app_permissions');
-    this.permissionCards.forEach(card => {
-      card.enabled = true;
-    });
-    this.showSuccess('✅ Permisos restablecidos');
-  }
+  // ═══════════════════════════════════════════════════════
+  // MÉTODOS AUXILIARES FALTANTES
+  // ═══════════════════════════════════════════════════════
 
-  getEnabledCount(): number {
-    return this.permissionCards.filter(card => card.enabled).length;
+  normalizeRole(role: string): string {
+    if (!role) return 'student';
+    const normalized = role.toLowerCase();
+    if (normalized === 'estudiante') return 'student';
+    return normalized;
   }
 
   getTotalUsers(): number {
@@ -640,19 +1060,32 @@ export class ParametersComponent implements OnInit {
     return this.classes.length;
   }
 
-  private normalizeRole(role: string): string {
-    return role === 'estudiante' ? 'student' : role;
+  getEnabledCount(): number {
+    return this.permissionCards.filter(c => c.enabled).length;
+  }
+
+  resetPermissions(): void {
+    if (confirm('¿Restablecer todos los permisos a valores predeterminados?')) {
+      this.permissionCards = [
+        { id: 'card_courses', title: 'Ver Cursos', description: 'Acceso a la lista de cursos disponibles', icon: 'fas fa-book-open', color: '#667eea', roles: ['admin', 'teacher', 'tutor', 'student'], enabled: true, category: 'Contenido' },
+        { id: 'card_classes', title: 'Gestión de Clases', description: 'Crear, editar y eliminar clases', icon: 'fas fa-chalkboard-teacher', color: '#f7971e', roles: ['admin', 'teacher'], enabled: true, category: 'Gestión' },
+        { id: 'card_quiz', title: 'Quizzes', description: 'Crear y gestionar evaluaciones', icon: 'fas fa-brain', color: '#11998e', roles: ['admin', 'teacher'], enabled: true, category: 'Evaluación' },
+        { id: 'card_takequiz', title: 'Tomar Quiz', description: 'Resolver evaluaciones y quizzes', icon: 'fas fa-pencil-alt', color: '#ff758c', roles: ['admin', 'teacher', 'tutor', 'student'], enabled: true, category: 'Evaluación' },
+        { id: 'card_reports', title: 'Informes', description: 'Ver reportes y estadísticas de alumnos', icon: 'fas fa-chart-bar', color: '#4ca1af', roles: ['admin', 'tutor'], enabled: true, category: 'Informes' },
+        { id: 'card_users', title: 'Gestión Usuarios', description: 'Administrar cuentas de usuarios', icon: 'fas fa-users-cog', color: '#764ba2', roles: ['admin'], enabled: true, category: 'Administración' },
+        { id: 'card_settings', title: 'Parámetros', description: 'Configurar parámetros del sistema', icon: 'fas fa-sliders-h', color: '#2c3e50', roles: ['admin'], enabled: true, category: 'Administración' },
+        { id: 'card_lessons', title: 'Lecciones', description: 'Ver y completar lecciones asignadas', icon: 'fas fa-graduation-cap', color: '#56ab2f', roles: ['admin', 'teacher', 'tutor', 'student'], enabled: true, category: 'Contenido' },
+        { id: 'card_review', title: 'Practicar', description: 'Área de práctica y ejercicios', icon: 'fas fa-star', color: '#ffd200', roles: ['admin', 'teacher', 'tutor', 'student'], enabled: true, category: 'Contenido' }
+      ];
+      this.showSuccess('✅ Permisos restablecidos');
+    }
   }
 
   private getErrorMessage(error: unknown): string {
-    if (error instanceof Error) {
-      return error.message;
-    }
-
+    if (error instanceof Error) return error.message;
     if (typeof error === 'object' && error !== null && 'message' in error) {
       return String((error as { message: unknown }).message);
     }
-
     return 'Error desconocido';
   }
 }

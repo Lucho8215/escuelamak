@@ -6,6 +6,7 @@ import { QuizService } from '../../services/quiz.service';
 import { AuthService } from '../../services/auth.service';
 import { Quiz, Question, QuizAssignment, QuizResourceRequest } from '../../models/quiz.model';
 import { forkJoin } from 'rxjs';
+import * as pdfjsLib from 'pdfjs-dist';
 
 @Component({
   selector: 'app-quiz-management',
@@ -20,7 +21,7 @@ export class QuizManagementComponent implements OnInit {
   assignments: QuizAssignment[] = [];
   selectedQuiz: Quiz | null = null;
 
-  activeTab: 'list' | 'create' | 'assign' | 'results' | 'requests' = 'list';
+  activeTab: 'list' | 'create' | 'assign' | 'results' | 'requests' | 'import' = 'list';
   editingQuiz = false;
   loading = false;
   loadingAssignments = false;
@@ -42,12 +43,26 @@ export class QuizManagementComponent implements OnInit {
   filterCategory = '';
   filterDifficulty = '';
 
+  // PDF Import
+  selectedFile: File | null = null;
+  importText = '';
+  importQuestionCount = 10;
+  importDifficulty = 'medium';
+  importCategory = 'general';
+  importing = false;
+  generatedQuestions: Question[] = [];
+  isDragOver = false;
+
   constructor(
     private quizService: QuizService,
     private authService: AuthService
   ) {}
 
   ngOnInit() {
+    // Configurar worker de PDF.js para extraer texto (requerido para importar PDFs)
+    if (typeof pdfjsLib.GlobalWorkerOptions !== 'undefined' && !pdfjsLib.GlobalWorkerOptions.workerSrc) {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@4.4.168/build/pdf.worker.min.mjs';
+    }
     this.loadQuizzes();
     this.loadStudents();
   }
@@ -145,27 +160,47 @@ export class QuizManagementComponent implements OnInit {
   }
 
   saveQuiz() {
+    console.log('Guardando quiz:', this.newQuiz);
+    
+    if (!this.newQuiz.title || this.newQuiz.title.trim() === '') {
+      this.errorMessage = 'El título es obligatorio';
+      return;
+    }
+
     if (!this.newQuiz.questions || this.newQuiz.questions.length === 0) {
       this.errorMessage = 'Agrega al menos una pregunta';
       return;
     }
 
-    const invalidQuestions = this.newQuiz.questions.filter(q =>
-      !q.text || !q.options || q.options.length < 2 || q.options.some(o => !o)
-    );
-
-    if (invalidQuestions.length > 0) {
-      this.errorMessage = 'Todas las preguntas deben tener texto y al menos 2 opciones válidas';
+    // Validar preguntas - permitir opciones vacías pero warning
+    const questionsWithoutText = this.newQuiz.questions.filter(q => !q.text || q.text.trim() === '');
+    if (questionsWithoutText.length > 0) {
+      this.errorMessage = 'Todas las preguntas deben tener texto';
       return;
     }
+
+    // Asegurar que cada pregunta tenga al menos 2 opciones
+    this.newQuiz.questions.forEach(q => {
+      if (!q.options || q.options.length < 2) {
+        q.options = ['', '', '', ''];
+      }
+      // Llenar opciones vacías con texto placeholder
+      q.options = q.options.map((opt, idx) => opt || `Opción ${idx + 1}`);
+    });
 
     this.loading = true;
     this.successMessage = '';
     this.errorMessage = '';
 
+    const quizData = {
+      ...this.newQuiz,
+      title: this.newQuiz.title.trim(),
+      description: (this.newQuiz.description || '').trim()
+    };
+
     const operation = this.editingQuiz && this.newQuiz.id
-      ? this.quizService.updateQuiz(this.newQuiz.id, this.newQuiz as Quiz)
-      : this.quizService.createQuiz(this.newQuiz as Quiz);
+      ? this.quizService.updateQuiz(this.newQuiz.id, quizData as Quiz)
+      : this.quizService.createQuiz(quizData as Quiz);
 
     operation.subscribe({
       next: () => {
@@ -178,7 +213,7 @@ export class QuizManagementComponent implements OnInit {
       },
       error: (e) => {
         this.loading = false;
-        this.errorMessage = 'Error: ' + e.message;
+        this.errorMessage = 'Error: ' + (e.message || 'Error desconocido');
         console.error('Error guardando quiz:', e);
       }
     });
@@ -226,6 +261,248 @@ export class QuizManagementComponent implements OnInit {
   resetForm() {
     this.editingQuiz = false;
     this.newQuiz = this.getEmptyQuiz();
+    this.selectedFile = null;
+    this.importText = '';
+    this.generatedQuestions = [];
+    this.importing = false;
+  }
+
+  // =====================
+  // PDF Import Methods
+  // =====================
+  onDragOver(event: DragEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragOver = true;
+  }
+
+  onDragLeave(event: DragEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragOver = false;
+  }
+
+  onDrop(event: DragEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragOver = false;
+    
+    const files = event.dataTransfer?.files;
+    if (files && files.length > 0) {
+      this.selectedFile = files[0];
+    }
+  }
+
+  onFileSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      this.selectedFile = input.files[0];
+    }
+  }
+
+  removeFile() {
+    this.selectedFile = null;
+  }
+
+  async generateFromPDF() {
+    this.importing = true;
+    this.generatedQuestions = [];
+    this.errorMessage = '';
+    this.successMessage = '';
+
+    try {
+      let textContent = this.importText?.trim() || '';
+
+      // Si hay archivo PDF, extraer el texto automáticamente
+      if (this.selectedFile) {
+        const ext = (this.selectedFile.name || '').toLowerCase();
+        if (ext.endsWith('.pdf')) {
+          textContent = await this.extractTextFromPDF(this.selectedFile);
+        } else if (ext.endsWith('.txt')) {
+          textContent = await this.readFileAsText(this.selectedFile);
+        } else {
+          this.showError('Formato no soportado. Usa PDF o TXT.');
+          this.importing = false;
+          return;
+        }
+      }
+
+      if (!textContent || textContent.trim().length < 20) {
+        this.showError('No hay suficiente contenido. Sube un PDF con preguntas o pega el texto.');
+        this.importing = false;
+        return;
+      }
+
+      // Actualizar el área de texto con el contenido extraído (para referencia)
+      this.importText = textContent;
+
+      // Parsear preguntas del texto
+      this.generatedQuestions = this.parseQuestions(textContent, this.importQuestionCount);
+
+      if (this.generatedQuestions.length === 0) {
+        this.showError('No se detectaron preguntas. El PDF debe tener formato: 1. Pregunta? A) Opción B) Opción Respuesta: B');
+      } else {
+        this.showSuccess(`✅ Se generaron ${this.generatedQuestions.length} preguntas. Revisa y guarda el cuestionario.`);
+      }
+    } catch (e) {
+      const err = e as Error;
+      this.showError('Error: ' + (err?.message || 'No se pudo procesar el archivo'));
+    } finally {
+      this.importing = false;
+    }
+  }
+
+  /** Extrae texto de un archivo PDF usando PDF.js */
+  private async extractTextFromPDF(file: File): Promise<string> {
+    const arrayBuffer = await file.arrayBuffer();
+    const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+    const pdf = await loadingTask.promise;
+    const numPages = pdf.numPages;
+    const textParts: string[] = [];
+
+    for (let i = 1; i <= numPages; i++) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      const pageText = content.items
+        .map((item: any) => (item.str || ''))
+        .join(' ');
+      textParts.push(pageText);
+    }
+
+    return textParts.join('\n\n');
+  }
+
+  /** Lee archivo TXT como texto */
+  private readFileAsText(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve((reader.result as string) || '');
+      reader.onerror = () => reject(new Error('No se pudo leer el archivo'));
+      reader.readAsText(file, 'UTF-8');
+    });
+  }
+
+  /** Parsea preguntas de opción múltiple desde texto (PDF o pegado) */
+  parseQuestions(text: string, maxQuestions: number): Question[] {
+    const questions: Question[] = [];
+    if (!text || text.trim().length < 10) return questions;
+
+    // Normalizar saltos de línea
+    const normalized = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    // Dividir en bloques por "N. " o "N) " al inicio de línea/párrafo
+    const rawBlocks = normalized.split(/(?=^\d+[\.\)]\s)/m).filter(b => b.trim().length > 5);
+    const blocks = rawBlocks.length > 1 ? rawBlocks : normalized.split(/\n\n+/).filter(b => b.trim().length > 10);
+
+    for (const block of blocks) {
+      if (questions.length >= maxQuestions) break;
+
+      // Buscar patrón Respuesta: A/B/C/D al final
+      const answerMatch = block.match(/\b[Rr]espuesta\s*[:\s]+\s*([A-Da-d])/i);
+      let correctAnswer = 0;
+      let blockClean = block;
+      if (answerMatch) {
+        correctAnswer = Math.min(answerMatch[1].toUpperCase().charCodeAt(0) - 65, 3);
+        blockClean = block.replace(/\b[Rr]espuesta\s*[:\s]+\s*[A-Da-d].*$/i, '').trim();
+      }
+
+      // Detectar opciones A) B) C) D) - trabajar con texto en una línea para el regex
+      const blockLine = blockClean.replace(/\s+/g, ' ');
+      const optionRegex = /([A-Da-d])[\.\)]\s*([^A-D]*?)(?=\s[A-Da-d][\.\)]|\s*[Rr]espuesta|$)/gi;
+      const optMatches = [...blockLine.matchAll(optionRegex)];
+
+      let questionText = '';
+      const options: string[] = [];
+
+      if (optMatches.length >= 2) {
+        const firstOptIdx = blockClean.search(/[A-Da-d][\.\)]\s/i);
+        questionText = (firstOptIdx >= 0 ? blockClean.substring(0, firstOptIdx) : blockClean)
+          .replace(/^\d+[\.\)]\s*/, '').replace(/^¿?\s*/, '').trim();
+        for (const m of optMatches) {
+          const opt = (m[2] || '').trim();
+          if (opt.length > 0) options.push(opt);
+        }
+      } else {
+        // Fallback: dividir por líneas
+        const lines = block.split(/\n/).map(l => l.trim()).filter(l => l.length > 0);
+        if (lines.length >= 2) {
+          questionText = lines[0].replace(/^\d+[\.\)]\s*/, '').trim();
+          for (let i = 1; i < lines.length; i++) {
+            const m = lines[i].match(/^([A-Da-d])[\.\)]\s*(.+)/);
+            if (m) options.push(m[2].trim());
+          }
+        }
+      }
+
+      if (questionText.length >= 5 && options.length >= 2) {
+        while (options.length < 4) options.push(`Opción ${options.length + 1}`);
+
+        questions.push({
+          id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+          text: questionText,
+          options: options.slice(0, 4),
+          correctAnswer,
+          explanation: '',
+          points: 10
+        });
+      }
+    }
+
+    return questions;
+  }
+
+  /** Guarda el cuestionario generado: rellena el formulario y lo guarda automáticamente en la BD */
+  saveGeneratedQuiz() {
+    if (this.generatedQuestions.length === 0) {
+      this.showError('No hay preguntas para guardar');
+      return;
+    }
+
+    const title = this.selectedFile
+      ? `Cuestionario: ${this.selectedFile.name.replace(/\.(pdf|txt)$/i, '')}`
+      : 'Cuestionario importado ' + new Date().toLocaleDateString();
+
+    this.newQuiz = {
+      title,
+      description: 'Cuestionario generado automáticamente desde PDF/texto',
+      questions: this.generatedQuestions,
+      isEnabled: true,
+      isVisible: true,
+      category: this.importCategory,
+      difficulty: this.importDifficulty as 'easy' | 'medium' | 'hard',
+      timeLimit: Math.max(10, this.generatedQuestions.length * 2),
+      passingScore: 60,
+      createdBy: this.authService.getCurrentUser()?.id || ''
+    };
+
+    // Crear y guardar directamente en la base de datos
+    this.loading = true;
+    this.errorMessage = '';
+
+    const quizData = { ...this.newQuiz } as Quiz;
+    this.quizService.createQuiz(quizData).subscribe({
+      next: () => {
+        this.loading = false;
+        this.successMessage = '¡Cuestionario creado correctamente!';
+        this.resetForm();
+        this.loadQuizzes();
+        this.activeTab = 'list';
+        setTimeout(() => this.successMessage = '', 4000);
+      },
+      error: (e) => {
+        this.loading = false;
+        this.errorMessage = 'Error al guardar: ' + (e?.message || 'Intenta de nuevo');
+      }
+    });
+  }
+
+  private showError(message: string) {
+    this.errorMessage = message;
+    setTimeout(() => this.errorMessage = '', 5000);
+  }
+
+  private showSuccess(message: string) {
+    this.successMessage = message;
+    setTimeout(() => this.successMessage = '', 5000);
   }
 
   openAssignTab(quiz: Quiz) {

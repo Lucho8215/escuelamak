@@ -16,6 +16,9 @@
         <button class="btn btn-info" (click)="openRequestsTab()">
           <i class="fas fa-envelope"></i> Solicitudes
         </button>
+        <button class="btn btn-warning" (click)="activeTab = 'import'; resetForm()">
+          <i class="fas fa-file-pdf"></i> Importar PDF
+        </button>
         <button class="btn btn-success" (click)="activeTab = 'create'; resetForm()">
           <i class="fas fa-plus-circle"></i> Nuevo Cuestionario
         </button>
@@ -231,9 +234,9 @@
 
               <div class="form-group">
                 <label>Texto de la pregunta *</label>
-                <input type="text" [(ngModel)]="question.text" 
-                  [name]="'question-' + i" required class="form-input"
-                  placeholder="Escribe la pregunta aquí...">
+                <textarea [(ngModel)]="question.text" 
+                  [name]="'question-' + i" required class="form-input question-textarea"
+                  placeholder="Escribe la pregunta aquí..." rows="2"></textarea>
               </div>
 
               <div class="options-section">
@@ -244,9 +247,9 @@
                       [(ngModel)]="question.correctAnswer">
                     <span class="option-letter">{{ ['A','B','C','D','E'][j] }}</span>
                   </div>
-                  <input type="text" [(ngModel)]="question.options[j]" 
-                    [name]="'option-' + i + '-' + j" required class="form-input"
-                    [placeholder]="'Opción ' + (j+1)">
+                  <textarea [(ngModel)]="question.options[j]" 
+                    [name]="'option-' + i + '-' + j" required class="form-input option-textarea"
+                    [placeholder]="'Escribe la respuesta ' + (j+1) + '...'" rows="2"></textarea>
                   <button *ngIf="question.options && question.options.length > 2" 
                     type="button" class="btn-icon" (click)="removeOption(question, j)">
                     <i class="fas fa-times"></i>
@@ -262,9 +265,9 @@
               <div class="form-row">
                 <div class="form-group">
                   <label>Explicación (opcional)</label>
-                  <input type="text" [(ngModel)]="question.explanation" 
+                  <textarea [(ngModel)]="question.explanation" 
                     [name]="'explanation-' + i" class="form-input"
-                    placeholder="Explica por qué es la respuesta correcta...">
+                    placeholder="Explica por qué es la respuesta correcta..." rows="2"></textarea>
                 </div>
                 <div class="form-group">
                   <label>Puntos</label>
@@ -287,6 +290,144 @@
           </button>
         </div>
       </form>
+    </div>
+  </section>
+
+  <!-- TAB: Importar PDF -->
+  <section *ngIf="activeTab === 'import'" class="tab-content">
+    <div class="form-card">
+      <div class="form-header">
+        <h2>
+          <i class="fas fa-file-pdf"></i>
+          Importar desde PDF
+        </h2>
+        <p class="form-description">
+          Sube un archivo PDF con preguntas y el sistema generará un cuestionario automáticamente.
+          También puedes pegar el texto manualmente.
+        </p>
+      </div>
+
+      <div class="import-container">
+        <!-- File Upload -->
+        <div class="upload-section">
+          <div class="upload-zone" 
+               [class.dragover]="isDragOver"
+               (dragover)="onDragOver($event)"
+               (dragleave)="onDragLeave($event)"
+               (drop)="onDrop($event)">
+            <input type="file" #fileInput accept=".pdf,.txt" (change)="onFileSelected($event)" hidden>
+            <i class="fas fa-cloud-upload-alt"></i>
+            <h3>Arrastra un archivo aquí</h3>
+            <p>o</p>
+            <button type="button" class="btn btn-primary" (click)="fileInput.click()">
+              <i class="fas fa-folder-open"></i> Seleccionar Archivo
+            </button>
+            <p class="upload-hint">PDF o TXT (máx. 10MB)</p>
+          </div>
+
+          <div *ngIf="selectedFile" class="selected-file">
+            <i class="fas fa-file-pdf"></i>
+            <span>{{ selectedFile.name }}</span>
+            <button type="button" class="btn-icon" (click)="removeFile()">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Text Input Alternative -->
+        <div class="text-input-section">
+          <h3><i class="fas fa-paste"></i> O pega el contenido directamente</h3>
+          <textarea [(ngModel)]="importText" 
+            class="form-input import-textarea"
+            placeholder="Pega aquí el texto del cuestionario...
+
+Ejemplo de formato:
+1. ¿Cuál es la capital de Francia?
+A) Madrid
+B) París
+C) Roma
+D) Lisboa
+Respuesta: B
+
+2. ¿Cuántos planetas tiene el sistema solar?
+A) 7
+B) 8
+C) 9
+D) 10
+Respuesta: B"
+            rows="15"></textarea>
+        </div>
+
+        <!-- Import Options -->
+        <div class="import-options">
+          <div class="form-group">
+            <label>¿Cuántas preguntas generar?</label>
+            <input type="number" [(ngModel)]="importQuestionCount" 
+              class="form-input" min="1" max="50" placeholder="10">
+          </div>
+          <div class="form-group">
+            <label>Dificultad</label>
+            <select [(ngModel)]="importDifficulty" class="form-input">
+              <option value="easy">Fácil</option>
+              <option value="medium">Medio</option>
+              <option value="hard">Difícil</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Categoría</label>
+            <select [(ngModel)]="importCategory" class="form-input">
+              <option value="general">General</option>
+              <option value="mathematics">Matemáticas</option>
+              <option value="science">Ciencias</option>
+              <option value="language">Lenguaje</option>
+              <option value="history">Historia</option>
+              <option value="geography">Geografía</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Generate Button -->
+        <div class="import-actions">
+          <button type="button" class="btn btn-secondary" (click)="activeTab = 'list'">
+            <i class="fas fa-times"></i> Cancelar
+          </button>
+          <button type="button" class="btn btn-warning" 
+            [disabled]="(!selectedFile && !importText) || importing"
+            (click)="generateFromPDF()">
+            <i class="fas fa-magic"></i>
+            {{ importing ? 'Generando...' : 'Generar Cuestionario' }}
+          </button>
+        </div>
+
+        <!-- Preview -->
+        <div *ngIf="generatedQuestions.length > 0" class="generated-preview">
+          <h3><i class="fas fa-eye"></i> Vista Previa ({{ generatedQuestions.length }} preguntas)</h3>
+          <div class="preview-questions">
+            <div *ngFor="let q of generatedQuestions; let i = index" class="preview-question">
+              <div class="preview-q-header">
+                <span class="q-number">Pregunta {{ i + 1 }}</span>
+                <span class="q-points">{{ q.points }} pts</span>
+              </div>
+              <p class="q-text">{{ q.text }}</p>
+              <div class="q-options">
+                <div *ngFor="let opt of q.options; let j = index" 
+                     class="q-option" [class.correct]="j === q.correctAnswer">
+                  <span class="opt-letter">{{ ['A','B','C','D'][j] }}</span>
+                  <span class="opt-text">{{ opt }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="preview-actions">
+            <button type="button" class="btn btn-secondary" (click)="generatedQuestions = []">
+              <i class="fas fa-trash"></i> Descartar
+            </button>
+            <button type="button" class="btn btn-success" (click)="saveGeneratedQuiz()" [disabled]="loading">
+              <i class="fas fa-save"></i> {{ loading ? 'Creando...' : 'Crear Cuestionario' }}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   </section>
 
