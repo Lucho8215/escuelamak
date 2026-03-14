@@ -172,15 +172,15 @@ export class CoursesComponent implements OnInit {
     } else {
       this.selectedLesson = lesson;
       // Auto-seleccionar la pestaña multimedia si hay video o PDF
-      if (this.lessonHasVideo(lesson) || this.lessonHasPdf(lesson)) {
-        this.activeTab = 'multimedia';
-      } else {
-        this.activeTab = 'info';
+     if (this.lessonHasVideo(lesson)) {
+        this.activeTab = 'video';
+      } else if (this.lessonHasPdf(lesson)) {
+        this.activeTab = 'pdf';
       }
     }
   }
   // --- PESTANAS ---
-  setTab(tab: 'info' | 'multimedia' | 'imagen' | 'recurso') {
+  setTab(tab: 'info' | 'video' | 'pdf' | 'multimedia' | 'imagen' | 'recurso') {
     this.activeTab = tab;
   }
   // --- DETECTAR CONTENIDO DE LECCION ---
@@ -239,7 +239,7 @@ export class CoursesComponent implements OnInit {
   }*/
     // Considera que hay video si resource_link contiene YouTube
   // o si tiene videoUrl directo
-  
+
   hasVideo(clase: Class): boolean {
     const link = clase.resourceLink || '';
     const video = clase.videoUrl || '';
