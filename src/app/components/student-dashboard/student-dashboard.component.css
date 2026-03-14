@@ -4,12 +4,43 @@
   gap: 30px;
 }
 
+/* Animaciones de entrada */
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes cardGlow {
+  0%, 100% {
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+  }
+  50% {
+    box-shadow: 0 10px 35px rgba(99, 102, 241, 0.25);
+  }
+}
+
 /* Hero */
 .hero-card {
   background: linear-gradient(135deg, #6366f1, #7c3aed);
   color: white;
   padding: 30px;
   border-radius: 20px;
+  animation: slideUp 0.6s ease-out;
 }
 
 /* Stats */
@@ -28,6 +59,22 @@
   display: flex;
   align-items: center;
   gap: 15px;
+  transition: all 0.3s ease;
+  animation: slideUp 0.6s ease-out backwards;
+}
+
+.stat-card:nth-child(1) { animation-delay: 0.1s; }
+.stat-card:nth-child(2) { animation-delay: 0.2s; }
+.stat-card:nth-child(3) { animation-delay: 0.3s; }
+.stat-card:nth-child(4) { animation-delay: 0.4s; }
+.stat-card:nth-child(5) { animation-delay: 0.5s; }
+.stat-card:nth-child(6) { animation-delay: 0.6s; }
+.stat-card:nth-child(7) { animation-delay: 0.7s; }
+.stat-card:nth-child(8) { animation-delay: 0.8s; }
+
+.stat-card:hover {
+  transform: translateY(-5px);
+  animation: cardGlow 2s ease-in-out infinite;
 }
 
 .stat-card .stat-icon {
@@ -101,6 +148,20 @@
   flex-direction: column;
   gap: 15px;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  animation: slideUp 0.6s ease-out backwards;
+}
+
+.lesson-card:nth-child(1) { animation-delay: 0.1s; }
+.lesson-card:nth-child(2) { animation-delay: 0.2s; }
+.lesson-card:nth-child(3) { animation-delay: 0.3s; }
+.lesson-card:nth-child(4) { animation-delay: 0.4s; }
+.lesson-card:nth-child(5) { animation-delay: 0.5s; }
+.lesson-card:nth-child(6) { animation-delay: 0.6s; }
+
+.lesson-card:hover {
+  transform: translateY(-5px) scale(1.02);
+  box-shadow: 0 15px 40px rgba(125, 211, 252, 0.4);
 }
 
 .lesson-card h3 {
