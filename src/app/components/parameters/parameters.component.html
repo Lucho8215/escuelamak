@@ -26,9 +26,20 @@
       <span class="nav-badge">{{ getTotalClasses() }}</span>
     </button>
 
+    <button class="nav-item" [class.active]="activeSection==='school'" (click)="setSection('school')">
+      <i class="fas fa-school"></i>
+      <span>Escuela</span>
+    </button>
+
+    <button class="nav-item" [class.active]="activeSection==='metrics'" (click)="setSection('metrics')">
+      <i class="fas fa-chart-line"></i>
+      <span>Métricas</span>
+      <span class="nav-badge">{{ platformMetrics.length }}</span>
+    </button>
+
     <button class="nav-item" [class.active]="activeSection==='theme'" (click)="setSection('theme')">
       <i class="fas fa-palette"></i>
-      <span>Temas de Color</span>
+      <span>Temas</span>
     </button>
 
     <button class="nav-item" [class.active]="activeSection==='permissions'" (click)="setSection('permissions')">
@@ -265,6 +276,125 @@
             </button>
           </div>
         </div>
+      </div>
+    </section>
+
+    <!-- ESCUELA -->
+    <section *ngIf="activeSection==='school'" class="content-section">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title"><i class="fas fa-school"></i> Configuración de la Escuela</h2>
+          <p class="section-sub">Personaliza el perfil de tu institución</p>
+        </div>
+        <button class="btn-primary" (click)="openSchoolModal()">
+          <i class="fas fa-edit"></i>
+          Editar Configuración
+        </button>
+      </div>
+
+      <div class="school-preview-card" *ngIf="schoolConfig">
+        <div class="school-header-preview" [style.background]="'linear-gradient(135deg, ' + schoolConfig.primary_color + ', ' + schoolConfig.secondary_color + ')'">
+          <div class="school-logo-preview" *ngIf="schoolConfig.school_logo_url">
+            <img [src]="schoolConfig.school_logo_url" alt="Logo" />
+          </div>
+          <div class="school-logo-placeholder" *ngIf="!schoolConfig.school_logo_url">
+            <i class="fas fa-school"></i>
+          </div>
+          <h3>{{ schoolConfig.school_name }}</h3>
+        </div>
+        <div class="school-body-preview">
+          <p *ngIf="schoolConfig.school_description">{{ schoolConfig.school_description }}</p>
+          <p *ngIf="!schoolConfig.school_description" class="no-data">Sin descripción configurada</p>
+          
+          <div class="school-contact-preview">
+            <div *ngIf="schoolConfig.school_address">
+              <i class="fas fa-map-marker-alt"></i> {{ schoolConfig.school_address }}
+            </div>
+            <div *ngIf="schoolConfig.school_phone">
+              <i class="fas fa-phone"></i> {{ schoolConfig.school_phone }}
+            </div>
+            <div *ngIf="schoolConfig.school_email">
+              <i class="fas fa-envelope"></i> {{ schoolConfig.school_email }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="empty-state" *ngIf="!schoolConfig">
+        <i class="fas fa-school"></i>
+        <p>No hay configuración de escuela</p>
+        <button class="btn-primary" (click)="openSchoolModal()">Crear configuración</button>
+      </div>
+
+      <div class="color-preview-section" *ngIf="schoolConfig">
+        <h3><i class="fas fa-palette"></i> Colores de la Plataforma</h3>
+        <div class="color-preview-grid">
+          <div class="color-preview-item">
+            <div class="color-swatch" [style.background]="schoolConfig.primary_color"></div>
+            <span>Primario</span>
+          </div>
+          <div class="color-preview-item">
+            <div class="color-swatch" [style.background]="schoolConfig.secondary_color"></div>
+            <span>Secundario</span>
+          </div>
+          <div class="color-preview-item">
+            <div class="color-swatch" [style.background]="schoolConfig.accent_color"></div>
+            <span>Acento</span>
+          </div>
+          <div class="color-preview-item">
+            <div class="color-swatch" [style.background]="schoolConfig.background_color"></div>
+            <span>Fondo</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MÉTRICAS -->
+    <section *ngIf="activeSection==='metrics'" class="content-section">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title"><i class="fas fa-chart-line"></i> Métricas del Sistema</h2>
+          <p class="section-sub">Configura las métricas visibles en la plataforma</p>
+        </div>
+        <button class="btn-primary" (click)="openMetricModal()">
+          <i class="fas fa-plus"></i>
+          Nueva Métrica
+        </button>
+      </div>
+
+      <div class="metrics-grid" *ngIf="platformMetrics.length > 0">
+        <div *ngFor="let metric of platformMetrics" class="metric-card">
+          <div class="metric-header">
+            <div class="metric-icon" [class]="'metric-' + metric.metric_type">
+              <i [class]="getMetricIcon(metric.metric_type)"></i>
+            </div>
+            <div class="metric-toggle">
+              <label class="toggle-switch">
+                <input type="checkbox" [checked]="metric.is_visible" (change)="toggleMetricVisibility(metric)" />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+          <div class="metric-body">
+            <h4>{{ metric.metric_name }}</h4>
+            <p class="metric-value">{{ metric.metric_value }}</p>
+            <span class="metric-type">{{ metric.metric_type }}</span>
+          </div>
+          <div class="metric-actions">
+            <button class="btn-icon btn-edit" (click)="openMetricModal(metric)">
+              <i class="fas fa-edit"></i>
+            </button>
+            <button class="btn-icon btn-delete" (click)="deleteMetric(metric.id)">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="empty-state" *ngIf="platformMetrics.length === 0">
+        <i class="fas fa-chart-line"></i>
+        <p>No hay métricas configuradas</p>
+        <button class="btn-primary" (click)="openMetricModal()">Crear primera métrica</button>
       </div>
     </section>
 
