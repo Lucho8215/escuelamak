@@ -180,7 +180,7 @@ export class CoursesComponent implements OnInit {
     }
   }
   // --- PESTANAS ---
-  setTab(tab: 'info' | 'video' | 'pdf' | 'multimedia' | 'imagen' | 'recurso') {
+  setTab(tab: 'información' | 'video' | 'pdf' | 'multimedia' | 'imagen' | 'recurso') {
     this.activeTab = tab;
   }
   // --- DETECTAR CONTENIDO DE LECCION ---
