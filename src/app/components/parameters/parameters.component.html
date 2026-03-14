@@ -278,123 +278,189 @@
         </div>
       </div>
     </section>
-
-    <!-- ESCUELA -->
+<!-- ESCUELA -->
     <section *ngIf="activeSection==='school'" class="content-section">
+
+      <!-- Encabezado -->
       <div class="section-header">
         <div>
-          <h2 class="section-title"><i class="fas fa-school"></i> Configuración de la Escuela</h2>
-          <p class="section-sub">Personaliza el perfil de tu institución</p>
+          <h2 class="section-title">🏫 Configuración de la Escuela</h2>
+          <p class="section-sub">Personaliza el nombre, contacto y colores de tu institución educativa</p>
         </div>
         <button class="btn-primary" (click)="openSchoolModal()">
-          <i class="fas fa-edit"></i>
-          Editar Configuración
+          ✏️ {{ schoolConfig ? 'Editar Configuración' : 'Crear Configuración' }}
         </button>
       </div>
 
-      <div class="school-preview-card" *ngIf="schoolConfig">
-        <div class="school-header-preview" [style.background]="'linear-gradient(135deg, ' + schoolConfig.primary_color + ', ' + schoolConfig.secondary_color + ')'">
-          <div class="school-logo-preview" *ngIf="schoolConfig.school_logo_url">
-            <img [src]="schoolConfig.school_logo_url" alt="Logo" />
-          </div>
-          <div class="school-logo-placeholder" *ngIf="!schoolConfig.school_logo_url">
-            <i class="fas fa-school"></i>
-          </div>
-          <h3>{{ schoolConfig.school_name }}</h3>
-        </div>
-        <div class="school-body-preview">
-          <p *ngIf="schoolConfig.school_description">{{ schoolConfig.school_description }}</p>
-          <p *ngIf="!schoolConfig.school_description" class="no-data">Sin descripción configurada</p>
-          
-          <div class="school-contact-preview">
-            <div *ngIf="schoolConfig.school_address">
-              <i class="fas fa-map-marker-alt"></i> {{ schoolConfig.school_address }}
-            </div>
-            <div *ngIf="schoolConfig.school_phone">
-              <i class="fas fa-phone"></i> {{ schoolConfig.school_phone }}
-            </div>
-            <div *ngIf="schoolConfig.school_email">
-              <i class="fas fa-envelope"></i> {{ schoolConfig.school_email }}
-            </div>
-          </div>
-        </div>
+      <!-- Sin configuración -->
+      <div *ngIf="!schoolConfig" class="empty-state">
+        <div style="font-size:4rem; margin-bottom:1rem;">🏫</div>
+        <p>No hay configuración de escuela todavía.</p>
+        <p style="font-size:0.88rem; color:#94a3b8; margin-bottom:1.5rem;">
+          Crea la configuración para personalizar la plataforma con el nombre y colores de tu institución.
+        </p>
+        <button class="btn-primary" (click)="openSchoolModal()">+ Crear Configuración</button>
       </div>
 
-      <div class="empty-state" *ngIf="!schoolConfig">
-        <i class="fas fa-school"></i>
-        <p>No hay configuración de escuela</p>
-        <button class="btn-primary" (click)="openSchoolModal()">Crear configuración</button>
-      </div>
+      <!-- Vista de configuración existente -->
+      <div *ngIf="schoolConfig" class="school-vista">
 
-      <div class="color-preview-section" *ngIf="schoolConfig">
-        <h3><i class="fas fa-palette"></i> Colores de la Plataforma</h3>
-        <div class="color-preview-grid">
-          <div class="color-preview-item">
-            <div class="color-swatch" [style.background]="schoolConfig.primary_color"></div>
-            <span>Primario</span>
+        <!-- Tarjeta principal con gradiente -->
+        <div class="school-banner"
+             [style.background]="'linear-gradient(135deg,' + schoolConfig.primary_color + ',' + schoolConfig.secondary_color + ')'">
+          <!-- Logo o placeholder -->
+          <div class="school-logo-wrap">
+            <img *ngIf="schoolConfig.school_logo_url"
+                 [src]="schoolConfig.school_logo_url"
+                 alt="Logo" class="school-logo-img">
+            <div *ngIf="!schoolConfig.school_logo_url" class="school-logo-placeholder">
+              🏫
+            </div>
           </div>
-          <div class="color-preview-item">
-            <div class="color-swatch" [style.background]="schoolConfig.secondary_color"></div>
-            <span>Secundario</span>
-          </div>
-          <div class="color-preview-item">
-            <div class="color-swatch" [style.background]="schoolConfig.accent_color"></div>
-            <span>Acento</span>
-          </div>
-          <div class="color-preview-item">
-            <div class="color-swatch" [style.background]="schoolConfig.background_color"></div>
-            <span>Fondo</span>
+          <!-- Nombre y descripción -->
+          <div class="school-banner-info">
+            <h2>{{ schoolConfig.school_name }}</h2>
+            <p>{{ schoolConfig.school_description || 'Sin descripción' }}</p>
           </div>
         </div>
+
+        <!-- Información de contacto -->
+        <div class="school-info-grid">
+          <div class="school-info-card">
+            <span class="school-info-label">📧 Correo</span>
+            <span class="school-info-value">{{ schoolConfig.school_email || 'No configurado' }}</span>
+          </div>
+          <div class="school-info-card">
+            <span class="school-info-label">📞 Teléfono</span>
+            <span class="school-info-value">{{ schoolConfig.school_phone || 'No configurado' }}</span>
+          </div>
+          <div class="school-info-card">
+            <span class="school-info-label">📍 Dirección</span>
+            <span class="school-info-value">{{ schoolConfig.school_address || 'No configurada' }}</span>
+          </div>
+          <div class="school-info-card">
+            <span class="school-info-label">🎨 Tema activo</span>
+            <span class="school-info-value">{{ schoolConfig.active_theme || 'Default' }}</span>
+          </div>
+        </div>
+
+        <!-- Paleta de colores -->
+        <div class="school-colores-titulo">🎨 Paleta de Colores de la Plataforma</div>
+        <div class="school-colores-grid">
+          <div class="color-item">
+            <div class="color-circulo" [style.background]="schoolConfig.primary_color"></div>
+            <span class="color-nombre">Primario</span>
+            <span class="color-hex">{{ schoolConfig.primary_color }}</span>
+          </div>
+          <div class="color-item">
+            <div class="color-circulo" [style.background]="schoolConfig.secondary_color"></div>
+            <span class="color-nombre">Secundario</span>
+            <span class="color-hex">{{ schoolConfig.secondary_color }}</span>
+          </div>
+          <div class="color-item">
+            <div class="color-circulo" [style.background]="schoolConfig.accent_color"></div>
+            <span class="color-nombre">Acento</span>
+            <span class="color-hex">{{ schoolConfig.accent_color }}</span>
+          </div>
+          <div class="color-item">
+            <div class="color-circulo" [style.background]="schoolConfig.background_color"></div>
+            <span class="color-nombre">Fondo</span>
+            <span class="color-hex">{{ schoolConfig.background_color }}</span>
+          </div>
+        </div>
+
       </div>
     </section>
 
-    <!-- MÉTRICAS -->
+   <!-- MÉTRICAS -->
     <section *ngIf="activeSection==='metrics'" class="content-section">
+
+      <!-- Encabezado -->
       <div class="section-header">
         <div>
-          <h2 class="section-title"><i class="fas fa-chart-line"></i> Métricas del Sistema</h2>
-          <p class="section-sub">Configura las métricas visibles en la plataforma</p>
+          <h2 class="section-title">📊 Métricas del Sistema</h2>
+          <p class="section-sub">
+            Las métricas son indicadores que muestran estadísticas clave de la plataforma.
+            Puedes crear, editar y controlar cuáles son visibles públicamente.
+          </p>
         </div>
         <button class="btn-primary" (click)="openMetricModal()">
-          <i class="fas fa-plus"></i>
-          Nueva Métrica
+          + Nueva Métrica
         </button>
       </div>
 
-      <div class="metrics-grid" *ngIf="platformMetrics.length > 0">
-        <div *ngFor="let metric of platformMetrics" class="metric-card">
-          <div class="metric-header">
-            <div class="metric-icon" [class]="'metric-' + metric.metric_type">
-              <i [class]="getMetricIcon(metric.metric_type)"></i>
-            </div>
-            <div class="metric-toggle">
-              <label class="toggle-switch">
-                <input type="checkbox" [checked]="metric.is_visible" (change)="toggleMetricVisibility(metric)" />
-                <span class="toggle-slider"></span>
-              </label>
-            </div>
-          </div>
-          <div class="metric-body">
-            <h4>{{ metric.metric_name }}</h4>
-            <p class="metric-value">{{ metric.metric_value }}</p>
-            <span class="metric-type">{{ metric.metric_type }}</span>
-          </div>
-          <div class="metric-actions">
-            <button class="btn-icon btn-edit" (click)="openMetricModal(metric)">
-              <i class="fas fa-edit"></i>
-            </button>
-            <button class="btn-icon btn-delete" (click)="deleteMetric(metric.id)">
-              <i class="fas fa-trash"></i>
-            </button>
-          </div>
+      <!-- Explicación de uso -->
+      <div class="metricas-ayuda">
+        <div class="ayuda-item">
+          <span class="ayuda-icono">👁️</span>
+          <span>Activa o desactiva cada métrica con el toggle</span>
+        </div>
+        <div class="ayuda-item">
+          <span class="ayuda-icono">✏️</span>
+          <span>Edita el nombre y valor de cada indicador</span>
+        </div>
+        <div class="ayuda-item">
+          <span class="ayuda-icono">🗑️</span>
+          <span>Elimina las métricas que ya no necesites</span>
         </div>
       </div>
 
-      <div class="empty-state" *ngIf="platformMetrics.length === 0">
-        <i class="fas fa-chart-line"></i>
-        <p>No hay métricas configuradas</p>
-        <button class="btn-primary" (click)="openMetricModal()">Crear primera métrica</button>
+      <!-- Sin métricas -->
+      <div *ngIf="platformMetrics.length === 0" class="empty-state">
+        <div style="font-size:4rem; margin-bottom:1rem;">📊</div>
+        <p>No hay métricas configuradas aún.</p>
+        <p style="font-size:0.88rem; color:#94a3b8; margin-bottom:1.5rem;">
+          Crea métricas para mostrar estadísticas como total de estudiantes, cursos activos, promedio general, etc.
+        </p>
+        <button class="btn-primary" (click)="openMetricModal()">+ Crear primera métrica</button>
+      </div>
+
+      <!-- Grid de métricas -->
+      <div class="metrics-grid" *ngIf="platformMetrics.length > 0">
+        <div *ngFor="let metric of platformMetrics"
+             class="metric-card"
+             [class.metric-inactiva]="!metric.is_visible">
+
+          <!-- Header con icono y toggle -->
+          <div class="metric-header">
+            <div class="metric-icon">
+              <i [class]="getMetricIcon(metric.metric_type)"></i>
+            </div>
+            <div class="metric-header-info">
+              <span class="metric-tipo">{{ metric.metric_type | uppercase }}</span>
+              <span class="metric-orden">Orden: {{ metric.display_order }}</span>
+            </div>
+            <!-- Toggle visibilidad -->
+            <label class="toggle-switch" title="{{ metric.is_visible ? 'Visible' : 'Oculto' }}">
+              <input type="checkbox"
+                     [checked]="metric.is_visible"
+                     (change)="toggleMetricVisibility(metric)">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+
+          <!-- Cuerpo con nombre y valor -->
+          <div class="metric-body">
+            <h4>{{ metric.metric_name }}</h4>
+            <div class="metric-value">{{ metric.metric_value }}</div>
+            <span class="metric-visible-badge"
+                  [class.visible]="metric.is_visible"
+                  [class.oculta]="!metric.is_visible">
+              {{ metric.is_visible ? '👁️ Visible' : '🔒 Oculta' }}
+            </span>
+          </div>
+
+          <!-- Acciones -->
+          <div class="metric-actions">
+            <button class="btn-icon btn-edit" (click)="openMetricModal(metric)">
+              ✏️ Editar
+            </button>
+            <button class="btn-icon btn-delete" (click)="deleteMetric(metric.id)">
+              🗑️ Eliminar
+            </button>
+          </div>
+
+        </div>
       </div>
     </section>
 
@@ -692,6 +758,182 @@
       <button class="btn-primary" (click)="saveClass()" [disabled]="loading">
         <i [class]="loading ? 'fas fa-spinner fa-spin' : 'fas fa-save'"></i>
         {{ loading ? 'Guardando…' : (editingClass ? 'Actualizar' : 'Crear Clase') }}
+      </button>
+    </div>
+  </div>
+</div>
+<!-- MODAL ESCUELA -->
+<div *ngIf="showSchoolModal" class="modal-overlay" (click)="closeSchoolModal()">
+  <div class="modal-box modal-grande" (click)="$event.stopPropagation()">
+
+    <div class="modal-header">
+      <h2>🏫 {{ schoolConfig ? 'Editar Configuración' : 'Nueva Configuración' }}</h2>
+      <button class="modal-close" (click)="closeSchoolModal()">✕</button>
+    </div>
+
+    <div class="modal-body">
+
+      <!-- Nombre y descripción -->
+      <div class="form-group">
+        <label class="form-label">🏫 Nombre de la Escuela *</label>
+        <input class="form-input" [(ngModel)]="schoolForm.school_name"
+               placeholder="Ej: EscuelaMak">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">📝 Descripción</label>
+        <textarea class="form-input" [(ngModel)]="schoolForm.school_description"
+                  rows="3" placeholder="Describe brevemente tu institución..."></textarea>
+      </div>
+
+      <!-- Contacto -->
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">📧 Correo</label>
+          <input class="form-input" type="email" [(ngModel)]="schoolForm.school_email"
+                 placeholder="admin@escuela.com">
+        </div>
+        <div class="form-group">
+          <label class="form-label">📞 Teléfono</label>
+          <input class="form-input" [(ngModel)]="schoolForm.school_phone"
+                 placeholder="+57 300 000 0000">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">📍 Dirección</label>
+        <input class="form-input" [(ngModel)]="schoolForm.school_address"
+               placeholder="Calle 123, Ciudad">
+      </div>
+
+      <!-- Logo -->
+      <div class="form-group">
+        <label class="form-label">🖼️ URL del Logo</label>
+        <input class="form-input" [(ngModel)]="schoolForm.school_logo_url"
+               placeholder="https://... (URL de imagen)">
+      </div>
+
+      <!-- Colores -->
+      <div class="colores-titulo">🎨 Colores de la Plataforma</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">🔵 Color Primario</label>
+          <div class="color-input-wrap">
+            <input type="color" [(ngModel)]="schoolForm.primary_color" class="color-picker">
+            <input class="form-input" [(ngModel)]="schoolForm.primary_color"
+                   placeholder="#667eea">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">🟣 Color Secundario</label>
+          <div class="color-input-wrap">
+            <input type="color" [(ngModel)]="schoolForm.secondary_color" class="color-picker">
+            <input class="form-input" [(ngModel)]="schoolForm.secondary_color"
+                   placeholder="#764ba2">
+          </div>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">🟡 Color Acento</label>
+          <div class="color-input-wrap">
+            <input type="color" [(ngModel)]="schoolForm.accent_color" class="color-picker">
+            <input class="form-input" [(ngModel)]="schoolForm.accent_color"
+                   placeholder="#f093fb">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">⬜ Color Fondo</label>
+          <div class="color-input-wrap">
+            <input type="color" [(ngModel)]="schoolForm.background_color" class="color-picker">
+            <input class="form-input" [(ngModel)]="schoolForm.background_color"
+                   placeholder="#f0f2ff">
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-secondary" (click)="closeSchoolModal()">Cancelar</button>
+      <button class="btn-primary" (click)="saveSchoolConfig()" [disabled]="loading">
+        {{ loading ? '⏳ Guardando...' : '💾 Guardar Configuración' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL MÉTRICA -->
+<div *ngIf="showMetricModal" class="modal-overlay" (click)="closeMetricModal()">
+  <div class="modal-box" (click)="$event.stopPropagation()">
+
+    <div class="modal-header">
+      <h2>📊 {{ editingMetric ? 'Editar Métrica' : 'Nueva Métrica' }}</h2>
+      <button class="modal-close" (click)="closeMetricModal()">✕</button>
+    </div>
+
+    <div class="modal-body">
+
+      <div class="modal-ayuda">
+        💡 Las métricas son indicadores que muestran estadísticas de la plataforma.
+        Por ejemplo: "Total Estudiantes = 45", "Promedio General = 78%".
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">📌 Nombre de la Métrica *</label>
+        <input class="form-input" [(ngModel)]="metricForm.metric_name"
+               placeholder="Ej: Total Estudiantes">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">🔑 Clave única *</label>
+        <input class="form-input" [(ngModel)]="metricForm.metric_key"
+               placeholder="Ej: total_students (sin espacios)">
+        <small style="color:#94a3b8;">Identificador único, sin espacios ni caracteres especiales</small>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">💾 Valor actual</label>
+          <input class="form-input" [(ngModel)]="metricForm.metric_value"
+                 placeholder="Ej: 45 o 78%">
+        </div>
+        <div class="form-group">
+          <label class="form-label">📐 Tipo</label>
+          <select class="form-input" [(ngModel)]="metricForm.metric_type">
+            <option value="number">Número (#)</option>
+            <option value="percentage">Porcentaje (%)</option>
+            <option value="text">Texto</option>
+            <option value="currency">Moneda ($)</option>
+            <option value="date">Fecha</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">🔢 Orden de visualización</label>
+          <input class="form-input" type="number" [(ngModel)]="metricForm.display_order"
+                 min="1" placeholder="1">
+        </div>
+        <div class="form-group">
+          <label class="form-label">👁️ Visibilidad</label>
+          <div class="visibilidad-toggle">
+            <label class="toggle-switch">
+              <input type="checkbox" [(ngModel)]="metricForm.is_visible">
+              <span class="toggle-slider"></span>
+            </label>
+            <span>{{ metricForm.is_visible ? 'Visible públicamente' : 'Oculta' }}</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-secondary" (click)="closeMetricModal()">Cancelar</button>
+      <button class="btn-primary" (click)="saveMetric()" [disabled]="loading">
+        {{ loading ? '⏳ Guardando...' : (editingMetric ? '💾 Actualizar' : '+ Crear Métrica') }}
       </button>
     </div>
   </div>
