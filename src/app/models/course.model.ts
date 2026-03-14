@@ -23,6 +23,8 @@ export interface Course {
 
   /* Visibilidad */
   isVisible: boolean;
+    /* Control visual local — no se guarda en BD */
+  expandida?: boolean;
 }
 
 /**

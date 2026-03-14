@@ -105,9 +105,16 @@
           <small>{{ lesson.progressPercent }}%</small>
         </div>
 
-        <button class="btn-estudiar">
-          {{ lesson.status === 'completed' ? '✅ Revisar' : lesson.status === 'in_progress' ? '▶ Continuar' : '🚀 Iniciar' }}
+       <!-- Botón lector de voz en la tarjeta -->
+        <button *ngIf="ttsSupported"
+                class="btn-leer"
+                [class.leyendo]="leyendo && selectedLesson?.id === lesson.id"
+                (click)="$event.stopPropagation(); leerLeccion(lesson)"
+                title="Escuchar esta lección">
+          {{ (leyendo && selectedLesson?.id === lesson.id) ? '⏹ Detener' : '🔊 Leer en voz alta' }}
         </button>
+      <button class="btn-estudiar"></button>
+        
       </div>
     </article>
   </div>
@@ -177,7 +184,7 @@
           <h4 style="margin-bottom: 0.5rem;">🎬 Video</h4>
           <div class="video-container" style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 8px;">
             <iframe 
-              [src]="getVideoEmbedUrl(selectedLesson?.resourceLink || '')"
+                 [src]="getVideoEmbedUrl(selectedLesson?.resourceLink ?? '')"
               style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"
               frameborder="0"
               allowfullscreen
@@ -200,6 +207,17 @@
             📄 Descargar Archivo
           </a>
         </div>
+      </div>
+
+      <!-- PROGRESO Y ACCIONES -->
+      <!-- BOTÓN LECTOR DE VOZ EN EL MODAL -->
+      <div class="seccion-voz" *ngIf="ttsSupported">
+        <button class="btn-voz-modal"
+                [class.leyendo]="leyendo"
+                (click)="leerLeccion(selectedLesson)">
+          {{ leyendo ? '⏹ Detener lectura' : '🔊 Leer contenido en voz alta' }}
+        </button>
+        <p class="voz-hint">El navegador leerá el resumen, objetivo y contenido de esta lección.</p>
       </div>
 
       <!-- PROGRESO Y ACCIONES -->
