@@ -259,21 +259,30 @@ export class QuizService {
     );
   }
 
-  // ─── Obtener resultados de un alumno ─────────────────────────────────────
-  getStudentAttempts(userId: string): Observable<any[]> {
+  // Obtiene TODOS los intentos de TODOS los estudiantes
+  // Solo para admin y profesor
+  getAllAttempts(): Observable<any[]> {
     return from(
       this.supabase
         .from('quiz_attempts')
-        .select(`*, quizzes (title, passing_score)`)
-        .eq('student_id', userId)
+        .select(`
+          *,
+          quizzes (id, title),
+          app_users (id, name, email)
+        `)
         .order('completed_at', { ascending: false })
     ).pipe(
       map(({ data, error }) => {
         if (error) throw new Error(error.message);
-        return data || [];
+        return (data || []).map((item: any) => ({
+          ...item,
+          studentName: item.app_users?.name || 'Sin nombre',
+          studentEmail: item.app_users?.email || ''
+        }));
       }),
       catchError(error => throwError(() => new Error(error.message)))
     );
+  
   }
 
   // ─── Obtener intentos de un quiz específico ──────────────────────────────
