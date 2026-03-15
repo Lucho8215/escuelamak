@@ -14,7 +14,7 @@
    ENCABEZADO
 ════════════════════════════════════ */
 .page-header {
-  background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
   border-radius: 20px;
   padding: 2rem;
   color: white;
@@ -23,6 +23,7 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 1rem;
+  box-shadow: 0 8px 32px rgba(102, 126, 234, 0.35);
 }
 
 .page-title {
@@ -298,7 +299,7 @@
   border-radius: 50%;
   display: flex; align-items: center;
   justify-content: center;
-  color: white;
+  color: rgb(255, 255, 255);
   font-weight: 800;
   flex-shrink: 0;
 }
@@ -323,7 +324,9 @@
 .badge-student { background: #dcfce7; color: #15803d; }
 .badge-default { background: #f1f5f9; color: #475569; }
 
-.action-btns { display: flex; gap: 6px; }
+.action-btns { display: flex; gap: 6px;}
+  
+
 
 /* ════════════════════════════════════
    BOTONES
@@ -392,11 +395,57 @@
   border: none;
   transition: all 0.2s;
 }
+/* Botón Editar - Verde claro */
+/* Contenedor de los botones para que no se amontonen */
+.acciones-cell {
+    display: flex;
+    gap: 10px;       /* Separa los botones entre sí */
+    justify-content: center;
+    align-items: center;
+}
 
-.btn-edit   { background: #e0e7ff; color: #3730a3; }
-.btn-delete { background: #fee2e2; color: #dc2626; }
-.btn-edit:hover   { background: #c7d2fe; }
-.btn-delete:hover { background: #fecaca; }
+/* Estilo base para ambos botones */
+.btn-edit, .btn-delete {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 16px;
+    border-radius: 25px; /* Los hace redonditos */
+    border: none;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    min-width: 100px;    /* Evita que se deformen */
+}
+
+/* Botón Editar - Verde Claro */
+.btn-edit {
+    background-color: #dcfce7; /* Verde muy claro */
+    color: #15803d;           /* Texto verde fuerte para que se lea */
+}
+
+.btn-edit:hover {
+    background-color: #bbf7d0; /* Un poco más oscuro al pasar el mouse */
+    transform: scale(1.05);    /* Efecto de agrandado suave */
+}
+
+/* Botón Eliminar - Rojo */
+.btn-delete {
+    background-color: #be1313; /* Rojo muy claro (rosado) */
+    color: #b91c1c;           /* Texto rojo fuerte */
+}
+
+.btn-delete:hover {
+    background-color: #fecaca;
+    transform: scale(1.05);
+}
+
+/* Ajuste para los iconos si usas FontAwesome */
+.btn-edit i, .btn-delete i {
+    margin-right: 6px; /* Separa el icono del texto */
+}
 
 /* ════════════════════════════════════
    ESTADO VACÍO
@@ -1336,4 +1385,670 @@
   .section-header { flex-direction: column; }
   .color-preview-grid { grid-template-columns: repeat(2, 1fr); }
   .detalle-metricas { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* ════════════════════════════════════
+   NUEVOS ESTILOS PARA PERMISOS GRANULARES
+   Sistema de permisos interactivo y colorido
+════════════════════════════════════ */
+
+/* Pestañas de Permisos */
+.permissions-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  background: #f8fafc;
+  padding: 0.5rem;
+  border-radius: 14px;
+}
+
+.perm-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  font-weight: 600;
+  font-size: 0.9rem;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.perm-tab:hover {
+  background: #e2e8f0;
+  color: #334155;
+}
+
+.perm-tab.active {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.35);
+}
+
+.perm-tab .tab-badge {
+  background: rgba(255,255,255,0.25);
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.perm-tab:not(.active) .tab-badge {
+  background: #e2e8f0;
+  color: #64748b;
+}
+
+/* Vista de Módulos */
+.modules-view {
+  animation: fadeIn 0.3s ease;
+}
+
+.modules-filters {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.search-box {
+  flex: 1;
+  min-width: 200px;
+  position: relative;
+}
+
+.search-box i {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+}
+
+.search-input {
+  width: 100%;
+  padding: 0.7rem 1rem 0.7rem 2.75rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+}
+
+/* Panel de Selección de Rol */
+.role-selector-panel {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-radius: 14px;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+  border: 2px solid #e2e8f0;
+}
+
+.selector-label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #64748b;
+  margin-bottom: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.role-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.role-chip-large {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  background: white;
+  border: 2px solid #e2e8f0;
+  border-radius: 25px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.role-chip-large:hover {
+  border-color: var(--role-color, #667eea);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.role-chip-large.selected {
+  background: var(--role-color, #667eea);
+  border-color: var(--role-color, #667eea);
+  color: white;
+}
+
+.role-chip-large .check-icon {
+  font-size: 0.9rem;
+}
+
+/* Grid de Módulos */
+.modules-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 2rem;
+}
+
+.module-card {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  overflow: hidden;
+  border: 2px solid #f1f5f9;
+  transition: all 0.2s;
+}
+
+.module-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.15);
+  border-color: #cbd5e1;
+}
+
+.module-header {
+  padding: 1rem 1.25rem;
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.module-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.module-info {
+  flex: 1;
+}
+
+.module-category {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #94a3b8;
+}
+
+.module-name {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0.2rem 0;
+}
+
+.module-desc {
+  font-size: 0.8rem;
+  color: #64748b;
+  margin: 0;
+}
+
+/* Permisos del Módulo */
+.module-permissions {
+  padding: 0.75rem 1.25rem;
+  background: #fafbfc;
+  border-top: 1px solid #f1f5f9;
+}
+
+.module-permissions.no-role {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  color: #94a3b8;
+  font-size: 0.85rem;
+  padding: 1rem;
+}
+
+.perm-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.perm-role-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+.perm-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.perm-toggle {
+  cursor: pointer;
+}
+
+.toggle-btn {
+  width: 36px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  background: #f1f5f9;
+  color: #94a3b8;
+  transition: all 0.2s;
+  border: 2px solid transparent;
+}
+
+.toggle-btn:hover {
+  transform: scale(1.05);
+}
+
+.perm-toggle.active .toggle-btn {
+  color: white;
+}
+
+.toggle-btn.view {
+  border-color: #3b82f6;
+}
+
+.perm-toggle.active .toggle-btn.view {
+  background: #3b82f6;
+}
+
+.toggle-btn.create {
+  border-color: #10b981;
+}
+
+.perm-toggle.active .toggle-btn.create {
+  background: #10b981;
+}
+
+.toggle-btn.edit {
+  border-color: #f59e0b;
+}
+
+.perm-toggle.active .toggle-btn.edit {
+  background: #f59e0b;
+}
+
+/* Resumen de Permisos */
+.permissions-summary {
+  background: white;
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+}
+
+.summary-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.summary-card {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 2px solid;
+}
+
+.summary-header {
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: #1e293b;
+}
+
+.summary-stats {
+  display: flex;
+  padding: 0.75rem;
+  gap: 0.5rem;
+}
+
+.summary-stats .stat {
+  flex: 1;
+  text-align: center;
+  padding: 0.5rem;
+  background: #f8fafc;
+  border-radius: 8px;
+}
+
+.summary-stats .stat-num {
+  display: block;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #1e293b;
+}
+
+.summary-stats .stat-label {
+  font-size: 0.7rem;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+/* Vista de Roles */
+.roles-view {
+  animation: fadeIn 0.3s ease;
+}
+
+.roles-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.roles-description {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #64748b;
+  font-size: 0.9rem;
+  margin: 0;
+  background: #f1f5f9;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+}
+
+.roles-description i {
+  color: #667eea;
+}
+
+.roles-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.role-card {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  overflow: hidden;
+  border: 2px solid #f1f5f9;
+  transition: all 0.2s;
+}
+
+.role-card:hover {
+  border-color: #cbd5e1;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+}
+
+.role-card-header {
+  display: flex;
+  gap: 1rem;
+  padding: 1.25rem;
+  align-items: flex-start;
+}
+
+.role-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.role-details {
+  flex: 1;
+}
+
+.role-name {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 0.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.system-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  background: #f1f5f9;
+  color: #64748b;
+  padding: 0.2rem 0.5rem;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.role-description {
+  font-size: 0.85rem;
+  color: #64748b;
+  margin: 0 0 0.5rem;
+}
+
+.role-meta {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.8rem;
+  color: #94a3b8;
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.role-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn-icon {
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: #f1f5f9;
+  color: #64748b;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-icon:hover {
+  background: #e2e8f0;
+  color: #334155;
+}
+
+.btn-icon.danger:hover {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+/* Barra de permisos del rol */
+.role-permissions-bar {
+  padding: 0.75rem 1.25rem;
+  background: #fafbfc;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.bar-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.bar-permissions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.perm-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.25rem 0.6rem;
+  border-radius: 20px;
+  background: #f1f5f9;
+  color: #94a3b8;
+}
+
+.perm-badge.can-view {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.perm-badge.can-create {
+  background: #d1fae5;
+  color: #059669;
+}
+
+.perm-badge.can-edit {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.perm-more {
+  font-size: 0.7rem;
+  color: #94a3b8;
+  padding: 0.25rem 0.5rem;
+}
+
+.roles-footer {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #f1f5f9;
+  text-align: center;
+}
+
+/* Estilos para Modal de Rol */
+.color-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.color-option {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 0.8rem;
+}
+
+.color-option:hover {
+  transform: scale(1.15);
+}
+
+.color-option.selected {
+  border-color: #1e293b;
+  box-shadow: 0 0 0 3px rgba(0,0,0,0.1);
+}
+
+.icon-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.icon-option {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 2px solid #e2e8f0;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  font-size: 1rem;
+}
+
+.icon-option:hover {
+  border-color: #667eea;
+  color: #667eea;
+}
+
+.icon-option.selected {
+  background: #667eea;
+  border-color: #667eea;
+  color: white;
+}
+
+.form-help {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin-top: 0.25rem;
+  display: block;
+}
+
+/* Animaciones */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .modules-grid,
+  .summary-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .role-card-header {
+    flex-direction: column;
+  }
+  
+  .role-actions {
+    margin-top: 0.5rem;
+  }
 }

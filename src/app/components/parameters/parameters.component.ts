@@ -132,6 +132,69 @@ interface DeleteConfirm {
   name: string;
 }
 
+/**
+ * ═══════════════════════════════════════════════════════════════
+ * NUEVAS INTERFACES PARA SISTEMA DE PERMISOS GRANULARES
+ * ═══════════════════════════════════════════════════════════════
+ */
+
+/**
+ * Representa un permiso granular con tres niveles de acceso:
+ * - view: Puede ver/consultar el módulo
+ * - create: Puede crear nuevos elementos
+ * - edit: Puede modificar y eliminar elementos
+ */
+interface GranularPermission {
+  id: string;
+  module_key: string;      // Identificador único del módulo
+  module_name: string;      // Nombre visual del módulo
+  module_icon: string;      // Icono de FontAwesome
+  module_color: string;     // Color hex para el módulo
+  category: string;         // Categoría del módulo
+  description: string;      // Descripción breve
+  view_enabled: boolean;    // Permiso para ver
+  create_enabled: boolean;  // Permiso para crear
+  edit_enabled: boolean;    // Permiso para editar
+}
+
+/**
+ * Representa un rol personalizado en el sistema.
+ * Los roles pueden ser creados, editados y eliminados por el administrador.
+ */
+interface CustomRole {
+  id: string;
+  name: string;             // Nombre del rol (ej: "Profesor de Matemáticas")
+  code: string;              // Código único (ej: "math_teacher")
+  description: string;       // Descripción del rol
+  color: string;            // Color representativo del rol
+  icon: string;             // Icono del rol
+  is_default: boolean;      // Si es un rol del sistema (no eliminable)
+  permissions: RolePermission[];  // Lista de permisos del rol
+  created_at?: string;
+}
+
+/**
+ * Representa un permiso específico asignado a un rol.
+ * Define qué acciones puede realizar un rol en un módulo específico.
+ */
+interface RolePermission {
+  module_key: string;       // Referencia al módulo
+  can_view: boolean;        // Puede ver el módulo
+  can_create: boolean;      // Puede crear elementos
+  can_edit: boolean;        // Puede editar elementos
+}
+
+/**
+ * Formulario para crear o editar un rol.
+ */
+interface RoleForm {
+  name: string;
+  code: string;
+  description: string;
+  color: string;
+  icon: string;
+}
+
 @Component({
   selector: 'app-parameters',
   standalone: true,
@@ -213,6 +276,93 @@ export class ParametersComponent implements OnInit {
   roles = ['admin', 'teacher', 'tutor', 'student'];
   deleteConfirm: DeleteConfirm | null = null;
 
+  // ═══════════════════════════════════════════════════════════════
+  // NUEVAS PROPIEDADES PARA SISTEMA DE PERMISOS GRANULARES
+  // ═══════════════════════════════════════════════════════════════
+
+  /**
+   * Lista de módulos/funcionalidades del sistema con permisos granulares.
+   * Cada módulo tiene tres niveles: ver, crear, editar.
+   */
+  granularPermissions: GranularPermission[] = [
+    // Módulos de Contenido
+    { id: 'mod_courses', module_key: 'courses', module_name: 'Cursos', module_icon: 'fas fa-book-open', module_color: '#667eea', category: 'Contenido', description: 'Gestión de cursos y lecciones', view_enabled: true, create_enabled: true, edit_enabled: true },
+    { id: 'mod_lessons', module_key: 'lessons', module_name: 'Lecciones', module_icon: 'fas fa-graduation-cap', module_color: '#56ab2f', category: 'Contenido', description: 'Lecciones y materiales de estudio', view_enabled: true, create_enabled: true, edit_enabled: true },
+    { id: 'mod_classes', module_key: 'classes', module_name: 'Clases', module_icon: 'fas fa-chalkboard-teacher', module_color: '#f7971e', category: 'Contenido', description: 'Gestión de clases y grupos', view_enabled: true, create_enabled: true, edit_enabled: true },
+    { id: 'mod_quizzes', module_key: 'quizzes', module_name: 'Quizzes', module_icon: 'fas fa-brain', module_color: '#11998e', category: 'Evaluación', description: 'Evaluaciones y exámenes', view_enabled: true, create_enabled: true, edit_enabled: true },
+    { id: 'mod_take_quiz', module_key: 'take_quiz', module_name: 'Realizar Quiz', module_icon: 'fas fa-pencil-alt', module_color: '#ff758c', category: 'Evaluación', description: 'Resolver evaluaciones', view_enabled: true, create_enabled: false, edit_enabled: false },
+    { id: 'mod_practice', module_key: 'practice', module_name: 'Práctica', module_icon: 'fas fa-star', module_color: '#ffd200', category: 'Contenido', description: 'Área de práctica y ejercicios', view_enabled: true, create_enabled: false, edit_enabled: false },
+    // Módulos de Gestión
+    { id: 'mod_users', module_key: 'users', module_name: 'Usuarios', module_icon: 'fas fa-users', module_color: '#764ba2', category: 'Administración', description: 'Gestión de usuarios del sistema', view_enabled: true, create_enabled: true, edit_enabled: true },
+    { id: 'mod_roles', module_key: 'roles', module_name: 'Roles', module_icon: 'fas fa-user-shield', module_color: '#8b5cf6', category: 'Administración', description: 'Crear y editar roles', view_enabled: true, create_enabled: true, edit_enabled: true },
+    { id: 'mod_settings', module_key: 'settings', module_name: 'Parámetros', module_icon: 'fas fa-sliders-h', module_color: '#2c3e50', category: 'Administración', description: 'Configuración general', view_enabled: true, create_enabled: true, edit_enabled: true },
+    { id: 'mod_reports', module_key: 'reports', module_name: 'Informes', module_icon: 'fas fa-chart-bar', module_color: '#4ca1af', category: 'Informes', description: 'Reportes y estadísticas', view_enabled: true, create_enabled: false, edit_enabled: false },
+    { id: 'mod_school', module_key: 'school', module_name: 'Escuela', module_icon: 'fas fa-school', module_color: '#06b6d4', category: 'Administración', description: 'Configuración de la escuela', view_enabled: true, create_enabled: true, edit_enabled: true },
+    { id: 'mod_metrics', module_key: 'metrics', module_name: 'Métricas', module_icon: 'fas fa-chart-line', module_color: '#f59e0b', category: 'Informes', description: 'Métricas de la plataforma', view_enabled: true, create_enabled: true, edit_enabled: true }
+  ];
+
+  /**
+   * Lista de roles personalizados.
+   * Incluye roles por defecto del sistema y roles creados por el usuario.
+   */
+  customRoles: CustomRole[] = [];
+
+  /**
+   * Rol actualmente seleccionado para editar sus permisos.
+   */
+  selectedRole: CustomRole | null = null;
+
+  /**
+   * Variables para modales de roles.
+   */
+  showRoleModal = false;
+  editingRole: CustomRole | null = null;
+  roleForm: RoleForm = this.emptyRoleForm();
+
+  /**
+   * Pestaña activa en la sección de permisos.
+   * Valores: 'modules' (módulos), 'roles' (gestión de roles).
+   */
+  permissionsTab: 'modules' | 'roles' = 'modules';
+
+  /**
+   * Categorías disponibles para módulos.
+   */
+  moduleCategories: string[] = ['Contenido', 'Evaluación', 'Administración', 'Informes'];
+
+  /**
+   * Filtro de categoría en la vista de módulos.
+   */
+  filterModuleCategory = 'all';
+
+  /**
+   * Búsqueda de módulos.
+   */
+  searchModule = '';
+
+  /**
+   * Mapa de iconos disponibles para roles.
+   */
+  roleIcons = [
+    { code: 'fas fa-user-graduate', name: 'Estudiante' },
+    { code: 'fas fa-chalkboard-teacher', name: 'Profesor' },
+    { code: 'fas fa-user-friends', name: 'Tutor' },
+    { code: 'fas fa-crown', name: 'Administrador' },
+    { code: 'fas fa-book-reader', name: 'Instructor' },
+    { code: 'fas fa-hands-helping', name: 'Asistente' },
+    { code: 'fas fa-clipboard-check', name: 'Evaluador' },
+    { code: 'fas fa-chart-pie', name: 'Analista' }
+  ];
+
+  /**
+   * Colores disponibles para roles.
+   */
+  roleColors = [
+    '#667eea', '#f7971e', '#11998e', '#ff758c',
+    '#764ba2', '#4ca1af', '#f59e0b', '#06b6d4',
+    '#8b5cf6', '#ec4899', '#10b981', '#6366f1'
+  ];
+
   constructor(private supabaseService: SupabaseService) {}
 
   ngOnInit(): void {
@@ -224,6 +374,9 @@ export class ParametersComponent implements OnInit {
 
     this.applyTheme(this.selectedTheme);
     this.cardCategories = [...new Set(this.permissionCards.map(card => card.category))];
+
+    // Cargar roles personalizados desde localStorage
+    this.loadCustomRoles();
 
     this.loadPermissions();
     this.loadUsers();
@@ -610,6 +763,405 @@ export class ParametersComponent implements OnInit {
     };
   }
 
+  /**
+   * Crea un formulario vacío para un nuevo rol.
+   * @returns Objeto RoleForm con valores por defecto.
+   */
+  emptyRoleForm(): RoleForm {
+    return {
+      name: '',
+      code: '',
+      description: '',
+      color: '#667eea',
+      icon: 'fas fa-user'
+    };
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // FUNCIONES PARA GESTIÓN DE ROLES Y PERMISOS GRANULARES
+  // ═══════════════════════════════════════════════════════════════
+
+  /**
+   * Inicializa los roles por defecto del sistema.
+   * Estos roles no pueden ser eliminados.
+   */
+  private initDefaultRoles(): void {
+    this.customRoles = [
+      {
+        id: 'role_admin',
+        name: 'Administrador',
+        code: 'admin',
+        description: 'Acceso completo a todos los módulos del sistema',
+        color: '#667eea',
+        icon: 'fas fa-crown',
+        is_default: true,
+        permissions: this.granularPermissions.map(p => ({
+          module_key: p.module_key,
+          can_view: true,
+          can_create: true,
+          can_edit: true
+        }))
+      },
+      {
+        id: 'role_teacher',
+        name: 'Profesor',
+        code: 'teacher',
+        description: 'Puede gestionar cursos, clases y evaluaciones',
+        color: '#f7971e',
+        icon: 'fas fa-chalkboard-teacher',
+        is_default: true,
+        permissions: this.granularPermissions
+          .filter(p => ['courses', 'lessons', 'classes', 'quizzes', 'take_quiz', 'practice'].includes(p.module_key))
+          .map(p => ({
+            module_key: p.module_key,
+            can_view: true,
+            can_create: p.module_key !== 'take_quiz' && p.module_key !== 'practice',
+            can_edit: p.module_key !== 'take_quiz' && p.module_key !== 'practice'
+          }))
+      },
+      {
+        id: 'role_tutor',
+        name: 'Tutor',
+        code: 'tutor',
+        description: 'Puede ver informes y progreso de estudiantes',
+        color: '#11998e',
+        icon: 'fas fa-user-friends',
+        is_default: true,
+        permissions: this.granularPermissions
+          .filter(p => ['courses', 'lessons', 'classes', 'take_quiz', 'practice', 'reports'].includes(p.module_key))
+          .map(p => ({
+            module_key: p.module_key,
+            can_view: true,
+            can_create: false,
+            can_edit: false
+          }))
+      },
+      {
+        id: 'role_student',
+        name: 'Estudiante',
+        code: 'student',
+        description: 'Puede ver contenido y realizar evaluaciones',
+        color: '#56ab2f',
+        icon: 'fas fa-user-graduate',
+        is_default: true,
+        permissions: this.granularPermissions
+          .filter(p => ['courses', 'lessons', 'take_quiz', 'practice'].includes(p.module_key))
+          .map(p => ({
+            module_key: p.module_key,
+            can_view: true,
+            can_create: false,
+            can_edit: false
+          }))
+      }
+    ];
+  }
+
+  /**
+   * Carga los roles desde localStorage o inicializa los roles por defecto.
+   */
+  loadCustomRoles(): void {
+    const saved = localStorage.getItem('app_custom_roles');
+    if (saved) {
+      try {
+        this.customRoles = JSON.parse(saved);
+      } catch {
+        this.initDefaultRoles();
+        this.saveCustomRoles();
+      }
+    } else {
+      this.initDefaultRoles();
+      this.saveCustomRoles();
+    }
+  }
+
+  /**
+   * Guarda los roles personalizados en localStorage.
+   */
+  saveCustomRoles(): void {
+    localStorage.setItem('app_custom_roles', JSON.stringify(this.customRoles));
+  }
+
+  /**
+   * Obtiene los permisos de un rol específico.
+   * @param roleCode Código del rol.
+   * @returns Objeto con permisos o null si no existe.
+   */
+  getRolePermissions(roleCode: string): RolePermission[] | null {
+    const role = this.customRoles.find(r => r.code === roleCode);
+    return role ? role.permissions : null;
+  }
+
+  /**
+   * Verifica si un rol tiene permiso de vista para un módulo.
+   * @param roleCode Código del rol.
+   * @param moduleKey Clave del módulo.
+   * @returns true si tiene permiso de vista.
+   */
+  canRoleView(roleCode: string, moduleKey: string): boolean {
+    const perms = this.getRolePermissions(roleCode);
+    if (!perms) return false;
+    const modPerm = perms.find(p => p.module_key === moduleKey);
+    return modPerm ? modPerm.can_view : false;
+  }
+
+  /**
+   * Verifica si un rol tiene permiso de creación para un módulo.
+   * @param roleCode Código del rol.
+   * @param moduleKey Clave del módulo.
+   * @returns true si tiene permiso de creación.
+   */
+  canRoleCreate(roleCode: string, moduleKey: string): boolean {
+    const perms = this.getRolePermissions(roleCode);
+    if (!perms) return false;
+    const modPerm = perms.find(p => p.module_key === moduleKey);
+    return modPerm ? modPerm.can_create : false;
+  }
+
+  /**
+   * Verifica si un rol tiene permiso de edición para un módulo.
+   * @param roleCode Código del rol.
+   * @param moduleKey Clave del módulo.
+   * @returns true si tiene permiso de edición.
+   */
+  canRoleEdit(roleCode: string, moduleKey: string): boolean {
+    const perms = this.getRolePermissions(roleCode);
+    if (!perms) return false;
+    const modPerm = perms.find(p => p.module_key === moduleKey);
+    return modPerm ? modPerm.can_edit : false;
+  }
+
+  /**
+   * Alterna el permiso de vista para un rol y módulo específicos.
+   * @param role Rol a modificar.
+   * @param moduleKey Clave del módulo.
+   */
+  toggleViewPermission(role: CustomRole, moduleKey: string): void {
+    let perm = role.permissions.find(p => p.module_key === moduleKey);
+    if (!perm) {
+      perm = { module_key: moduleKey, can_view: false, can_create: false, can_edit: false };
+      role.permissions.push(perm);
+    }
+    perm.can_view = !perm.can_view;
+    this.saveCustomRoles();
+    this.showSuccess(`Permiso de vista actualizado para ${role.name}`);
+  }
+
+  /**
+   * Alterna el permiso de creación para un rol y módulo específicos.
+   * @param role Rol a modificar.
+   * @param moduleKey Clave del módulo.
+   */
+  toggleCreatePermission(role: CustomRole, moduleKey: string): void {
+    let perm = role.permissions.find(p => p.module_key === moduleKey);
+    if (!perm) {
+      perm = { module_key: moduleKey, can_view: false, can_create: false, can_edit: false };
+      role.permissions.push(perm);
+    }
+    // Si activa crear, también debe tener vista
+    if (!perm.can_create) perm.can_view = true;
+    perm.can_create = !perm.can_create;
+    this.saveCustomRoles();
+    this.showSuccess(`Permiso de creación actualizado para ${role.name}`);
+  }
+
+  /**
+   * Alterna el permiso de edición para un rol y módulo específicos.
+   * @param role Rol a modificar.
+   * @param moduleKey Clave del módulo.
+   */
+  toggleEditPermission(role: CustomRole, moduleKey: string): void {
+    let perm = role.permissions.find(p => p.module_key === moduleKey);
+    if (!perm) {
+      perm = { module_key: moduleKey, can_view: false, can_create: false, can_edit: false };
+      role.permissions.push(perm);
+    }
+    // Si activa editar, también debe tener vista
+    if (!perm.can_edit) perm.can_view = true;
+    perm.can_edit = !perm.can_edit;
+    this.saveCustomRoles();
+    this.showSuccess(`Permiso de edición actualizado para ${role.name}`);
+  }
+
+  /**
+   * Abre el modal para crear un nuevo rol.
+   */
+  openCreateRole(): void {
+    this.editingRole = null;
+    this.roleForm = this.emptyRoleForm();
+    this.showRoleModal = true;
+  }
+
+  /**
+   * Abre el modal para editar un rol existente.
+   * @param role Rol a editar.
+   */
+  openEditRole(role: CustomRole): void {
+    this.editingRole = role;
+    this.roleForm = {
+      name: role.name,
+      code: role.code,
+      description: role.description,
+      color: role.color,
+      icon: role.icon
+    };
+    this.showRoleModal = true;
+  }
+
+  /**
+   * Cierra el modal de roles.
+   */
+  closeRoleModal(): void {
+    this.showRoleModal = false;
+    this.editingRole = null;
+    this.roleForm = this.emptyRoleForm();
+  }
+
+  /**
+   * Guarda un rol (crear nuevo o actualizar existente).
+   */
+  async saveRole(): Promise<void> {
+    if (!this.roleForm.name.trim() || !this.roleForm.code.trim()) {
+      this.showError('El nombre y código del rol son requeridos');
+      return;
+    }
+
+    // Validar código único
+    const existingRole = this.customRoles.find(r => r.code === this.roleForm.code.toLowerCase().replace(/\s+/g, '_'));
+    if (existingRole && (!this.editingRole || existingRole.id !== this.editingRole.id)) {
+      this.showError('Ya existe un rol con ese código');
+      return;
+    }
+
+    try {
+      if (this.editingRole) {
+        // Actualizar rol existente
+        this.editingRole.name = this.roleForm.name;
+        this.editingRole.description = this.roleForm.description;
+        this.editingRole.color = this.roleForm.color;
+        this.editingRole.icon = this.roleForm.icon;
+        this.showSuccess(`✅ Rol "${this.roleForm.name}" actualizado`);
+      } else {
+        // Crear nuevo rol
+        const newRole: CustomRole = {
+          id: 'role_' + Date.now(),
+          name: this.roleForm.name,
+          code: this.roleForm.code.toLowerCase().replace(/\s+/g, '_'),
+          description: this.roleForm.description,
+          color: this.roleForm.color,
+          icon: this.roleForm.icon,
+          is_default: false,
+          permissions: this.granularPermissions.map(p => ({
+            module_key: p.module_key,
+            can_view: false,
+            can_create: false,
+            can_edit: false
+          }))
+        };
+        this.customRoles.push(newRole);
+        this.showSuccess(`✅ Rol "${this.roleForm.name}" creado`);
+      }
+
+      this.saveCustomRoles();
+      this.closeRoleModal();
+    } catch (e: unknown) {
+      this.showError('Error guardando rol: ' + this.getErrorMessage(e));
+    }
+  }
+
+  /**
+   * Elimina un rol personalizado (no roles por defecto).
+   * @param roleId ID del rol a eliminar.
+   */
+  async deleteRole(roleId: string): Promise<void> {
+    const role = this.customRoles.find(r => r.id === roleId);
+    if (!role) return;
+
+    if (role.is_default) {
+      this.showError('No puedes eliminar un rol del sistema');
+      return;
+    }
+
+    if (!confirm(`¿Estás seguro de eliminar el rol "${role.name}"?`)) {
+      return;
+    }
+
+    this.customRoles = this.customRoles.filter(r => r.id !== roleId);
+    this.saveCustomRoles();
+    this.showSuccess(`✅ Rol "${role.name}" eliminado`);
+  }
+
+  /**
+   * Selecciona un rol para ver y editar sus permisos.
+   * @param role Rol a seleccionar.
+   */
+  selectRole(role: CustomRole): void {
+    this.selectedRole = role;
+  }
+
+  /**
+   * Obtiene la lista de módulos filtrados para mostrar.
+   * @returns Lista de permisos granulares filtrados.
+   */
+  get filteredModules(): GranularPermission[] {
+    return this.granularPermissions.filter(m => {
+      const matchesCategory = this.filterModuleCategory === 'all' || m.category === this.filterModuleCategory;
+      const matchesSearch = !this.searchModule ||
+        m.module_name.toLowerCase().includes(this.searchModule.toLowerCase()) ||
+        m.description.toLowerCase().includes(this.searchModule.toLowerCase());
+      return matchesCategory && matchesSearch;
+    });
+  }
+
+  /**
+   * Obtiene el nombre de un módulo a partir de su clave.
+   * @param moduleKey Clave del módulo.
+   * @returns Nombre del módulo o la clave si no se encuentra.
+   */
+  // Helper methods for template - Angular doesn't allow arrow functions in bindings
+  countViewPermissions(role: CustomRole): number {
+    return role.permissions?.filter(p => p.can_view)?.length || 0;
+  }
+
+  countCreatePermissions(role: CustomRole): number {
+    return role.permissions?.filter(p => p.can_create)?.length || 0;
+  }
+
+  countEditPermissions(role: CustomRole): number {
+    return role.permissions?.filter(p => p.can_edit)?.length || 0;
+  }
+
+  getRolePermissionsCount(role: CustomRole): number {
+    return role.permissions?.filter(p => p.can_view)?.length || 0;
+  }
+
+  getModuleName(moduleKey: string): string {
+    const module = this.granularPermissions.find(m => m.module_key === moduleKey);
+    return module ? module.module_name : moduleKey;
+  }
+
+  /**
+   * Obtiene el color para un rol.
+   * @param roleCode Código del rol.
+   * @returns Color del rol.
+   */
+  getRoleColor(roleCode: string): string {
+    const role = this.customRoles.find(r => r.code === roleCode);
+    return role ? role.color : '#667eea';
+  }
+
+  /**
+   * Reinicia todos los roles a sus valores por defecto.
+   */
+  resetRoles(): void {
+    if (!confirm('¿Restablecer todos los roles a valores predeterminados? Esto eliminará los roles creados.')) {
+      return;
+    }
+    this.initDefaultRoles();
+    this.saveCustomRoles();
+    this.selectedRole = null;
+    this.showSuccess('✅ Roles restablecidos a valores predeterminados');
+  }
+
   async loadUsers(): Promise<void> {
     this.loading = true;
 
@@ -795,16 +1347,26 @@ export class ParametersComponent implements OnInit {
     return map[normalizedRole] || 'badge-default';
   }
 
+  /**
+   * Obtiene el icono para un rol (usa el nuevo sistema de roles personalizados).
+   * @param role Código o nombre del rol.
+   * @returns Clase CSS del icono.
+   */
   getRoleIcon(role: string): string {
-    const normalizedRole = this.normalizeRole(role);
+    // Primero buscar en customRoles (nuevo sistema)
+    const customRole = this.customRoles.find(r => r.code === role);
+    if (customRole) {
+      return customRole.icon;
+    }
 
+    // Fallback al sistema antiguo
+    const normalizedRole = this.normalizeRole(role);
     const map: Record<string, string> = {
       admin: 'fas fa-crown',
       teacher: 'fas fa-chalkboard-teacher',
       tutor: 'fas fa-user-tie',
       student: 'fas fa-user-graduate'
     };
-
     return map[normalizedRole] || 'fas fa-user';
   }
 
