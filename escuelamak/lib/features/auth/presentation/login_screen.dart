@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:escuelamak/features/home/presentation/home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -60,10 +61,11 @@ class _LoginScreenState extends State<LoginScreen> {
         final nombres = perfiles[0]['name'] as String;
 
         if (mounted) {
-          _mostrarExito('¡Bienvenido $nombres!');
-          // TODO: navegar según el rol
-          // Por ahora mostramos el rol en un diálogo
-          _mostrarRol(rol, nombres);
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (_) => HomeScreen(rol: rol, nombre: nombres),
+            ),
+          );
         }
       }
     } on AuthException catch (e) {
