@@ -1,0 +1,57 @@
+name: escuelamak
+description: Plataforma educativa móvil EscuelaMAK
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Backend Supabase
+  supabase_flutter: ^2.3.0
+
+  # Manejo de estado
+  flutter_riverpod: ^2.4.9
+
+  # Navegación
+  go_router: ^13.2.0
+
+  # Tipografías
+  google_fonts: ^6.1.0
+
+  # Imágenes de red con caché
+  cached_network_image: ^3.3.1
+
+  # Efecto de carga skeleton
+  shimmer: ^3.0.0
+
+  # Selector de imágenes
+  image_picker: ^1.0.7
+
+  # Fechas y horas
+  intl: ^0.19.0
+
+  # Almacenamiento seguro
+  flutter_secure_storage: ^9.0.0
+
+  # Fechas relativas
+  timeago: ^3.6.0
+
+  # Iconos SVG
+  flutter_svg: ^2.0.9
+
+  cupertino_icons: ^1.0.6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
+    - assets/icons/
