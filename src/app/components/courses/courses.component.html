@@ -382,10 +382,11 @@
       </div>
       <div *ngFor="let msg of chatMessages"
            class="chat-bubble"
-           [class.chat-mine]="msg.sender_id === currentUserId"
-           [class.chat-theirs]="msg.sender_id !== currentUserId">
+           [class.chat-mine]="msg.sender_id === currentAuthId"
+           [class.chat-theirs]="msg.sender_id !== currentAuthId"
+           [class.chat-tutor]="msg.sender_id !== currentAuthId && (msg.sender?.role === 'admin' || msg.sender?.role === 'teacher' || msg.sender?.role === 'tutor')">
         <div class="chat-bubble-meta">
-          <span class="chat-sender">{{ msg.sender_id === currentUserId ? 'Tú' : (msg.sender?.name || 'Tutor') }}</span>
+          <span class="chat-sender">{{ msg.sender_id === currentAuthId ? 'Tú' : (msg.sender?.name || 'Tutor') }}</span>
           <span class="chat-time">{{ msg.created_at | date:'HH:mm' }}</span>
         </div>
         <div class="chat-bubble-text">{{ msg.contenido }}</div>

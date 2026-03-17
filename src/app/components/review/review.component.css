@@ -1433,6 +1433,21 @@
   border-radius: 14px 14px 14px 4px;
   box-shadow: 0 2px 6px rgba(0,0,0,0.05);
 }
+/* Mensajes del estudiante — verde WhatsApp */
+.msg-student .msg-text {
+  background: #dcf8c6;
+  color: #1a1a1a;
+  border: 1px solid #b7e49a;
+  border-radius: 14px 14px 14px 4px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+}
+.msg-student .msg-meta {
+  color: #25a244;
+}
+.msg-student .msg-meta span:first-child {
+  color: #128c3e;
+  font-weight: 700;
+}
 
 .msg-input-area {
   display: flex;

@@ -59,6 +59,7 @@ export class ReviewComponent implements OnInit, OnDestroy {
 
   // ID del usuario actual
   currentUserId: string = '';
+  currentAuthId: string = '';  // auth.users.id para comparar sender_id
 
   // ─── MENSAJES ────────────────────────────────────────
   conversations: any[] = [];
@@ -90,6 +91,10 @@ export class ReviewComponent implements OnInit, OnDestroy {
     this.currentUserId = user.id;
     this.isAdminOrTeacher = user.role === UserRole.ADMIN || user.role === UserRole.TEACHER;
     this.isStudent = user.role === UserRole.STUDENT;
+
+    // Obtener auth ID para comparar sender_id en mensajes
+    const { data: { user: authUser } } = await this.supabase.auth.getUser();
+    this.currentAuthId = authUser?.id ?? '';
 
     // Escuchar evento del sidebar para abrir modal mensajes estando ya en esta página
     window.addEventListener('escuelamak:open-mensajes', this.onOpenMensajes);

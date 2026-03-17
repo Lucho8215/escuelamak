@@ -39,6 +39,7 @@ export class CoursesComponent implements OnInit, OnDestroy {
   // --- USUARIO ---
   isStudent = false;
   currentUserId = '';
+  currentAuthId = '';  // auth.users.id para comparar sender_id en mensajes
 
   // --- PROGRESO DE RECURSOS ---
   // Objeto plano para que Angular detecte cambios: { lessonId: { video: true, pdf: false, ... } }
@@ -84,6 +85,9 @@ export class CoursesComponent implements OnInit, OnDestroy {
     this.currentUserId = user.id;
     this.isStudent = user.role === UserRole.STUDENT;
     this.loadCompletedClasses();
+    // Guardar auth ID para comparar sender_id en mensajes
+    const { data: { user: authUser } } = await this.supabase.auth.getUser();
+    this.currentAuthId = authUser?.id ?? '';
     window.addEventListener('escuelamak:open-mensajes', this.onOpenMensajes);
     await this.loadCourses();
 
@@ -751,16 +755,31 @@ export class CoursesComponent implements OnInit, OnDestroy {
     this.chatClassId = classId;
     this.showChat = true;
 
-    // Buscar o crear conversación con el tutor/admin
     const myAuthId = await this.getMyAuthId();
-    const { data: staffList } = await this.supabase
-      .from('app_users')
-      .select('auth_user_id')
-      .in('role', ['admin', 'teacher'])
+    if (!myAuthId) { await this.loadChatMessages(); return; }
+
+    // 1. Buscar conversación existente donde participa el estudiante
+    const { data: convs } = await this.supabase
+      .from('conversations')
+      .select('id')
+      .contains('participant_ids', [myAuthId])
+      .order('last_message_at', { ascending: false })
       .limit(1);
-    const staffAuthId = staffList?.[0]?.auth_user_id;
-    if (myAuthId && staffAuthId) {
-      this.conversationId = await this.getOrCreateConversation(myAuthId, staffAuthId);
+
+    if (convs && convs.length > 0) {
+      this.conversationId = convs[0].id;
+    } else {
+      // 2. No existe — crear con el primer admin/teacher disponible
+      const { data: staffList } = await this.supabase
+        .from('app_users')
+        .select('auth_user_id')
+        .in('role', ['admin', 'teacher'])
+        .not('auth_user_id', 'is', null)
+        .limit(1);
+      const staffAuthId = staffList?.[0]?.auth_user_id;
+      if (staffAuthId) {
+        this.conversationId = await this.getOrCreateConversation(myAuthId, staffAuthId);
+      }
     }
 
     await this.loadChatMessages();

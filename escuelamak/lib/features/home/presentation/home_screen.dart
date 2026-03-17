@@ -574,7 +574,7 @@ class _ChatWidgetState extends State<_ChatWidget> {
                                       decoration: BoxDecoration(
                                           color: esMio
                                               ? Colors.purple.shade600
-                                              : Theme.of(ctx).cardColor,
+                                              : const Color(0xFFDCF8C6),
                                           borderRadius: BorderRadius.only(
                                               topLeft:
                                                   const Radius.circular(18),
@@ -592,7 +592,7 @@ class _ChatWidgetState extends State<_ChatWidget> {
                                                 style: TextStyle(
                                                     color: esMio
                                                         ? Colors.white
-                                                        : null,
+                                                        : const Color(0xFF1A1A1A),
                                                     fontSize: 14,
                                                     height: 1.4)),
                                             const SizedBox(height: 4),
@@ -605,7 +605,7 @@ class _ChatWidgetState extends State<_ChatWidget> {
                                                     fontSize: 10,
                                                     color: esMio
                                                         ? Colors.white60
-                                                        : Colors.grey.shade400))
+                                                        : const Color(0xFF25A244)))
                                           ]))
                                 ]));
                       });

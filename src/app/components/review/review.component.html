@@ -477,10 +477,11 @@
               <div *ngIf="loadingMessages" class="conv-loading">⏳</div>
               <div *ngFor="let msg of activeMessages"
                    class="msg-bubble"
-                   [class.msg-mine]="msg.sender_id === currentUserId"
-                   [class.msg-theirs]="msg.sender_id !== currentUserId">
+                   [class.msg-mine]="msg.sender_id === currentAuthId"
+                   [class.msg-theirs]="msg.sender_id !== currentAuthId"
+                   [class.msg-student]="msg.sender_id !== currentAuthId">
                 <div class="msg-meta">
-                  <span>{{ msg.sender_id === currentUserId ? 'Tú' : (activeConversation.student?.name || 'Estudiante') }}</span>
+                  <span>{{ msg.sender_id === currentAuthId ? 'Tú' : (activeConversation.student?.name || 'Estudiante') }}</span>
                   <span>{{ msg.created_at | date:'d MMM HH:mm' }}</span>
                 </div>
                 <div class="msg-text">{{ msg.contenido }}</div>

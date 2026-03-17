@@ -190,15 +190,31 @@ export class AppLayoutComponent implements OnInit {
     const authId = authUser?.id;
     if (!authId) return;
 
-    const { count, error } = await supabase
+    // Contar mensajes no leídos recibidos (receiver_id = mi auth ID)
+    const { count: c1 } = await supabase
       .from('messages')
       .select('id', { count: 'exact', head: true })
       .eq('receiver_id', authId)
       .eq('is_read', false);
 
-    if (!error && count !== null) {
-      this.unreadCount = count;
+    // También via conversations (por si receiver_id varía)
+    const { data: convs } = await supabase
+      .from('conversations')
+      .select('id')
+      .contains('participant_ids', [authId]);
+    let c2 = 0;
+    if (convs && convs.length > 0) {
+      const convIds = convs.map((c: any) => c.id);
+      const { count } = await supabase
+        .from('messages')
+        .select('id', { count: 'exact', head: true })
+        .in('conversation_id', convIds)
+        .neq('sender_id', authId)
+        .eq('is_read', false);
+      c2 = count ?? 0;
     }
+
+    this.unreadCount = Math.max(c1 ?? 0, c2);
   }
 
   /**

@@ -920,6 +920,21 @@
   border-radius: 14px 14px 14px 4px;
   box-shadow: 0 2px 6px rgba(0,0,0,0.05);
 }
+/* Mensajes del tutor/admin — verde estilo WhatsApp */
+.chat-tutor .chat-bubble-text {
+  background: #dcf8c6;
+  color: #1a1a1a;
+  border: 1px solid #b7e49a;
+  border-radius: 14px 14px 14px 4px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+}
+.chat-tutor .chat-bubble-meta {
+  color: #25a244;
+}
+.chat-tutor .chat-sender {
+  color: #128c3e;
+  font-weight: 700;
+}
 
 .chat-input-area {
   display: flex;
