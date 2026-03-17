@@ -1,6 +1,6 @@
 # escuelamak
 
-¡El proyecto ahora compila correctamente! He implementado el sistema completo de gestión de quizzes:
+He implementado el sistema completo 
 
 ## Resumen de cambios:
 
@@ -42,4 +42,4 @@
 3. **Responde** el quiz y ve su nota inmediatamente
 4. Puede **intentar de nuevo** si no aprueba
 
-**Nota:** También corregí un problema pre-existente en el archivo CSS de lesson-management que impedía compilar.
+
