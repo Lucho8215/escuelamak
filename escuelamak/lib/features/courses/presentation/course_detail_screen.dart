@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:escuelamak/shared/models/course_model.dart';
 import 'package:escuelamak/features/courses/presentation/courses_providers.dart';
 import 'package:escuelamak/core/theme/app_theme.dart';
-import 'package:escuelamak/features/courses/presentation/module_content_screen.dart';
+import 'package:escuelamak/features/lessons/presentation/lessons_screen.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // PANTALLA DE DETALLE DE CURSO
@@ -148,15 +148,18 @@ class CourseDetailScreen extends ConsumerWidget {
 
   void _openClassContent(
       BuildContext context, ClassModel classModel, Color color) {
+    // Navegar a las lecciones de la clase
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => ModuleContentScreen(
-          classModel: classModel,
-          courseColor: color,
+        builder: (_) => LessonsScreen(
+          classId: classModel.id,
+          classTitle: classModel.title,
+          color: color,
         ),
       ),
     );
   }
+
 
   Widget _buildHeaderBackground(Color color) {
     return Container(

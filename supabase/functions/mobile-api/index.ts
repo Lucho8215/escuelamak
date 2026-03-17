@@ -136,38 +136,60 @@ serve(async (req) => {
           .order("created_at", { ascending: false });
         courses = data ?? [];
       } else if (user?.role === "teacher") {
-        // Profesores ven sus cursos
+        // Profesores ven cursos donde dictan clases (via classes.teacher_id)
+        const { data: teacherClasses } = await supabase
+          .from("classes")
+          .select("course_id")
+          .eq("teacher_id", user_id);
+
+        if (!teacherClasses || teacherClasses.length === 0) {
+          return successResponse({ courses: [] });
+        }
+
+        const teacherCourseIds = [...new Set(teacherClasses.map((c: any) => c.course_id))];
         const { data } = await supabase
           .from("courses")
           .select("*")
-          .eq("teacher_id", user_id)
+          .in("id", teacherCourseIds)
           .eq("is_active", true)
           .order("created_at", { ascending: false });
         courses = data ?? [];
       } else {
-        // Estudiantes ven cursos donde están matriculados
-        const { data: enrollments } = await supabase
+        // Estudiantes ven cursos desde course_enrollments o class_enrollments
+        const { data: courseEnr } = await supabase
           .from("course_enrollments")
-          .select("course_id, status, enrolled_at")
-          .eq("user_id", user_id);
+          .select("course_id, status, enrollment_date")
+          .eq("student_id", user_id);
 
-        if (!enrollments || enrollments.length === 0) {
+        let courseIds: string[] = [];
+
+        if (courseEnr && courseEnr.length > 0) {
+          courseIds = courseEnr.map((e: any) => e.course_id);
+        } else {
+          // Fallback: cursos desde las clases inscritas
+          const { data: classEnr } = await supabase
+            .from("class_enrollments")
+            .select("course_id")
+            .eq("student_id", user_id);
+          if (classEnr && classEnr.length > 0) {
+            courseIds = [...new Set(classEnr.map((e: any) => e.course_id))] as string[];
+          }
+        }
+
+        if (courseIds.length === 0) {
           return successResponse({ courses: [] });
         }
 
-        const courseIds = enrollments.map(e => e.course_id);
-        
-        let query = supabase
+        const { data } = await supabase
           .from("courses")
           .select("*")
           .in("id", courseIds)
-          .eq("is_active", true);
+          .eq("is_active", true)
+          .order("created_at", { ascending: false });
 
-        const { data } = await query.order("created_at", { ascending: false });
-        
-        courses = data?.map(c => {
-          const enrollment = enrollments.find(e => e.course_id === c.id);
-          return { ...c, enrollment_status: enrollment?.status };
+        courses = data?.map((c: any) => {
+          const enrollment = courseEnr?.find((e: any) => e.course_id === c.id);
+          return { ...c, enrollment_status: enrollment?.status ?? "active" };
         }) ?? [];
       }
 
@@ -211,7 +233,7 @@ serve(async (req) => {
         const { data: progress } = await supabase
           .from("student_lesson_assignments")
           .select("*")
-          .eq("user_id", user_id)
+          .eq("student_id", user_id)
           .in("lesson_id", classIds);
         
         progress?.forEach(p => {
@@ -222,10 +244,10 @@ serve(async (req) => {
       // Verificar si está matriculado
       const { data: enrollment } = await supabase
         .from("course_enrollments")
-        .select("status, enrolled_at")
+        .select("status, enrollment_date")
         .eq("course_id", course_id)
-        .eq("user_id", user_id)
-        .single();
+        .eq("student_id", user_id)
+        .maybeSingle();
 
       return successResponse({
         course,
@@ -291,8 +313,8 @@ serve(async (req) => {
       // Obtener clases del usuario desde class_enrollments
       const { data: classEnrollments } = await supabase
         .from("class_enrollments")
-        .select("class_id, status, enrolled_at")
-        .eq("user_id", user_id);
+        .select("class_id, status, enrollment_date")
+        .eq("student_id", user_id);
 
       if (!classEnrollments || classEnrollments.length === 0) {
         return successResponse({ classes: [] });
@@ -316,7 +338,7 @@ serve(async (req) => {
         return {
           ...c,
           enrollment_status: enrollment?.status,
-          enrolled_at: enrollment?.enrolled_at
+          enrolled_at: enrollment?.enrollment_date
         };
       }) ?? [];
 
@@ -348,9 +370,9 @@ serve(async (req) => {
       const { data: existing } = await supabase
         .from("class_enrollments")
         .select("id")
-        .eq("user_id", user_id)
+        .eq("student_id", user_id)
         .eq("class_id", class_id)
-        .single();
+        .maybeSingle();
 
       if (existing) {
         return errorResponse("Ya estás inscrito en esta clase");
@@ -360,7 +382,7 @@ serve(async (req) => {
       const { error } = await supabase
         .from("class_enrollments")
         .insert({
-          user_id,
+          student_id: user_id,
           class_id,
           status: "active"
         });
@@ -521,13 +543,13 @@ serve(async (req) => {
       const { data: courseEnrollments } = await supabase
         .from("course_enrollments")
         .select("course_id, status")
-        .eq("user_id", user_id);
+        .eq("student_id", user_id);
 
       // Obtener inscripciones en clases
       const { data: classEnrollments } = await supabase
         .from("class_enrollments")
         .select("class_id, status")
-        .eq("user_id", user_id);
+        .eq("student_id", user_id);
 
       // Obtener progreso en clases
       const { data: progress } = await supabase
@@ -596,6 +618,431 @@ serve(async (req) => {
         message: "Perfil actualizado",
         user: data 
       });
+    }
+
+    // ============================================================
+    // ENDPOINT: Obtener lecciones de una clase
+    // ============================================================
+    if (action === "get-lessons") {
+      const { class_id, user_id } = body;
+
+      if (!class_id || !user_id) {
+        return errorResponse("Se requieren class_id y user_id");
+      }
+
+      // Obtener datos de la clase (course_id)
+      const { data: classData } = await supabase
+        .from("classes")
+        .select("course_id")
+        .eq("id", class_id)
+        .single();
+
+      if (!classData) {
+        return errorResponse("Clase no encontrada");
+      }
+
+      // Paso 1: obtener IDs de lecciones asignadas a esta clase via student_lessons
+      const { data: assignments } = await supabase
+        .from("student_lessons")
+        .select("lesson_id")
+        .eq("class_id", class_id);
+
+      let lessons: any[] = [];
+
+      if (assignments && assignments.length > 0) {
+        // Lecciones asignadas explícitamente por el admin
+        const lessonIds = [...new Set(assignments.map((a: any) => a.lesson_id))];
+        const { data: assignedLessons, error: assignedError } = await supabase
+          .from("lessons")
+          .select("*")
+          .in("id", lessonIds)
+          .neq("is_published", false)
+          .order("created_at", { ascending: true });
+        if (!assignedError) lessons = assignedLessons ?? [];
+      }
+
+      // Paso 2: si no hay lecciones por student_lessons, buscar por class_id o course_id directamente
+      if (lessons.length === 0) {
+        const orFilter = classData.course_id
+          ? `class_id.eq.${class_id},course_id.eq.${classData.course_id}`
+          : `class_id.eq.${class_id}`;
+        const { data: directLessons } = await supabase
+          .from("lessons")
+          .select("*")
+          .or(orFilter)
+          .neq("is_published", false)
+          .order("created_at", { ascending: true });
+        lessons = directLessons ?? [];
+      }
+
+      // Obtener progreso del usuario (tabla student_lessons)
+      const lessonIds = lessons.map((l: any) => l.id);
+      let progressMap: Record<string, any> = {};
+
+      if (lessonIds.length > 0) {
+        const { data: progress } = await supabase
+          .from("student_lessons")
+          .select("*")
+          .eq("student_id", user_id)
+          .eq("class_id", class_id)
+          .in("lesson_id", lessonIds);
+
+        (progress ?? []).forEach((p: any) => {
+          progressMap[p.lesson_id] = p;
+        });
+      }
+
+      const lessonsWithProgress = lessons.map((l: any) => ({
+        ...l,
+        progress: progressMap[l.id] ?? null
+      }));
+
+      return successResponse({ lessons: lessonsWithProgress, total: lessonsWithProgress.length });
+    }
+
+    // ============================================================
+    // ENDPOINT: Obtener detalle de una lección
+    // ============================================================
+    if (action === "get-lesson-detail") {
+      const { lesson_id, user_id } = body;
+
+      if (!lesson_id || !user_id) {
+        return errorResponse("Se requieren lesson_id y user_id");
+      }
+
+      const { data: lesson, error: lessonError } = await supabase
+        .from("lessons")
+        .select("*")
+        .eq("id", lesson_id)
+        .single();
+
+      if (lessonError || !lesson) {
+        return errorResponse("Lección no encontrada");
+      }
+
+      const { data: progress } = await supabase
+        .from("student_lesson_assignments")
+        .select("*")
+        .eq("lesson_id", lesson_id)
+        .eq("student_id", user_id)
+        .single();
+
+      // Marcar como en progreso si no tiene estado
+      if (!progress) {
+        await supabase
+          .from("student_lesson_assignments")
+          .upsert({
+            student_id: user_id,
+            lesson_id,
+            status: "in_progress",
+            progress_pct: 0,
+            completed: false,
+            updated_at: new Date().toISOString()
+          }, { onConflict: "student_id,lesson_id" });
+      }
+
+      return successResponse({ lesson, progress });
+    }
+
+    // ============================================================
+    // ENDPOINT: Actualizar progreso de lección
+    // ============================================================
+    if (action === "update-lesson-progress") {
+      const { lesson_id, user_id, progress_pct, completed, last_position } = body;
+
+      if (!lesson_id || !user_id) {
+        return errorResponse("Se requieren lesson_id y user_id");
+      }
+
+      const pct = Math.min(100, Math.max(0, progress_pct ?? 0));
+      const isCompleted = completed ?? pct >= 100;
+
+      const { data, error } = await supabase
+        .from("student_lesson_assignments")
+        .upsert({
+          student_id: user_id,
+          lesson_id,
+          status: isCompleted ? "completed" : "in_progress",
+          progress_pct: pct,
+          completed: isCompleted,
+          last_position: last_position ?? 0,
+          updated_at: new Date().toISOString(),
+          ...(isCompleted ? { completed_at: new Date().toISOString() } : {})
+        }, { onConflict: "student_id,lesson_id" })
+        .select()
+        .single();
+
+      if (error) {
+        return errorResponse("Error al guardar progreso: " + error.message);
+      }
+
+      return successResponse({ message: "Progreso actualizado", progress: data });
+    }
+
+    // ============================================================
+    // ENDPOINT: Obtener quizzes del usuario
+    // ============================================================
+    if (action === "get-quizzes") {
+      const { user_id } = body;
+
+      if (!user_id) {
+        return errorResponse("Se requiere user_id");
+      }
+
+      // Obtener quizzes asignados
+      const { data: assignments } = await supabase
+        .from("quiz_assignments")
+        .select("quiz_id, due_date, is_completed, assigned_at, completed_at")
+        .eq("student_id", user_id)
+        .order("assigned_at", { ascending: false });
+
+      if (!assignments || assignments.length === 0) {
+        // Si no tiene asignaciones, mostrar quizzes públicos habilitados
+        const { data: publicQuizzes } = await supabase
+          .from("quizzes")
+          .select("id, title, description, category, difficulty, time_limit, passing_score, is_enabled")
+          .eq("is_enabled", true)
+          .eq("is_visible", true)
+          .order("created_at", { ascending: false });
+
+        return successResponse({ quizzes: publicQuizzes ?? [], assigned: false });
+      }
+
+      const quizIds = assignments.map(a => a.quiz_id);
+
+      const { data: quizzes } = await supabase
+        .from("quizzes")
+        .select("id, title, description, category, difficulty, time_limit, passing_score, is_enabled")
+        .in("id", quizIds)
+        .eq("is_enabled", true);
+
+      // Obtener intentos del usuario
+      const { data: attempts } = await supabase
+        .from("quiz_attempts")
+        .select("quiz_id, score, passed, completed_at, status")
+        .eq("student_id", user_id)
+        .eq("status", "completed")
+        .order("completed_at", { ascending: false });
+
+      const attemptsMap: Record<string, any> = {};
+      attempts?.forEach(a => {
+        if (!attemptsMap[a.quiz_id]) attemptsMap[a.quiz_id] = a;
+      });
+
+      const quizzesWithStatus = (quizzes ?? []).map(q => {
+        const assignment = assignments.find(a => a.quiz_id === q.id);
+        const lastAttempt = attemptsMap[q.id];
+        return {
+          ...q,
+          due_date: assignment?.due_date,
+          is_completed: assignment?.is_completed ?? false,
+          last_attempt: lastAttempt ?? null
+        };
+      });
+
+      return successResponse({ quizzes: quizzesWithStatus, assigned: true });
+    }
+
+    // ============================================================
+    // ENDPOINT: Obtener detalle de un quiz (con preguntas)
+    // ============================================================
+    if (action === "get-quiz-detail") {
+      const { quiz_id, user_id } = body;
+
+      if (!quiz_id || !user_id) {
+        return errorResponse("Se requieren quiz_id y user_id");
+      }
+
+      const { data: quiz, error: quizError } = await supabase
+        .from("quizzes")
+        .select("*")
+        .eq("id", quiz_id)
+        .single();
+
+      if (quizError || !quiz) {
+        return errorResponse("Quiz no encontrado");
+      }
+
+      const { data: questions } = await supabase
+        .from("questions")
+        .select("id, text, options, points, order_number")
+        .eq("quiz_id", quiz_id)
+        .order("order_number", { ascending: true });
+
+      // Último intento del usuario
+      const { data: lastAttempt } = await supabase
+        .from("quiz_attempts")
+        .select("id, score, passed, completed_at, status")
+        .eq("quiz_id", quiz_id)
+        .eq("student_id", user_id)
+        .order("completed_at", { ascending: false })
+        .limit(1)
+        .single();
+
+      return successResponse({
+        quiz,
+        questions: questions ?? [],
+        last_attempt: lastAttempt ?? null
+      });
+    }
+
+    // ============================================================
+    // ENDPOINT: Enviar respuestas de quiz
+    // ============================================================
+    if (action === "submit-quiz") {
+      const { quiz_id, user_id, answers, time_spent_seconds } = body;
+
+      if (!quiz_id || !user_id || !answers) {
+        return errorResponse("Se requieren quiz_id, user_id y answers");
+      }
+
+      // Obtener preguntas con respuestas correctas
+      const { data: questions } = await supabase
+        .from("questions")
+        .select("id, correct_answer, points")
+        .eq("quiz_id", quiz_id);
+
+      if (!questions || questions.length === 0) {
+        return errorResponse("Quiz sin preguntas");
+      }
+
+      // Obtener quiz para passing_score
+      const { data: quiz } = await supabase
+        .from("quizzes")
+        .select("passing_score")
+        .eq("id", quiz_id)
+        .single();
+
+      // Calcular puntaje
+      let totalPoints = 0;
+      let earnedPoints = 0;
+      const answersRecord: Record<string, string> = answers;
+
+      questions.forEach(q => {
+        const points = q.points ?? 1;
+        totalPoints += points;
+        if (answersRecord[q.id] === q.correct_answer) {
+          earnedPoints += points;
+        }
+      });
+
+      const score = totalPoints > 0 ? Math.round((earnedPoints / totalPoints) * 100) : 0;
+      const passed = score >= (quiz?.passing_score ?? 60);
+
+      // Guardar intento
+      const { data: attempt, error: attemptError } = await supabase
+        .from("quiz_attempts")
+        .insert({
+          quiz_id,
+          student_id: user_id,
+          score,
+          passed,
+          answers: answersRecord,
+          time_spent_seconds: time_spent_seconds ?? 0,
+          status: "completed",
+          completed_at: new Date().toISOString(),
+          started_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+
+      if (attemptError) {
+        return errorResponse("Error al guardar intento: " + attemptError.message);
+      }
+
+      // Marcar asignación como completada si existe
+      await supabase
+        .from("quiz_assignments")
+        .update({ is_completed: true, completed_at: new Date().toISOString() })
+        .eq("quiz_id", quiz_id)
+        .eq("student_id", user_id);
+
+      // Obtener respuestas correctas para el feedback
+      const { data: correctAnswers } = await supabase
+        .from("questions")
+        .select("id, correct_answer, explanation")
+        .eq("quiz_id", quiz_id);
+
+      return successResponse({
+        score,
+        passed,
+        earned_points: earnedPoints,
+        total_points: totalPoints,
+        attempt_id: attempt?.id,
+        correct_answers: correctAnswers ?? []
+      });
+    }
+
+    // ============================================================
+    // ENDPOINT: Obtener tareas del estudiante
+    // ============================================================
+    if (action === "get-tasks") {
+      const { user_id } = body;
+
+      if (!user_id) {
+        return errorResponse("Se requiere user_id");
+      }
+
+      // Lecciones asignadas pendientes
+      const { data: lessonTasks } = await supabase
+        .from("student_lesson_assignments")
+        .select(`
+          lesson_id,
+          status,
+          progress_pct,
+          completed,
+          assigned_at,
+          completed_at,
+          lesson:lessons(id, title, summary, estimated_minutes, course_id,
+            course:courses(id, title))
+        `)
+        .eq("student_id", user_id)
+        .order("assigned_at", { ascending: false });
+
+      // Quizzes asignados pendientes
+      const { data: quizTasks } = await supabase
+        .from("quiz_assignments")
+        .select(`
+          quiz_id,
+          due_date,
+          is_completed,
+          assigned_at,
+          completed_at,
+          quiz:quizzes(id, title, description, difficulty, time_limit)
+        `)
+        .eq("student_id", user_id)
+        .order("assigned_at", { ascending: false });
+
+      const tasks = [
+        ...(lessonTasks ?? []).map(t => ({
+          type: "lesson",
+          id: t.lesson_id,
+          title: (t.lesson as any)?.title ?? "Lección",
+          subtitle: (t.lesson as any)?.course?.title ?? "",
+          status: t.status ?? "assigned",
+          progress_pct: t.progress_pct ?? 0,
+          completed: t.completed ?? false,
+          due_date: null,
+          assigned_at: t.assigned_at,
+          estimated_minutes: (t.lesson as any)?.estimated_minutes ?? 0,
+          meta: t.lesson
+        })),
+        ...(quizTasks ?? []).map(t => ({
+          type: "quiz",
+          id: t.quiz_id,
+          title: (t.quiz as any)?.title ?? "Quiz",
+          subtitle: `Dificultad: ${(t.quiz as any)?.difficulty ?? "medium"}`,
+          status: t.is_completed ? "completed" : "assigned",
+          progress_pct: t.is_completed ? 100 : 0,
+          completed: t.is_completed ?? false,
+          due_date: t.due_date,
+          assigned_at: t.assigned_at,
+          estimated_minutes: (t.quiz as any)?.time_limit ?? 0,
+          meta: t.quiz
+        }))
+      ].sort((a, b) => new Date(b.assigned_at ?? 0).getTime() - new Date(a.assigned_at ?? 0).getTime());
+
+      return successResponse({ tasks });
     }
 
     // Si no coincide ninguna acción, devolver error

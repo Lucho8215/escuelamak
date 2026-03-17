@@ -40,6 +40,9 @@ dependencies:
   # Fechas relativas
   timeago: ^3.6.0
 
+  # Abrir URLs externas (videos, recursos)
+  url_launcher: ^6.2.5
+
   # Iconos SVG
   flutter_svg: ^2.0.9
 

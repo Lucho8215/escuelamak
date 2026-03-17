@@ -4,8 +4,12 @@ import { RouterModule } from '@angular/router';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { CourseService } from '../../services/course.service';
 import { AuthService } from '../../services/auth.service';
+import { SupabaseService } from '../../services/supabase.service';
 import { Course, Class } from '../../models/course.model';
 import { UserRole } from '../../models/user.model';
+
+type ResourceType = 'video' | 'pdf' | 'imagen' | 'contenido';
+
 @Component({
   selector: 'app-courses',
   standalone: true,
@@ -31,6 +35,19 @@ export class CoursesComponent implements OnInit {
   isStudent = false;
   currentUserId = '';
 
+  // --- PROGRESO DE RECURSOS ---
+  // Objeto plano para que Angular detecte cambios: { lessonId: { video: true, pdf: false, ... } }
+  lessonViews: Record<string, Record<string, boolean>> = {};
+  savingView = false;
+
+  // --- STUDENT_LESSONS: registro de progreso oficial por lección ---
+  // Objeto plano: { lessonId: { id, status, progress_percent, ... } }
+  studentLessonRecords: Record<string, any> = {};
+  completingLesson = false;
+
+  // --- CLASES COMPLETADAS: persiste en localStorage ---
+  completedClasses: Record<string, boolean> = {};
+
   // --- Text-to-Speech ---
   ttsSupported = typeof window !== 'undefined' && 'speechSynthesis' in window;
   leyendo = false;
@@ -39,14 +56,46 @@ export class CoursesComponent implements OnInit {
   constructor(
     private courseService: CourseService,
     private authService: AuthService,
-    private sanitizer: DomSanitizer
+    private sanitizer: DomSanitizer,
+    private supabaseService: SupabaseService
   ) {}
+
+  private get supabase() {
+    return this.supabaseService.getClient();
+  }
   async ngOnInit() {
     const user = this.authService.getCurrentUser();
     if (!user) return;
     this.currentUserId = user.id;
     this.isStudent = user.role === UserRole.STUDENT;
+    this.loadCompletedClasses();
     await this.loadCourses();
+  }
+
+  // ─── CLASES COMPLETADAS ───────────────────────────────────────────────────
+
+  private storageKey(): string {
+    return `completed_classes_${this.currentUserId}`;
+  }
+
+  loadCompletedClasses(): void {
+    try {
+      const raw = localStorage.getItem(this.storageKey());
+      this.completedClasses = raw ? JSON.parse(raw) : {};
+    } catch {
+      this.completedClasses = {};
+    }
+  }
+
+  isClassCompleted(clase: any): boolean {
+    return this.completedClasses[clase.id] === true;
+  }
+
+  private markClassAsCompleted(classId: string): void {
+    this.completedClasses = { ...this.completedClasses, [classId]: true };
+    try {
+      localStorage.setItem(this.storageKey(), JSON.stringify(this.completedClasses));
+    } catch { /* silencioso */ }
   }
   // --- EMOJIS ---
   getCourseEmoji(category: string): string {
@@ -134,10 +183,14 @@ export class CoursesComponent implements OnInit {
       const allLessons = await this.courseService.getLessonsByClass(clase.id);
       this.lessons = allLessons;
       // Si no hay lecciones pero la clase tiene imagen, PDF o enlace, crear una "lección virtual"
-      // para que el estudiante vea el contenido asignado a la clase.
       if (allLessons.length === 0 && this.classHasResources(clase)) {
         this.lessons = [this.classAsVirtualLesson(clase)];
       }
+      // Cargar progreso de recursos vistos y registros de student_lessons
+      await Promise.all([
+        this.loadAllLessonViews(),
+        this.loadStudentLessonRecords(clase.id)
+      ]);
     } catch (error) {
       console.error('Error al cargar lecciones:', error);
     } finally {
@@ -178,16 +231,28 @@ export class CoursesComponent implements OnInit {
     } else {
       this.selectedLesson = lesson;
       // Auto-seleccionar la pestaña multimedia si hay video o PDF
-     if (this.lessonHasVideo(lesson)) {
+      if (this.lessonHasVideo(lesson)) {
         this.activeTab = 'video';
+        this.markResourceViewed(lesson.id, 'video');
       } else if (this.lessonHasPdf(lesson)) {
         this.activeTab = 'pdf';
+        this.markResourceViewed(lesson.id, 'pdf');
+      } else {
+        this.activeTab = 'información';
+        this.markResourceViewed(lesson.id, 'contenido');
       }
     }
   }
+
   // --- PESTANAS ---
   setTab(tab: 'información' | 'video' | 'pdf' | 'multimedia' | 'imagen' | 'recurso') {
     this.activeTab = tab;
+    if (!this.selectedLesson) return;
+    const lessonId = this.selectedLesson.id;
+    if (tab === 'video')       this.markResourceViewed(lessonId, 'video');
+    if (tab === 'pdf')         this.markResourceViewed(lessonId, 'pdf');
+    if (tab === 'imagen')      this.markResourceViewed(lessonId, 'imagen');
+    if (tab === 'información') this.markResourceViewed(lessonId, 'contenido');
   }
   // --- DETECTAR CONTENIDO DE LECCION ---
   lessonHasVideo(lesson: any): boolean {
@@ -339,7 +404,216 @@ export class CoursesComponent implements OnInit {
     return this.isDirectVideoUrl(url || '');
   }
 
-  // --- CERRAR MODALES ---
+  // ─── TRACKING DE RECURSOS VISTOS ─────────────────────────────────────────
+
+  // ─── STUDENT_LESSONS: PROGRESO OFICIAL ──────────────────────────────────
+
+  /** Carga los registros student_lessons del alumno para la clase actual */
+  async loadStudentLessonRecords(classId: string): Promise<void> {
+    if (!this.currentUserId || !classId) return;
+    try {
+      const { data } = await this.supabase
+        .from('student_lessons')
+        .select('id, lesson_id, status, progress_percent, started_at, completed_at')
+        .eq('class_id', classId)
+        .eq('student_id', this.currentUserId);
+
+      const records: Record<string, any> = {};
+      (data ?? []).forEach((r: any) => { records[r.lesson_id] = r; });
+      this.studentLessonRecords = records;
+    } catch { /* silencioso */ }
+  }
+
+  getStudentLessonRecord(lessonId: string): any {
+    return this.studentLessonRecords[lessonId] ?? null;
+  }
+
+  getLessonStatus(lessonId: string): string {
+    return this.studentLessonRecords[lessonId]?.status ?? 'not_assigned';
+  }
+
+  /**
+   * El estudiante presiona "Completar lección".
+   * Marca status=completed, progress=100 en student_lessons.
+   */
+  async completeLesson(lesson: any): Promise<void> {
+    if (this.completingLesson) return;
+    this.completingLesson = true;
+
+    // Actualizar UI inmediatamente
+    const existing = this.studentLessonRecords[lesson.id] ?? {};
+    this.studentLessonRecords = {
+      ...this.studentLessonRecords,
+      [lesson.id]: { ...existing, status: 'completed', progress_percent: 100 }
+    };
+
+    // Persistir en BD
+    if (this.currentUserId) {
+      const now = new Date().toISOString();
+      try {
+        if (existing?.id) {
+          // Registro existente → actualizar
+          await this.supabase
+            .from('student_lessons')
+            .update({ status: 'completed', progress_percent: 100, completed_at: now, updated_at: now })
+            .eq('id', existing.id);
+        } else {
+          // Sin registro previo → insertar
+          const { data } = await this.supabase
+            .from('student_lessons')
+            .upsert({
+              student_id: this.currentUserId,
+              lesson_id: lesson.id,
+              class_id: this.selectedClass?.id ?? '',
+              course_id: this.selectedCourse?.id ?? '',
+              status: 'completed',
+              progress_percent: 100,
+              is_active: true,
+              completed_at: now,
+              started_at: now,
+              updated_at: now
+            }, { onConflict: 'student_id,lesson_id,class_id' })
+            .select('id')
+            .single();
+          // Guardar el id para futuras actualizaciones
+          if (data?.id) {
+            this.studentLessonRecords = {
+              ...this.studentLessonRecords,
+              [lesson.id]: { ...this.studentLessonRecords[lesson.id], id: data.id }
+            };
+          }
+        }
+      } catch (e) {
+        console.error('Error guardando lección completada:', e);
+      }
+    }
+
+    // Marcar la clase como completada (persiste en localStorage)
+    if (this.selectedClass) {
+      this.markClassAsCompleted(this.selectedClass.id);
+    }
+
+    this.completingLesson = false;
+  }
+
+  // ─── TRACKING DE RECURSOS VISTOS ─────────────────────────────────────────
+
+  /** Carga vistas de todas las lecciones de la clase actual */
+  async loadAllLessonViews(): Promise<void> {
+    if (!this.currentUserId || this.lessons.length === 0) return;
+    const ids = this.lessons.map((l: any) => l.id).filter((id: string) => !String(id).startsWith('class-'));
+    if (ids.length === 0) return;
+    try {
+      const { data } = await this.supabase
+        .from('lesson_resource_views')
+        .select('lesson_id, resource_type')
+        .eq('student_id', this.currentUserId)
+        .in('lesson_id', ids);
+
+      const views: Record<string, Record<string, boolean>> = {};
+      (data ?? []).forEach((r: any) => {
+        if (!views[r.lesson_id]) views[r.lesson_id] = {};
+        views[r.lesson_id][r.resource_type] = true;
+      });
+      this.lessonViews = views;
+    } catch { /* silencioso */ }
+  }
+
+  /**
+   * Marca un recurso como visto.
+   * La actualización de la UI es SINCRÓNICA para que Angular detecte el cambio
+   * en el mismo ciclo de eventos. La persistencia en BD se hace aparte.
+   */
+  markResourceViewed(lessonId: string, resourceType: ResourceType): void {
+    if (!lessonId || lessonId.startsWith('class-')) return;
+    if (this.isResourceViewed(lessonId, resourceType)) return;
+
+    // Nueva referencia de objeto → Angular detecta el cambio en este mismo ciclo
+    this.lessonViews = {
+      ...this.lessonViews,
+      [lessonId]: { ...(this.lessonViews[lessonId] ?? {}), [resourceType]: true }
+    };
+
+    // Persistir en BD de forma asíncrona (fire-and-forget)
+    if (this.currentUserId) {
+      this.persistResourceView(lessonId, resourceType);
+    }
+  }
+
+  private async persistResourceView(lessonId: string, resourceType: ResourceType): Promise<void> {
+    try {
+      await this.supabase.from('lesson_resource_views').upsert({
+        student_id: this.currentUserId,
+        lesson_id: lessonId,
+        resource_type: resourceType,
+        viewed_at: new Date().toISOString()
+      }, { onConflict: 'student_id,lesson_id,resource_type' });
+
+      // Pasar a in_progress si la lección estaba solo assigned
+      const record = this.getStudentLessonRecord(lessonId);
+      if (record && record.status === 'assigned') {
+        await this.supabase.from('student_lessons').update({
+          status: 'in_progress',
+          started_at: new Date().toISOString(),
+          last_accessed_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }).eq('id', record.id);
+        this.studentLessonRecords = {
+          ...this.studentLessonRecords,
+          [lessonId]: { ...record, status: 'in_progress' }
+        };
+      }
+    } catch { /* silencioso */ }
+  }
+
+  /** Verifica si un recurso fue visto */
+  isResourceViewed(lessonId: string, resourceType: ResourceType): boolean {
+    return this.lessonViews[lessonId]?.[resourceType] === true;
+  }
+
+  /** Cuántos recursos tiene la lección en total */
+  getLessonTotalResources(lesson: any): number {
+    let total = 1; // contenido/info siempre cuenta
+    if (this.lessonHasVideo(lesson)) total++;
+    if (this.lessonHasPdf(lesson)) total++;
+    if (this.lessonHasImage(lesson)) total++;
+    return total;
+  }
+
+  /** Cuántos recursos ha visto el estudiante en esta lección */
+  getLessonViewedCount(lesson: any): number {
+    const viewed = this.lessonViews[lesson.id] ?? {};
+    let count = 0;
+    if (viewed['contenido']) count++;
+    if (viewed['video'] && this.lessonHasVideo(lesson)) count++;
+    if (viewed['pdf'] && this.lessonHasPdf(lesson)) count++;
+    if (viewed['imagen'] && this.lessonHasImage(lesson)) count++;
+    return count;
+  }
+
+  /** True si la lección fue marcada como completada */
+  isLessonCompleted(lesson: any): boolean {
+    return this.getLessonStatus(lesson.id) === 'completed';
+  }
+
+  /** Progreso de la lección: 100 si completada, si no el valor guardado en student_lessons */
+  getLessonProgressPct(lesson: any): number {
+    if (this.isLessonCompleted(lesson)) return 100;
+    return this.studentLessonRecords[lesson.id]?.progress_percent ?? 0;
+  }
+
+  /** Cuenta lecciones completadas */
+  getCompletedLessonsCount(): number {
+    return this.lessons.filter(l => this.isLessonCompleted(l)).length;
+  }
+
+  /** Progreso global: porcentaje de lecciones completadas */
+  getCourseProgressPct(): number {
+    if (this.lessons.length === 0) return 0;
+    return Math.round((this.getCompletedLessonsCount() / this.lessons.length) * 100);
+  }
+
+  // ─── CERRAR MODALES ──────────────────────────────────────────────────────
   closeModal() {
     this.selectedCourse = null;
     this.selectedClass = null;

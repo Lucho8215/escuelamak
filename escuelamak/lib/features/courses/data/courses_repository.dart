@@ -1,6 +1,8 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:escuelamak/main.dart';
 import 'package:escuelamak/shared/models/course_model.dart';
+import 'package:escuelamak/shared/models/lesson_model.dart';
+import 'package:escuelamak/shared/models/quiz_model.dart';
 
 /// Repositorio para gestionar cursos y módulos usando la API Edge Functions
 class CoursesRepository {
@@ -368,6 +370,142 @@ class CoursesRepository {
   Future<bool> completeModule(String userId, String moduleId,
       {int? score}) async {
     return await completeClass(userId, moduleId, progressPct: score ?? 100);
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // LECCIONES
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /// Obtiene las lecciones de una clase con progreso del usuario
+  Future<List<LessonModel>> getLessons(String classId, String userId) async {
+    try {
+      final response = await _callApi('get-lessons', {
+        'class_id': classId,
+        'user_id': userId,
+      });
+      final lessons = response['data']['lessons'] as List<dynamic>? ?? [];
+      return lessons
+          .map((l) => LessonModel.fromJson(l as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      print('Error getting lessons: $e');
+      return [];
+    }
+  }
+
+  /// Obtiene el detalle de una lección
+  Future<LessonModel?> getLessonDetail(String lessonId, String userId) async {
+    try {
+      final response = await _callApi('get-lesson-detail', {
+        'lesson_id': lessonId,
+        'user_id': userId,
+      });
+      final lessonJson = response['data']['lesson'] as Map<String, dynamic>?;
+      final progressJson = response['data']['progress'] as Map<String, dynamic>?;
+      if (lessonJson == null) return null;
+      final lesson = LessonModel.fromJson(lessonJson);
+      if (progressJson != null) {
+        lesson.progress = LessonProgressData.fromJson(progressJson);
+      }
+      return lesson;
+    } catch (e) {
+      print('Error getting lesson detail: $e');
+      return null;
+    }
+  }
+
+  /// Actualiza el progreso de una lección
+  Future<bool> updateLessonProgress(
+    String lessonId,
+    String userId, {
+    required int progressPct,
+    bool? completed,
+    int? lastPosition,
+  }) async {
+    try {
+      await _callApi('update-lesson-progress', {
+        'lesson_id': lessonId,
+        'user_id': userId,
+        'progress_pct': progressPct,
+        'completed': completed,
+        'last_position': lastPosition,
+      });
+      return true;
+    } catch (e) {
+      print('Error updating lesson progress: $e');
+      return false;
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // QUIZZES
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /// Obtiene los quizzes del usuario
+  Future<List<QuizModel>> getQuizzes(String userId) async {
+    try {
+      final response = await _callApi('get-quizzes', {'user_id': userId});
+      final quizzes = response['data']['quizzes'] as List<dynamic>? ?? [];
+      return quizzes
+          .map((q) => QuizModel.fromJson(q as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      print('Error getting quizzes: $e');
+      return [];
+    }
+  }
+
+  /// Obtiene el detalle de un quiz con preguntas
+  Future<QuizDetail?> getQuizDetail(String quizId, String userId) async {
+    try {
+      final response = await _callApi('get-quiz-detail', {
+        'quiz_id': quizId,
+        'user_id': userId,
+      });
+      return QuizDetail.fromJson(response['data']);
+    } catch (e) {
+      print('Error getting quiz detail: $e');
+      return null;
+    }
+  }
+
+  /// Envía las respuestas de un quiz y retorna el resultado
+  Future<QuizResult?> submitQuiz(
+    String quizId,
+    String userId,
+    Map<String, String> answers, {
+    int? timeSpentSeconds,
+  }) async {
+    try {
+      final response = await _callApi('submit-quiz', {
+        'quiz_id': quizId,
+        'user_id': userId,
+        'answers': answers,
+        'time_spent_seconds': timeSpentSeconds,
+      });
+      return QuizResult.fromJson(response['data']);
+    } catch (e) {
+      print('Error submitting quiz: $e');
+      return null;
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // TAREAS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /// Obtiene las tareas del estudiante (lecciones + quizzes asignados)
+  Future<List<TaskItem>> getTasks(String userId) async {
+    try {
+      final response = await _callApi('get-tasks', {'user_id': userId});
+      final tasks = response['data']['tasks'] as List<dynamic>? ?? [];
+      return tasks
+          .map((t) => TaskItem.fromJson(t as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      print('Error getting tasks: $e');
+      return [];
+    }
   }
 }
 

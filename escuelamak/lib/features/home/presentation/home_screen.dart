@@ -6,6 +6,9 @@ import 'package:escuelamak/features/auth/presentation/login_screen.dart';
 import 'package:escuelamak/features/courses/presentation/courses_providers.dart';
 import 'package:escuelamak/features/courses/presentation/course_detail_screen.dart';
 import 'package:escuelamak/shared/models/course_model.dart';
+import 'package:escuelamak/features/tasks/presentation/tasks_screen.dart';
+import 'package:escuelamak/features/quizzes/presentation/quizzes_screen.dart';
+import 'package:escuelamak/features/profile/presentation/profile_screen.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // HOME SCREEN - Dashboard profesional estilo Google Classroom
@@ -91,7 +94,7 @@ class _RoleBasedNavigatorState extends State<_RoleBasedNavigator> {
           NavigationItem(Icons.school_rounded, 'Cursos', 1),
           NavigationItem(Icons.people_rounded, 'Usuarios', 2),
           NavigationItem(Icons.bar_chart_rounded, 'Reportes', 3),
-          NavigationItem(Icons.settings_rounded, 'Ajustes', 4),
+          NavigationItem(Icons.person_rounded, 'Perfil', 4),
         ];
       case 'teacher':
         return [
@@ -99,7 +102,7 @@ class _RoleBasedNavigatorState extends State<_RoleBasedNavigator> {
           NavigationItem(Icons.book_rounded, 'Mis Clases', 1),
           NavigationItem(Icons.assignment_rounded, 'Tareas', 2),
           NavigationItem(Icons.quiz_rounded, 'Quizzes', 3),
-          NavigationItem(Icons.message_rounded, 'Mensajes', 4),
+          NavigationItem(Icons.person_rounded, 'Perfil', 4),
         ];
       default: // estudiante
         return [
@@ -107,7 +110,7 @@ class _RoleBasedNavigatorState extends State<_RoleBasedNavigator> {
           NavigationItem(Icons.book_rounded, 'Cursos', 1),
           NavigationItem(Icons.assignment_rounded, 'Tareas', 2),
           NavigationItem(Icons.quiz_rounded, 'Exámenes', 3),
-          NavigationItem(Icons.calendar_today_rounded, 'Calendario', 4),
+          NavigationItem(Icons.person_rounded, 'Perfil', 4),
         ];
     }
   }
@@ -123,17 +126,34 @@ class _RoleBasedNavigatorState extends State<_RoleBasedNavigator> {
           roleTitle: widget.roleTitle,
         );
       case 1:
-        // Pestaña de cursos - mostrar pantalla de cursos
         return _CoursesTab(
           rol: widget.rol,
           roleColor: widget.roleColor,
         );
       case 2:
+        // Tareas para teacher y student; Usuarios (coming soon) para admin
+        if (widget.rol == 'admin') {
+          return _ComingSoonScreen(
+            title: 'Usuarios',
+            icon: Icons.people_rounded,
+            color: widget.roleColor,
+          );
+        }
+        return TasksScreen(color: widget.roleColor);
       case 3:
+        // Quizzes/Exámenes para teacher y student; Reportes para admin
+        if (widget.rol == 'admin') {
+          return _ComingSoonScreen(
+            title: 'Reportes',
+            icon: Icons.bar_chart_rounded,
+            color: widget.roleColor,
+          );
+        }
+        return QuizzesScreen(color: widget.roleColor);
       case 4:
-        return _ComingSoonScreen(
-          title: _navigationItems[_selectedIndex].label,
-          icon: _navigationItems[_selectedIndex].icon,
+        return ProfileScreen(
+          nombre: widget.nombre,
+          rol: widget.rol,
           color: widget.roleColor,
         );
       default:
@@ -143,43 +163,6 @@ class _RoleBasedNavigatorState extends State<_RoleBasedNavigator> {
           roleColor: widget.roleColor,
           roleTitle: widget.roleTitle,
         );
-    }
-  }
-
-  Future<void> _logout() async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Cerrar sesión'),
-        content: const Text('¿Seguro que quieres salir de la app?'),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Salir', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-
-    if (ok == true && mounted) {
-      await Supabase.instance.client.auth.signOut();
-      if (mounted) {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const LoginScreen()),
-          (route) => false,
-        );
-      }
     }
   }
 

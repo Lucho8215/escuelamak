@@ -198,6 +198,7 @@
             <th>Lección</th>
             <th>Estado</th>
             <th>Progreso</th>
+            <th>Recursos vistos</th>
             <th>Nota</th>
             <th>Inicio</th>
             <th>Fin</th>
@@ -241,6 +242,34 @@
                 ></div>
               </div>
               <small>{{ row.progressPercent }}%</small>
+            </td>
+
+            <!-- Columna de recursos vistos -->
+            <td>
+              <div class="resource-checks">
+                <span class="res-chip" [class.visto]="hasViewedResource(row.studentId, row.lessonId, 'contenido')"
+                      title="Contenido">
+                  📋 {{ hasViewedResource(row.studentId, row.lessonId, 'contenido') ? '✓' : '–' }}
+                </span>
+                <span *ngIf="getLessonForRow(row)?.videoUrl || getLessonForRow(row)?.resourceLink"
+                      class="res-chip" [class.visto]="hasViewedResource(row.studentId, row.lessonId, 'video')"
+                      title="Video">
+                  🎬 {{ hasViewedResource(row.studentId, row.lessonId, 'video') ? '✓' : '–' }}
+                </span>
+                <span *ngIf="getLessonForRow(row)?.resourceFileUrl"
+                      class="res-chip" [class.visto]="hasViewedResource(row.studentId, row.lessonId, 'pdf')"
+                      title="PDF">
+                  📄 {{ hasViewedResource(row.studentId, row.lessonId, 'pdf') ? '✓' : '–' }}
+                </span>
+                <span *ngIf="getLessonForRow(row)?.coverImageUrl"
+                      class="res-chip" [class.visto]="hasViewedResource(row.studentId, row.lessonId, 'imagen')"
+                      title="Imagen">
+                  🖼️ {{ hasViewedResource(row.studentId, row.lessonId, 'imagen') ? '✓' : '–' }}
+                </span>
+              </div>
+              <small style="color:#6366f1; font-weight:600;">
+                {{ getResourceProgress(row.studentId, row.lessonId, getLessonForRow(row)!) }}% recursos
+              </small>
             </td>
 
             <td>
