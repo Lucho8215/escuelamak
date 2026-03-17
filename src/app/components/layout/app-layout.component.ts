@@ -184,18 +184,18 @@ export class AppLayoutComponent implements OnInit {
     if (!this.currentUser) return;
 
     const supabase = this.supabaseService.getClient();
-    const role = this.currentUser.role;
-    const userId = this.currentUser.id;
 
-    let query = supabase
+    // Usar auth.users.id (igual que la app móvil)
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    const authId = authUser?.id;
+    if (!authId) return;
+
+    const { count, error } = await supabase
       .from('messages')
-      .select('id', { count: 'exact', head: true });
-
-    query = query
-      .eq('receiver_id', userId)
+      .select('id', { count: 'exact', head: true })
+      .eq('receiver_id', authId)
       .eq('is_read', false);
 
-    const { count, error } = await query;
     if (!error && count !== null) {
       this.unreadCount = count;
     }
@@ -213,11 +213,16 @@ export class AppLayoutComponent implements OnInit {
                     this.currentUser.role === UserRole.TEACHER ||
                     this.currentUser.role === UserRole.TUTOR;
 
-    // Señal para que el componente destino abra el modal de mensajes
-    localStorage.setItem('open_modal', 'mensajes');
-
     const route = isStaff ? '/review' : '/courses';
-    this.router.navigate([route]);
+
+    if (this.router.url.startsWith(route)) {
+      // Ya estamos en la página — disparar evento directo
+      window.dispatchEvent(new CustomEvent('escuelamak:open-mensajes'));
+    } else {
+      // Navegar a la página y señalizar para abrir el modal al llegar
+      localStorage.setItem('open_modal', 'mensajes');
+      this.router.navigate([route]);
+    }
   }
 
   /**

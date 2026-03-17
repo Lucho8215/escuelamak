@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -18,7 +18,11 @@ type ResourceType = 'video' | 'pdf' | 'imagen' | 'contenido';
   templateUrl: './courses.component.html',
   styleUrls: ['./courses.component.css']
 })
-export class CoursesComponent implements OnInit {
+export class CoursesComponent implements OnInit, OnDestroy {
+
+  private onOpenMensajes = () => {
+    this.openChat('', null);
+  };
   // --- DATOS ---
   courses: Course[] = [];
   classes: Class[] = [];
@@ -62,6 +66,7 @@ export class CoursesComponent implements OnInit {
   loadingMsgs = false;
   chatCourseId: string | null = null;
   chatClassId: string | null = null;
+  conversationId: string | null = null;
 
   constructor(
     private courseService: CourseService,
@@ -79,7 +84,18 @@ export class CoursesComponent implements OnInit {
     this.currentUserId = user.id;
     this.isStudent = user.role === UserRole.STUDENT;
     this.loadCompletedClasses();
+    window.addEventListener('escuelamak:open-mensajes', this.onOpenMensajes);
     await this.loadCourses();
+
+    const pendingModal = localStorage.getItem('open_modal');
+    if (pendingModal === 'mensajes') {
+      localStorage.removeItem('open_modal');
+      this.openChat('', null);
+    }
+  }
+
+  ngOnDestroy(): void {
+    window.removeEventListener('escuelamak:open-mensajes', this.onOpenMensajes);
   }
 
   // ─── CLASES COMPLETADAS ───────────────────────────────────────────────────
@@ -707,58 +723,90 @@ export class CoursesComponent implements OnInit {
 
   // ─── CHAT ────────────────────────────────────────────────────────────────
 
-  openChat(courseId: string, classId: string | null = null): void {
+  private async getMyAuthId(): Promise<string> {
+    const { data: { user } } = await this.supabase.auth.getUser();
+    return user?.id ?? '';
+  }
+
+  private async getOrCreateConversation(myAuthId: string, otherAuthId: string): Promise<string | null> {
+    try {
+      const { data: existing } = await this.supabase
+        .from('conversations')
+        .select('id')
+        .contains('participant_ids', [myAuthId, otherAuthId])
+        .maybeSingle();
+      if (existing) return existing.id;
+
+      const { data: newConv } = await this.supabase
+        .from('conversations')
+        .insert({ participant_ids: [myAuthId, otherAuthId] })
+        .select('id')
+        .single();
+      return newConv?.id ?? null;
+    } catch { return null; }
+  }
+
+  async openChat(courseId: string, classId: string | null = null): Promise<void> {
     this.chatCourseId = courseId;
     this.chatClassId = classId;
     this.showChat = true;
-    this.loadChatMessages();
+
+    // Buscar o crear conversación con el tutor/admin
+    const myAuthId = await this.getMyAuthId();
+    const { data: staffList } = await this.supabase
+      .from('app_users')
+      .select('auth_user_id')
+      .in('role', ['admin', 'teacher'])
+      .limit(1);
+    const staffAuthId = staffList?.[0]?.auth_user_id;
+    if (myAuthId && staffAuthId) {
+      this.conversationId = await this.getOrCreateConversation(myAuthId, staffAuthId);
+    }
+
+    await this.loadChatMessages();
   }
 
   closeChat(): void {
     this.showChat = false;
     this.chatMessages = [];
     this.chatInput = '';
+    this.conversationId = null;
   }
 
   async loadChatMessages(): Promise<void> {
     this.loadingMsgs = true;
     try {
-      // 1. Cargar mensajes sin join (no hay FK definida)
-      let query = this.supabase
+      if (!this.conversationId) { this.chatMessages = []; return; }
+
+      // Cargar mensajes de esta conversación (igual que app móvil)
+      const { data: msgs } = await this.supabase
         .from('messages')
         .select('id, sender_id, receiver_id, contenido, is_read, created_at')
+        .eq('conversation_id', this.conversationId)
         .order('created_at', { ascending: true });
 
-      if (this.isStudent) {
-        query = query.or(`sender_id.eq.${this.currentUserId},receiver_id.eq.${this.currentUserId}`);
-      }
+      if (!msgs || msgs.length === 0) { this.chatMessages = []; return; }
 
-      const { data: msgs } = await query;
-      if (!msgs || msgs.length === 0) {
-        this.chatMessages = [];
-        return;
-      }
-
-      // 2. Obtener info de usuarios involucrados
+      // Obtener nombres de usuarios involucrados
       const userIds = [...new Set([
         ...msgs.map((m: any) => m.sender_id),
         ...msgs.map((m: any) => m.receiver_id).filter(Boolean)
       ])];
       const { data: users } = await this.supabase
         .from('app_users')
-        .select('id, name, role')
-        .in('id', userIds);
-      const userMap = new Map((users || []).map((u: any) => [u.id, u]));
+        .select('auth_user_id, name, role')
+        .in('auth_user_id', userIds);
+      const userMap = new Map((users || []).map((u: any) => [u.auth_user_id, u]));
 
-      // 3. Enriquecer mensajes con datos del sender
       this.chatMessages = msgs.map((m: any) => ({
         ...m,
         sender: userMap.get(m.sender_id) ?? { name: 'Usuario', role: '' }
       }));
 
-      // 4. Marcar como leídos los mensajes recibidos
+      // Marcar como leídos los mensajes recibidos
+      const myAuthId = await this.getMyAuthId();
       const unread = this.chatMessages
-        .filter((m: any) => m.receiver_id === this.currentUserId && !m.is_read)
+        .filter((m: any) => m.receiver_id === myAuthId && !m.is_read)
         .map((m: any) => m.id);
       if (unread.length > 0) {
         await this.supabase.from('messages').update({ is_read: true }).in('id', unread);
@@ -772,23 +820,34 @@ export class CoursesComponent implements OnInit {
     if (!this.chatInput.trim() || this.sendingMsg) return;
     this.sendingMsg = true;
     try {
-      let receiverId: string | null = null;
+      const myAuthId = await this.getMyAuthId();
 
-      if (this.isStudent) {
-        // Estudiante → enviar al primer admin/teacher disponible
+      // Asegurar que existe la conversación
+      if (!this.conversationId) {
         const { data: staffList } = await this.supabase
           .from('app_users')
-          .select('id')
+          .select('auth_user_id')
           .in('role', ['admin', 'teacher'])
           .limit(1);
-        receiverId = (staffList && staffList.length > 0) ? staffList[0].id : null;
+        const staffAuthId = staffList?.[0]?.auth_user_id;
+        if (staffAuthId) {
+          this.conversationId = await this.getOrCreateConversation(myAuthId, staffAuthId);
+        }
       }
-      // Admin/teacher → receiver_id null (broadcast visible para todos los staff)
+
+      if (!this.conversationId) { alert('No hay tutor disponible'); return; }
+
+      // Obtener receiver (el otro participante de la conversación)
+      const { data: conv } = await this.supabase
+        .from('conversations').select('participant_ids').eq('id', this.conversationId).single();
+      const receiverId = (conv?.participant_ids as string[])?.find((id: string) => id !== myAuthId) ?? null;
 
       const { error } = await this.supabase.from('messages').insert([{
-        sender_id: this.currentUserId,
+        conversation_id: this.conversationId,
+        sender_id: myAuthId,
         receiver_id: receiverId,
-        contenido: this.chatInput.trim()
+        contenido: this.chatInput.trim(),
+        is_read: false
       }]);
       if (error) {
         console.error('Error enviando mensaje:', error);
