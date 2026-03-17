@@ -1,7 +1,15 @@
+// ============================================================
+// LOGIN SCREEN — Pantalla de inicio de sesión
+// ============================================================
+// Conecta con Supabase Auth para autenticar al usuario.
+// Después del login exitoso, busca el rol en app_users
+// y navega al dashboard correcto.
+// ============================================================
+
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:escuelamak/core/theme/app_theme.dart';
-import 'package:escuelamak/features/home/presentation/home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -10,155 +18,94 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen>
-    with SingleTickerProviderStateMixin {
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-  bool _cargando = false;
-  bool _mostrarPassword = false;
+class _LoginScreenState extends State<LoginScreen> {
+  // Controladores de los campos de texto
+  final _emailCtrl = TextEditingController();
+  final _passwordCtrl = TextEditingController();
 
-  // Animaciones
-  late AnimationController _animationController;
-  late Animation<double> _fadeAnimation;
-  late Animation<Offset> _slideAnimation;
+  // Estado de la pantalla
+  bool _loading = false;
+  bool _showPassword = false;
+  String? _errorMessage;
 
-  // Cliente Supabase
   final _supabase = Supabase.instance.client;
 
   @override
-  void initState() {
-    super.initState();
-
-    // Configurar animaciones
-    _animationController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 800),
-    );
-
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _animationController,
-        curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
-      ),
-    );
-
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.1),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(
-        parent: _animationController,
-        curve: const Interval(0.2, 1.0, curve: Curves.easeOutCubic),
-      ),
-    );
-
-    // Iniciar animación
-    _animationController.forward();
-  }
-
-  @override
   void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
-    _animationController.dispose();
+    _emailCtrl.dispose();
+    _passwordCtrl.dispose();
     super.dispose();
   }
 
-  // Función de login
+  // ── FUNCIÓN DE LOGIN ─────────────────────────────────────────
   Future<void> _login() async {
+    // Limpiar error anterior
+    setState(() {
+      _errorMessage = null;
+    });
+
     // Validar campos vacíos
-    if (_emailController.text.trim().isEmpty ||
-        _passwordController.text.isEmpty) {
-      _mostrarError('Por favor completa todos los campos');
+    if (_emailCtrl.text.trim().isEmpty || _passwordCtrl.text.isEmpty) {
+      setState(() => _errorMessage = 'Por favor completa todos los campos');
       return;
     }
 
-    setState(() => _cargando = true);
+    setState(() => _loading = true);
 
     try {
-      // Intentar login con Supabase
+      // 1. Autenticar con Supabase Auth
       final response = await _supabase.auth.signInWithPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
+        email: _emailCtrl.text.trim().toLowerCase(),
+        password: _passwordCtrl.text,
       );
 
-      if (response.user != null) {
-        // Login exitoso — obtener el rol del usuario desde app_users
-        final perfiles = await _supabase
-            .from('app_users')
-            .select('role, name')
-            .eq('auth_user_id', response.user!.id)
-            .limit(1);
-
-        if (perfiles.isEmpty) {
-          _mostrarError('Usuario no encontrado en la plataforma');
-          await _supabase.auth.signOut();
-          return;
-        }
-
-        final rol = perfiles[0]['role'] as String;
-        final nombres = perfiles[0]['name'] as String;
-
-        if (mounted) {
-          // Animación de salida antes de navegar
-          await _animationController.reverse();
-
-          if (!mounted) return;
-
-          Navigator.of(context).pushReplacement(
-            PageRouteBuilder(
-              pageBuilder: (context, animation, secondaryAnimation) =>
-                  HomeScreen(rol: rol, nombre: nombres),
-              transitionsBuilder:
-                  (context, animation, secondaryAnimation, child) {
-                return FadeTransition(opacity: animation, child: child);
-              },
-              transitionDuration: const Duration(milliseconds: 400),
-            ),
-          );
-        }
+      if (response.user == null) {
+        setState(() => _errorMessage = 'No se pudo iniciar sesión');
+        return;
       }
+
+      // 2. Obtener datos del usuario desde app_users
+      final userData = await _supabase
+          .from('app_users')
+          .select('role, name')
+          .eq('auth_user_id', response.user!.id)
+          .limit(1)
+          .maybeSingle();
+
+      if (!mounted) return;
+
+      if (userData == null) {
+        // Usuario existe en auth pero no en app_users
+        await _supabase.auth.signOut();
+        setState(
+            () => _errorMessage = 'Usuario no registrado en la plataforma');
+        return;
+      }
+
+      // 3. Navegar al dashboard con los datos del usuario
+      context.go('/home', extra: {
+        'rol': userData['role'] as String? ?? 'student',
+        'nombre': userData['name'] as String? ?? 'Usuario',
+      });
     } on AuthException catch (e) {
-      _mostrarError(_traducirError(e.message));
-    } catch (e) {
-      _mostrarError('Error inesperado: $e');
+      // Errores específicos de autenticación
+      setState(() => _errorMessage = _traducirError(e.message));
+    } catch (_) {
+      setState(() => _errorMessage = 'Error inesperado. Intenta de nuevo.');
     } finally {
-      if (mounted) setState(() => _cargando = false);
+      if (mounted) setState(() => _loading = false);
     }
   }
 
-  // Traducir errores de Supabase al español
-  String _traducirError(String error) {
-    if (error.contains('Invalid login credentials')) {
+  // Traduce los errores de Supabase (en inglés) al español
+  String _traducirError(String msg) {
+    if (msg.contains('Invalid login credentials'))
       return 'Correo o contraseña incorrectos';
-    }
-    if (error.contains('Email not confirmed')) {
+    if (msg.contains('Email not confirmed'))
       return 'Debes confirmar tu correo electrónico';
-    }
-    if (error.contains('Too many requests')) {
+    if (msg.contains('Too many requests'))
       return 'Demasiados intentos. Espera un momento';
-    }
-    return 'Error: $error';
-  }
-
-  void _mostrarError(String mensaje) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.error_outline, color: Colors.white, size: 20),
-            const SizedBox(width: 8),
-            Expanded(child: Text(mensaje)),
-          ],
-        ),
-        backgroundColor: Colors.red.shade600,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        margin: const EdgeInsets.all(16),
-      ),
-    );
+    return 'Error al iniciar sesión';
   }
 
   @override
@@ -167,306 +114,180 @@ class _LoginScreenState extends State<LoginScreen>
     final color = AppTheme.seedColor;
 
     return Scaffold(
+      backgroundColor: theme.colorScheme.surface,
       body: SafeArea(
-        child: FadeTransition(
-          opacity: _fadeAnimation,
-          child: SlideTransition(
-            position: _slideAnimation,
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const SizedBox(height: 40),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SizedBox(height: 48),
 
-                  // Logo con animación
-                  Center(
-                    child: TweenAnimationBuilder<double>(
-                      tween: Tween(begin: 0.0, end: 1.0),
-                      duration: const Duration(milliseconds: 600),
-                      curve: Curves.elasticOut,
-                      builder: (context, value, child) {
-                        return Transform.scale(
-                          scale: value,
-                          child: child,
-                        );
-                      },
-                      child: Container(
-                        width: 100,
-                        height: 100,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [color, color.withOpacity(0.7)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(28),
-                          boxShadow: [
-                            BoxShadow(
-                              color: color.withOpacity(0.3),
-                              blurRadius: 20,
-                              offset: const Offset(0, 10),
-                            ),
-                          ],
-                        ),
-                        child: const Icon(
-                          Icons.school_rounded,
-                          size: 56,
-                          color: Colors.white,
-                        ),
-                      ),
+              // ── LOGO ──────────────────────────────────────────
+              FadeSlideIn(
+                child: Center(
+                  child: Container(
+                    width: 88,
+                    height: 88,
+                    decoration: BoxDecoration(
+                      color: color.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(24),
                     ),
+                    child: Icon(Icons.school_rounded, size: 52, color: color),
                   ),
-                  const SizedBox(height: 24),
+                ),
+              ),
+              const SizedBox(height: 20),
 
-                  // Título
+              // ── TÍTULO ────────────────────────────────────────
+              FadeSlideIn(
+                delay: const Duration(milliseconds: 80),
+                child: Column(children: [
                   Text(
                     'EscuelaMAK',
                     textAlign: TextAlign.center,
                     style: theme.textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w800,
                       color: color,
-                      letterSpacing: 1.2,
+                      letterSpacing: -0.5,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   Text(
                     'Inicia sesión para continuar',
                     textAlign: TextAlign.center,
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: Colors.grey.shade500,
                     ),
                   ),
-                  const SizedBox(height: 48),
+                ]),
+              ),
+              const SizedBox(height: 40),
 
-                  // Campo email
-                  _AnimatedTextField(
-                    controller: _emailController,
-                    enabled: !_cargando,
-                    prefixIcon: Icons.email_outlined,
-                    label: 'Correo electrónico',
-                    hint: 'ejemplo@correo.com',
-                    keyboardType: TextInputType.emailAddress,
-                    delay: 100,
+              // ── CAMPO EMAIL ───────────────────────────────────
+              FadeSlideIn(
+                delay: const Duration(milliseconds: 160),
+                child: TextField(
+                  controller: _emailCtrl,
+                  enabled: !_loading,
+                  keyboardType: TextInputType.emailAddress,
+                  textInputAction: TextInputAction.next,
+                  decoration: const InputDecoration(
+                    labelText: 'Correo electrónico',
+                    hintText: 'tucorreo@ejemplo.com',
+                    prefixIcon: Icon(Icons.email_outlined),
                   ),
-                  const SizedBox(height: 16),
+                ),
+              ),
+              const SizedBox(height: 14),
 
-                  // Campo contraseña
-                  _AnimatedTextField(
-                    controller: _passwordController,
-                    enabled: !_cargando,
-                    prefixIcon: Icons.lock_outlined,
-                    label: 'Contraseña',
-                    hint: '••••••••',
-                    obscureText: !_mostrarPassword,
+              // ── CAMPO CONTRASEÑA ──────────────────────────────
+              FadeSlideIn(
+                delay: const Duration(milliseconds: 200),
+                child: TextField(
+                  controller: _passwordCtrl,
+                  enabled: !_loading,
+                  obscureText: !_showPassword,
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (_) => _login(),
+                  decoration: InputDecoration(
+                    labelText: 'Contraseña',
+                    prefixIcon: const Icon(Icons.lock_outlined),
                     suffixIcon: IconButton(
-                      icon: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 200),
-                        child: Icon(
-                          _mostrarPassword
-                              ? Icons.visibility_off_rounded
-                              : Icons.visibility_rounded,
-                          key: ValueKey(_mostrarPassword),
-                        ),
+                      icon: Icon(
+                        _showPassword
+                            ? Icons.visibility_off_outlined
+                            : Icons.visibility_outlined,
                       ),
                       onPressed: () =>
-                          setState(() => _mostrarPassword = !_mostrarPassword),
-                    ),
-                    delay: 200,
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Olvidé contraseña
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton(
-                      onPressed: _cargando
-                          ? null
-                          : () {
-                              _mostrarError('Función próximamente disponible');
-                            },
-                      child: Text(
-                        '¿Olvidaste tu contraseña?',
-                        style: TextStyle(
-                          color: color,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
+                          setState(() => _showPassword = !_showPassword),
                     ),
                   ),
-                  const SizedBox(height: 32),
+                ),
+              ),
+              const SizedBox(height: 8),
 
-                  // Botón login
-                  SizedBox(
-                    height: 56,
-                    child: ElevatedButton(
-                      onPressed: _cargando ? null : _login,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: color,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        elevation: 2,
-                        shadowColor: color.withOpacity(0.4),
-                      ),
-                      child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 200),
-                        child: _cargando
-                            ? const SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2.5,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Icon(Icons.login_rounded),
-                                  const SizedBox(width: 8),
-                                  const Text(
-                                    'Iniciar Sesión',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
+              // ── OLVIDÉ CONTRASEÑA ─────────────────────────────
+              FadeSlideIn(
+                delay: const Duration(milliseconds: 220),
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: _loading
+                        ? null
+                        : () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                    'Recuperación de contraseña - Próximamente'),
+                                behavior: SnackBarBehavior.floating,
                               ),
+                            );
+                          },
+                    child: Text(
+                      '¿Olvidaste tu contraseña?',
+                      style: TextStyle(color: color, fontSize: 13),
+                    ),
+                  ),
+                ),
+              ),
+
+              // ── MENSAJE DE ERROR ──────────────────────────────
+              if (_errorMessage != null)
+                FadeSlideIn(
+                  child: Container(
+                    margin: const EdgeInsets.only(bottom: 16),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade50,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.red.shade200),
+                    ),
+                    child: Row(children: [
+                      Icon(Icons.error_outline,
+                          color: Colors.red.shade700, size: 18),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _errorMessage!,
+                          style: TextStyle(
+                            color: Colors.red.shade700,
+                            fontSize: 13,
+                          ),
+                        ),
                       ),
-                    ),
+                    ]),
                   ),
+                ),
+              const SizedBox(height: 8),
 
-                  const SizedBox(height: 32),
-
-                  // Footer
-                  Text(
-                    '© 2024 EscuelaMAK',
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color:
-                          theme.colorScheme.onSurfaceVariant.withOpacity(0.6),
-                    ),
+              // ── BOTÓN LOGIN ───────────────────────────────────
+              FadeSlideIn(
+                delay: const Duration(milliseconds: 260),
+                child: ElevatedButton(
+                  onPressed: _loading ? null : _login,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: color,
+                    foregroundColor: Colors.white,
+                    disabledBackgroundColor: color.withOpacity(0.6),
                   ),
-                ],
+                  child: _loading
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text('Iniciar Sesión'),
+                ),
               ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// WIDGET DE TEXFIELD ANIMADO
-// ═══════════════════════════════════════════════════════════════════════════
-
-class _AnimatedTextField extends StatefulWidget {
-  final TextEditingController controller;
-  final bool enabled;
-  final IconData prefixIcon;
-  final String label;
-  final String hint;
-  final bool obscureText;
-  final Widget? suffixIcon;
-  final TextInputType? keyboardType;
-  final int delay;
-
-  const _AnimatedTextField({
-    required this.controller,
-    required this.enabled,
-    required this.prefixIcon,
-    required this.label,
-    required this.hint,
-    this.obscureText = false,
-    this.suffixIcon,
-    this.keyboardType,
-    this.delay = 0,
-  });
-
-  @override
-  State<_AnimatedTextField> createState() => _AnimatedTextFieldState();
-}
-
-class _AnimatedTextFieldState extends State<_AnimatedTextField>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _fadeAnimation;
-  late Animation<Offset> _slideAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 500),
-    );
-
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
-    );
-
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.2),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
-
-    // Iniciar animación con delay
-    Future.delayed(Duration(milliseconds: widget.delay), () {
-      if (mounted) _controller.forward();
-    });
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return FadeTransition(
-      opacity: _fadeAnimation,
-      child: SlideTransition(
-        position: _slideAnimation,
-        child: TextField(
-          controller: widget.controller,
-          keyboardType: widget.keyboardType,
-          enabled: widget.enabled,
-          obscureText: widget.obscureText,
-          decoration: InputDecoration(
-            labelText: widget.label,
-            hintText: widget.hint,
-            prefixIcon: Icon(widget.prefixIcon),
-            suffixIcon: widget.suffixIcon,
-            filled: true,
-            fillColor: Theme.of(context).inputDecorationTheme.fillColor ??
-                Theme.of(context)
-                    .colorScheme
-                    .surfaceContainerHighest
-                    .withOpacity(0.3),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide.none,
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide.none,
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide(
-                color: AppTheme.seedColor,
-                width: 2,
-              ),
-            ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: Colors.red, width: 1),
-            ),
+              const SizedBox(height: 40),
+            ],
           ),
         ),
       ),
