@@ -1,5 +1,6 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy} from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { CourseService } from '../../services/course.service';
@@ -13,11 +14,15 @@ type ResourceType = 'video' | 'pdf' | 'imagen' | 'contenido';
 @Component({
   selector: 'app-courses',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, FormsModule],
   templateUrl: './courses.component.html',
   styleUrls: ['./courses.component.css']
 })
-export class CoursesComponent implements OnInit {
+export class CoursesComponent implements OnInit, OnDestroy {
+
+  private onOpenMensajes = () => {
+    this.openChat('', null);
+  };
   // --- DATOS ---
   courses: Course[] = [];
   classes: Class[] = [];
@@ -34,6 +39,7 @@ export class CoursesComponent implements OnInit {
   // --- USUARIO ---
   isStudent = false;
   currentUserId = '';
+  currentAuthId = '';  // auth.users.id para comparar sender_id en mensajes
 
   // --- PROGRESO DE RECURSOS ---
   // Objeto plano para que Angular detecte cambios: { lessonId: { video: true, pdf: false, ... } }
@@ -53,6 +59,16 @@ export class CoursesComponent implements OnInit {
   leyendo = false;
   private synth: SpeechSynthesis | null = typeof window !== 'undefined' ? window.speechSynthesis : null;
 
+  // --- CHAT ---
+  showChat = false;
+  chatMessages: any[] = [];
+  chatInput = '';
+  sendingMsg = false;
+  loadingMsgs = false;
+  chatCourseId: string | null = null;
+  chatClassId: string | null = null;
+  conversationId: string | null = null;
+
   constructor(
     private courseService: CourseService,
     private authService: AuthService,
@@ -69,7 +85,21 @@ export class CoursesComponent implements OnInit {
     this.currentUserId = user.id;
     this.isStudent = user.role === UserRole.STUDENT;
     this.loadCompletedClasses();
+    // Guardar auth ID para comparar sender_id en mensajes
+    const { data: { user: authUser } } = await this.supabase.auth.getUser();
+    this.currentAuthId = authUser?.id ?? '';
+    window.addEventListener('escuelamak:open-mensajes', this.onOpenMensajes);
     await this.loadCourses();
+
+    const pendingModal = localStorage.getItem('open_modal');
+    if (pendingModal === 'mensajes') {
+      localStorage.removeItem('open_modal');
+      this.openChat('', null);
+    }
+  }
+
+  ngOnDestroy(): void {
+    window.removeEventListener('escuelamak:open-mensajes', this.onOpenMensajes);
   }
 
   // ─── CLASES COMPLETADAS ───────────────────────────────────────────────────
@@ -693,5 +723,155 @@ export class CoursesComponent implements OnInit {
     utterance.onerror = () => { this.leyendo = false; };
     this.leyendo = true;
     this.synth.speak(utterance);
+  }
+
+  // ─── CHAT ────────────────────────────────────────────────────────────────
+
+  private async getOrCreateConversation(myAuthId: string, otherAuthId: string): Promise<string | null> {
+    try {
+      const { data: existing } = await this.supabase
+        .from('conversations')
+        .select('id')
+        .contains('participant_ids', [myAuthId, otherAuthId])
+        .maybeSingle();
+      if (existing) return existing.id;
+
+      const { data: newConv } = await this.supabase
+        .from('conversations')
+        .insert({ participant_ids: [myAuthId, otherAuthId] })
+        .select('id')
+        .single();
+      return newConv?.id ?? null;
+    } catch { return null; }
+  }
+
+  async openChat(courseId: string, classId: string | null = null): Promise<void> {
+    this.chatCourseId = courseId;
+    this.chatClassId = classId;
+    this.showChat = true;
+
+    const myAuthId = this.currentAuthId;
+    if (!myAuthId) { await this.loadChatMessages(); return; }
+
+    // 1. Buscar conversación existente donde participa el estudiante
+    const { data: convs } = await this.supabase
+      .from('conversations')
+      .select('id')
+      .contains('participant_ids', [myAuthId])
+      .order('last_message_at', { ascending: false })
+      .limit(1);
+
+    if (convs && convs.length > 0) {
+      this.conversationId = convs[0].id;
+    } else {
+      // 2. No existe — crear con el primer admin/teacher disponible
+      const { data: staffList } = await this.supabase
+        .from('app_users')
+        .select('auth_user_id')
+        .in('role', ['admin', 'teacher'])
+        .not('auth_user_id', 'is', null)
+        .limit(1);
+      const staffAuthId = staffList?.[0]?.auth_user_id;
+      if (staffAuthId) {
+        this.conversationId = await this.getOrCreateConversation(myAuthId, staffAuthId);
+      }
+    }
+
+    await this.loadChatMessages();
+  }
+
+  closeChat(): void {
+    this.showChat = false;
+    this.chatMessages = [];
+    this.chatInput = '';
+    this.conversationId = null;
+  }
+
+  async loadChatMessages(): Promise<void> {
+    this.loadingMsgs = true;
+    try {
+      if (!this.conversationId) { this.chatMessages = []; return; }
+
+      // Cargar mensajes de esta conversación (igual que app móvil)
+      const { data: msgs } = await this.supabase
+        .from('messages')
+        .select('id, sender_id, receiver_id, contenido, is_read, created_at')
+        .eq('conversation_id', this.conversationId)
+        .order('created_at', { ascending: true });
+
+      if (!msgs || msgs.length === 0) { this.chatMessages = []; return; }
+
+      // Obtener nombres de usuarios involucrados
+      const userIds = [...new Set([
+        ...msgs.map((m: any) => m.sender_id),
+        ...msgs.map((m: any) => m.receiver_id).filter(Boolean)
+      ])];
+      const { data: users } = await this.supabase
+        .from('app_users')
+        .select('auth_user_id, name, role')
+        .in('auth_user_id', userIds);
+      const userMap = new Map((users || []).map((u: any) => [u.auth_user_id, u]));
+
+      this.chatMessages = msgs.map((m: any) => ({
+        ...m,
+        sender: userMap.get(m.sender_id) ?? { name: 'Usuario', role: '' }
+      }));
+
+      // Marcar como leídos los mensajes recibidos
+      const myAuthId = this.currentAuthId;
+      const unread = this.chatMessages
+        .filter((m: any) => m.receiver_id === myAuthId && !m.is_read)
+        .map((m: any) => m.id);
+      if (unread.length > 0) {
+        await this.supabase.from('messages').update({ is_read: true }).in('id', unread);
+      }
+    } finally {
+      this.loadingMsgs = false;
+    }
+  }
+
+  async sendMessage(): Promise<void> {
+    if (!this.chatInput.trim() || this.sendingMsg) return;
+    this.sendingMsg = true;
+    try {
+      const myAuthId = this.currentAuthId;
+
+      // Asegurar que existe la conversación
+      if (!this.conversationId) {
+        const { data: staffList } = await this.supabase
+          .from('app_users')
+          .select('auth_user_id')
+          .in('role', ['admin', 'teacher'])
+          .limit(1);
+        const staffAuthId = staffList?.[0]?.auth_user_id;
+        if (staffAuthId) {
+          this.conversationId = await this.getOrCreateConversation(myAuthId, staffAuthId);
+        }
+      }
+
+      if (!this.conversationId) { alert('No hay tutor disponible'); return; }
+
+      // Obtener receiver (el otro participante de la conversación)
+      const { data: conv } = await this.supabase
+        .from('conversations').select('participant_ids').eq('id', this.conversationId).single();
+      const receiverId = (conv?.participant_ids as string[])?.find((id: string) => id !== myAuthId) ?? null;
+
+      const { error } = await this.supabase.from('messages').insert([{
+        conversation_id: this.conversationId,
+        sender_id: myAuthId,
+        receiver_id: receiverId,
+        contenido: this.chatInput.trim(),
+        is_read: false
+      }]);
+      if (error) {
+        console.error('Error enviando mensaje:', error);
+        alert('Error al enviar: ' + error.message);
+      } else {
+        this.chatInput = '';
+        await this.loadChatMessages();
+      }
+    } finally {
+      this.sendingMsg = false;
+    }
   }
 }

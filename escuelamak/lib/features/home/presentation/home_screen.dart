@@ -1,1216 +1,731 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+﻿import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:intl/intl.dart';
 import 'package:escuelamak/core/theme/app_theme.dart';
-import 'package:escuelamak/features/auth/presentation/login_screen.dart';
-import 'package:escuelamak/features/courses/presentation/courses_providers.dart';
-import 'package:escuelamak/features/courses/presentation/course_detail_screen.dart';
-import 'package:escuelamak/shared/models/course_model.dart';
-import 'package:escuelamak/features/tasks/presentation/tasks_screen.dart';
-import 'package:escuelamak/features/quizzes/presentation/quizzes_screen.dart';
-import 'package:escuelamak/features/profile/presentation/profile_screen.dart';
+import 'package:escuelamak/features/classes/presentation/classes_screen.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
-// ═══════════════════════════════════════════════════════════════════════════
-// HOME SCREEN - Dashboard profesional estilo Google Classroom
-// ═══════════════════════════════════════════════════════════════════════════
-
-// Decide qué dashboard mostrar según el rol del usuario
 class HomeScreen extends StatefulWidget {
   final String rol;
   final String nombre;
-
   const HomeScreen({super.key, required this.rol, required this.nombre});
-
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  // Obtener el color según el rol
-  Color get _roleColor => AppTheme.colorForRol(widget.rol);
+  int _tab = 0;
+  Color get _color => AppTheme.colorForRole(widget.rol);
+  String get _titulo {
+    if (widget.rol == 'admin') return 'Panel Admin';
+    if (widget.rol == 'teacher') return 'Mi Aula';
+    return 'Mi Aprendizaje';
+  }
 
-  // Obtener titulo según el rol
-  String get _roleTitle {
-    switch (widget.rol) {
-      case 'admin':
-        return 'Panel de Administración';
-      case 'teacher':
-        return 'Mi Aula Virtual';
-      default:
-        return 'Mis Cursos';
+  String get _inicial => widget.nombre.isNotEmpty
+      ? widget.nombre.split(' ').first[0].toUpperCase()
+      : 'U';
+  String get _primerNombre =>
+      widget.nombre.isNotEmpty ? widget.nombre.split(' ').first : 'Usuario';
+  List<_Modulo> get _modulos {
+    if (widget.rol == 'admin')
+      return [
+        _Modulo('Usuarios', Icons.people_rounded, Colors.blue),
+        _Modulo('Cursos', Icons.book_rounded, Colors.green),
+        _Modulo('Permisos', Icons.admin_panel_settings, Colors.red),
+        _Modulo('Reportes', Icons.bar_chart_rounded, Colors.orange),
+        _Modulo('Mensajes', Icons.chat_rounded, Colors.purple),
+        _Modulo('Config', Icons.settings_rounded, Colors.grey)
+      ];
+    if (widget.rol == 'teacher')
+      return [
+        _Modulo('Clases', Icons.class_rounded, Colors.blue),
+        _Modulo('Tareas', Icons.assignment_rounded, Colors.orange),
+        _Modulo('Quizzes', Icons.quiz_rounded, Colors.purple),
+        _Modulo('Calificar', Icons.grade_rounded, Colors.green),
+        _Modulo('Mensajes', Icons.chat_rounded, Colors.teal),
+        _Modulo('Horario', Icons.calendar_today_rounded, Colors.red)
+      ];
+    return [
+      _Modulo('Clases', Icons.book_rounded, Colors.green),
+      _Modulo('Tareas', Icons.assignment_rounded, Colors.orange),
+      _Modulo('Quizzes', Icons.quiz_rounded, Colors.purple),
+      _Modulo('Mensajes', Icons.chat_rounded, Colors.blue),
+      _Modulo('Horario', Icons.calendar_today_rounded, Colors.red),
+      _Modulo('Perfil', Icons.person_rounded, Colors.teal)
+    ];
+  }
+
+  Future<void> _logout() async {
+    final ok = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16)),
+                title: const Text('Cerrar sesion'),
+                content: const Text('Seguro que quieres salir?'),
+                actions: [
+                  TextButton(
+                      onPressed: () => Navigator.pop(ctx, false),
+                      child: const Text('Cancelar')),
+                  ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                          foregroundColor: Colors.white,
+                          minimumSize: const Size(80, 40)),
+                      onPressed: () => Navigator.pop(ctx, true),
+                      child: const Text('Salir'))
+                ]));
+    if (ok == true && mounted) {
+      await Supabase.instance.client.auth.signOut();
+      if (mounted) context.go('/login');
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Usar el color del rol en el tema
-    return Theme(
-      data: Theme.of(context).copyWith(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: _roleColor,
-          brightness: Theme.of(context).brightness,
-        ),
-      ),
-      child: _RoleBasedNavigator(
-        rol: widget.rol,
-        nombre: widget.nombre,
-        roleColor: _roleColor,
-        roleTitle: _roleTitle,
-      ),
-    );
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// NAVEGADOR BASADO EN ROL - estilo Google Classroom
-// ═══════════════════════════════════════════════════════════════════════════
-
-class _RoleBasedNavigator extends StatefulWidget {
-  final String rol;
-  final String nombre;
-  final Color roleColor;
-  final String roleTitle;
-
-  const _RoleBasedNavigator({
-    required this.rol,
-    required this.nombre,
-    required this.roleColor,
-    required this.roleTitle,
-  });
-
-  @override
-  State<_RoleBasedNavigator> createState() => _RoleBasedNavigatorState();
-}
-
-class _RoleBasedNavigatorState extends State<_RoleBasedNavigator> {
-  int _selectedIndex = 0;
-
-  // Navegación diferente según el rol
-  List<NavigationItem> get _navigationItems {
-    switch (widget.rol) {
-      case 'admin':
-        return [
-          NavigationItem(Icons.home_rounded, 'Inicio', 0),
-          NavigationItem(Icons.school_rounded, 'Cursos', 1),
-          NavigationItem(Icons.people_rounded, 'Usuarios', 2),
-          NavigationItem(Icons.bar_chart_rounded, 'Reportes', 3),
-          NavigationItem(Icons.person_rounded, 'Perfil', 4),
-        ];
-      case 'teacher':
-        return [
-          NavigationItem(Icons.home_rounded, 'Inicio', 0),
-          NavigationItem(Icons.book_rounded, 'Mis Clases', 1),
-          NavigationItem(Icons.assignment_rounded, 'Tareas', 2),
-          NavigationItem(Icons.quiz_rounded, 'Quizzes', 3),
-          NavigationItem(Icons.person_rounded, 'Perfil', 4),
-        ];
-      default: // estudiante
-        return [
-          NavigationItem(Icons.home_rounded, 'Inicio', 0),
-          NavigationItem(Icons.book_rounded, 'Cursos', 1),
-          NavigationItem(Icons.assignment_rounded, 'Tareas', 2),
-          NavigationItem(Icons.quiz_rounded, 'Exámenes', 3),
-          NavigationItem(Icons.person_rounded, 'Perfil', 4),
-        ];
-    }
-  }
-
-  // Obtener el contenido según el tab seleccionado
-  Widget get _currentContent {
-    switch (_selectedIndex) {
-      case 0:
-        return _DashboardHome(
-          nombre: widget.nombre,
-          rol: widget.rol,
-          roleColor: widget.roleColor,
-          roleTitle: widget.roleTitle,
-        );
-      case 1:
-        return _CoursesTab(
-          rol: widget.rol,
-          roleColor: widget.roleColor,
-        );
-      case 2:
-        // Tareas para teacher y student; Usuarios (coming soon) para admin
-        if (widget.rol == 'admin') {
-          return _ComingSoonScreen(
-            title: 'Usuarios',
-            icon: Icons.people_rounded,
-            color: widget.roleColor,
-          );
-        }
-        return TasksScreen(color: widget.roleColor);
-      case 3:
-        // Quizzes/Exámenes para teacher y student; Reportes para admin
-        if (widget.rol == 'admin') {
-          return _ComingSoonScreen(
-            title: 'Reportes',
-            icon: Icons.bar_chart_rounded,
-            color: widget.roleColor,
-          );
-        }
-        return QuizzesScreen(color: widget.roleColor);
-      case 4:
-        return ProfileScreen(
-          nombre: widget.nombre,
-          rol: widget.rol,
-          color: widget.roleColor,
-        );
-      default:
-        return _DashboardHome(
-          nombre: widget.nombre,
-          rol: widget.rol,
-          roleColor: widget.roleColor,
-          roleTitle: widget.roleTitle,
-        );
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 300),
-        child: _currentContent,
-      ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 10,
-              offset: const Offset(0, -2),
-            ),
-          ],
-        ),
-        child: NavigationBar(
-          selectedIndex: _selectedIndex,
-          onDestinationSelected: (index) {
-            setState(() => _selectedIndex = index);
-          },
-          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-          indicatorColor: widget.roleColor.withOpacity(0.15),
-          destinations: _navigationItems.map((item) {
-            return NavigationDestination(
-              icon: Icon(item.icon, color: Colors.grey),
-              selectedIcon: Icon(item.icon, color: widget.roleColor),
-              label: item.label,
-            );
-          }).toList(),
-        ),
-      ),
-    );
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// DASHBOARD HOME - Pantalla principal con módulos y cursos
-// ═══════════════════════════════════════════════════════════════════════════
-
-class _DashboardHome extends ConsumerWidget {
-  final String nombre;
-  final String rol;
-  final Color roleColor;
-  final String roleTitle;
-
-  const _DashboardHome({
-    required this.nombre,
-    required this.rol,
-    required this.roleColor,
-    required this.roleTitle,
-  });
-
-  String get _firstName =>
-      nombre.isNotEmpty ? nombre.split(' ').first : 'Usuario';
-  String get _initial =>
-      _firstName.isNotEmpty ? _firstName[0].toUpperCase() : 'U';
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(roleTitle),
-        backgroundColor: roleColor,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined),
-            onPressed: () {},
-          ),
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert),
-            onSelected: (value) {
-              if (value == 'logout') {
-                _showLogoutDialog(context);
-              }
-            },
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 'profile',
-                child: Row(
-                  children: [
-                    Icon(Icons.person_outline),
-                    SizedBox(width: 8),
-                    Text('Mi Perfil'),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'settings',
-                child: Row(
-                  children: [
-                    Icon(Icons.settings_outlined),
-                    SizedBox(width: 8),
-                    Text('Configuración'),
-                  ],
-                ),
-              ),
-              const PopupMenuDivider(),
-              const PopupMenuItem(
-                value: 'logout',
-                child: Row(
-                  children: [
-                    Icon(Icons.logout, color: Colors.red),
-                    SizedBox(width: 8),
-                    Text('Cerrar Sesión', style: TextStyle(color: Colors.red)),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          // Recargar cursos
-          ref.invalidate(coursesProvider(rol));
-        },
-        child: CustomScrollView(
-          slivers: [
-            // Bienvenida con avatar
-            SliverToBoxAdapter(
-              child: FadeSlideIn(
-                delay: const Duration(milliseconds: 100),
-                child: _WelcomeCard(
-                  firstName: _firstName,
-                  initial: _initial,
-                  role: rol,
-                  roleColor: roleColor,
-                ),
-              ),
-            ),
-
-            // Sección de cursos desde Supabase
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
-                child: FadeSlideIn(
-                  delay: const Duration(milliseconds: 200),
-                  child: Row(
-                    children: [
-                      Icon(Icons.school, color: roleColor),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Mis Cursos',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-
-            // Lista de cursos desde Supabase
-            _CoursesList(
-              role: rol,
-              roleColor: roleColor,
-            ),
-
-            const SliverToBoxAdapter(
-              child: SizedBox(height: 24),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showLogoutDialog(BuildContext context) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Cerrar sesión'),
-        content: const Text('¿Seguro que quieres salir de la app?'),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Salir', style: TextStyle(color: Colors.white)),
-          ),
+          backgroundColor: _color,
+          foregroundColor: Colors.white,
+          title: Text(_titulo,
+              style: const TextStyle(fontWeight: FontWeight.w700)),
+          automaticallyImplyLeading: false,
+          actions: [
+            IconButton(
+                icon: const Icon(Icons.logout_rounded), onPressed: _logout)
+          ]),
+      body: IndexedStack(index: _tab, children: [
+        _buildInicio(),
+        ClassesScreen(),
+        _buildMensajes(),
+        _buildPerfil()
+      ]),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _tab,
+        selectedItemColor: _color,
+        unselectedItemColor: Colors.grey,
+        onTap: (i) => setState(() => _tab = i),
+        items: [
+          const BottomNavigationBarItem(
+              icon: Icon(Icons.home_rounded), label: 'Inicio'),
+          const BottomNavigationBarItem(
+              icon: Icon(Icons.book_rounded), label: 'Clases'),
+          BottomNavigationBarItem(
+              icon: _BadgeMensajes(color: _color), label: 'Mensajes'),
+          const BottomNavigationBarItem(
+              icon: Icon(Icons.person_rounded), label: 'Perfil'),
         ],
       ),
     );
-
-    if (ok == true && context.mounted) {
-      await Supabase.instance.client.auth.signOut();
-      if (context.mounted) {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const LoginScreen()),
-          (route) => false,
-        );
-      }
-    }
   }
-}
 
-// ═══════════════════════════════════════════════════════════════════════════
-// LISTA DE CURSOS DESDE SUPABASE
-// ═══════════════════════════════════════════════════════════════════════════
-
-class _CoursesList extends ConsumerWidget {
-  final String role;
-  final Color roleColor;
-
-  const _CoursesList({
-    required this.role,
-    required this.roleColor,
-  });
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final coursesAsync = ref.watch(coursesProvider(role));
-
-    return coursesAsync.when(
-      data: (courses) {
-        if (courses.isEmpty) {
-          return SliverToBoxAdapter(
-            child: _EmptyCourses(roleColor: roleColor),
-          );
-        }
-
-        return SliverPadding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          sliver: SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (context, index) {
-                final course = courses[index];
-                return FadeSlideIn(
-                  delay: Duration(milliseconds: 100 * (index + 2)),
-                  child: _CourseCard(
-                    course: course,
-                    roleColor: roleColor,
-                    onTap: () => _openCourseDetail(context, course, roleColor),
-                  ),
-                );
-              },
-              childCount: courses.length,
-            ),
-          ),
-        );
-      },
-      loading: () => SliverToBoxAdapter(
-        child: _LoadingCourses(),
-      ),
-      error: (e, _) => SliverToBoxAdapter(
-        child: _ErrorCourses(error: e.toString()),
-      ),
+  Widget _buildInicio() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        FadeSlideIn(
+            child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                    color: _color.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: _color.withOpacity(0.2))),
+                child: Row(children: [
+                  CircleAvatar(
+                      radius: 28,
+                      backgroundColor: _color,
+                      child: Text(_inicial,
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 22,
+                              fontWeight: FontWeight.w700))),
+                  const SizedBox(width: 14),
+                  Expanded(
+                      child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                        Text('Hola, $_primerNombre!',
+                            style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                                color: _color)),
+                        const SizedBox(height: 4),
+                        Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 2),
+                            decoration: BoxDecoration(
+                                color: _color,
+                                borderRadius: BorderRadius.circular(10)),
+                            child: Text(widget.rol.toUpperCase(),
+                                style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700)))
+                      ]))
+                ]))),
+        const SizedBox(height: 24),
+        FadeSlideIn(
+            delay: const Duration(milliseconds: 80),
+            child: Text('Modulos disponibles',
+                style: Theme.of(context)
+                    .textTheme
+                    .titleMedium
+                    ?.copyWith(fontWeight: FontWeight.w700))),
+        const SizedBox(height: 12),
+        GridView.count(
+            crossAxisCount: 3,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 10,
+            children: _modulos
+                .asMap()
+                .entries
+                .map((e) => FadeSlideIn(
+                    delay: Duration(milliseconds: 100 + e.key * 50),
+                    child: GestureDetector(
+                        onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                                content:
+                                    Text('${e.value.label} - Proximamente'),
+                                duration: const Duration(seconds: 1),
+                                behavior: SnackBarBehavior.floating)),
+                        child: Container(
+                            decoration: BoxDecoration(
+                                color: e.value.color.withOpacity(0.08),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(
+                                    color: e.value.color.withOpacity(0.2))),
+                            child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(e.value.icon,
+                                      color: e.value.color, size: 30),
+                                  const SizedBox(height: 8),
+                                  Text(e.value.label,
+                                      style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                          color: e.value.color),
+                                      textAlign: TextAlign.center)
+                                ])))))
+                .toList()),
+      ]),
     );
   }
 
-  void _openCourseDetail(
-      BuildContext context, CourseModel course, Color color) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => CourseDetailScreen(
-          courseId: course.id,
-          courseColor: color,
-        ),
-      ),
-    );
+  Widget _buildMensajes() => _MessagesWidget();
+  Widget _buildPerfil() {
+    return SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(children: [
+          const SizedBox(height: 32),
+          FadeSlideIn(
+              child: CircleAvatar(
+                  radius: 52,
+                  backgroundColor: _color,
+                  child: Text(_inicial,
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 42,
+                          fontWeight: FontWeight.w700)))),
+          const SizedBox(height: 16),
+          FadeSlideIn(
+              delay: const Duration(milliseconds: 80),
+              child: Text(widget.nombre,
+                  style: const TextStyle(
+                      fontSize: 22, fontWeight: FontWeight.w700))),
+          const SizedBox(height: 8),
+          FadeSlideIn(
+              delay: const Duration(milliseconds: 120),
+              child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+                  decoration: BoxDecoration(
+                      color: _color, borderRadius: BorderRadius.circular(20)),
+                  child: Text(widget.rol.toUpperCase(),
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12)))),
+          const SizedBox(height: 40),
+          FadeSlideIn(
+              delay: const Duration(milliseconds: 180),
+              child: SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: OutlinedButton.icon(
+                      icon: const Icon(Icons.logout_rounded, color: Colors.red),
+                      label: const Text('Cerrar sesion',
+                          style: TextStyle(color: Colors.red, fontSize: 16)),
+                      style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Colors.red),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12))),
+                      onPressed: _logout)))
+        ]));
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// TARJETA DE CURSO
-// ═══════════════════════════════════════════════════════════════════════════
-
-class _CourseCard extends StatefulWidget {
-  final CourseModel course;
-  final Color roleColor;
-  final VoidCallback onTap;
-
-  const _CourseCard({
-    required this.course,
-    required this.roleColor,
-    required this.onTap,
-  });
-
-  @override
-  State<_CourseCard> createState() => _CourseCardState();
+class _Modulo {
+  final String label;
+  final IconData icon;
+  final Color color;
+  const _Modulo(this.label, this.icon, this.color);
 }
 
-class _CourseCardState extends State<_CourseCard>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _scaleAnimation;
-  bool _isPressed = false;
+// ── MENSAJES INTEGRADO ──────────────────────────────────────
+class _MessagesWidget extends StatefulWidget {
+  @override
+  State<_MessagesWidget> createState() => _MessagesWidgetState();
+}
 
+class _MessagesWidgetState extends State<_MessagesWidget> {
+  final _supabase = Supabase.instance.client;
+  List<Map<String, dynamic>> _convs = [];
+  bool _loading = true;
+  String get _myId => _supabase.auth.currentUser?.id ?? '';
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 150),
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() => _loading = true);
+    try {
+      final res = await _supabase
+          .from('conversations')
+          .select()
+          .contains('participant_ids', [_myId]).order('last_message_at',
+              ascending: false);
+      final list = List<Map<String, dynamic>>.from(res);
+      for (final c in list) {
+        final ids = List<String>.from(c['participant_ids'] ?? []);
+        final otherId = ids.firstWhere((id) => id != _myId, orElse: () => '');
+        if (otherId.isEmpty) continue;
+        try {
+          final u = await _supabase
+              .from('app_users')
+              .select('name')
+              .eq('auth_user_id', otherId)
+              .maybeSingle();
+          c['other_name'] = u?['name'] ?? 'Usuario';
+          c['other_id'] = otherId;
+        } catch (_) {
+          c['other_name'] = 'Usuario';
+          c['other_id'] = otherId;
+        }
+      }
+      setState(() {
+        _convs = list;
+        _loading = false;
+      });
+    } catch (_) {
+      setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _newChat() async {
+    final users = await _supabase
+        .from('app_users')
+        .select('auth_user_id, name, role')
+        .neq('auth_user_id', _myId)
+        .order('name');
+    if (!mounted) return;
+    showModalBottomSheet(
+        context: context,
+        shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+        builder: (ctx) => Column(children: [
+              const SizedBox(height: 16),
+              const Text('Nueva conversacion',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 8),
+              Expanded(
+                  child: ListView.builder(
+                      itemCount: (users as List).length,
+                      itemBuilder: (_, i) {
+                        final u = users[i];
+                        final name = u['name'] as String? ?? 'Usuario';
+                        final rol = u['role'] as String? ?? 'student';
+                        return ListTile(
+                            leading: CircleAvatar(
+                                backgroundColor: AppTheme.colorForRole(rol),
+                                child: Text(name[0].toUpperCase(),
+                                    style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w700))),
+                            title: Text(name),
+                            onTap: () async {
+                              Navigator.pop(ctx);
+                              final otherId = u['auth_user_id'] as String;
+                              final ex = await _supabase
+                                  .from('conversations')
+                                  .select()
+                                  .contains('participant_ids',
+                                      [_myId, otherId]).maybeSingle();
+                              String cid;
+                              if (ex != null) {
+                                cid = ex['id'] as String;
+                              } else {
+                                final n = await _supabase
+                                    .from('conversations')
+                                    .insert({
+                                      'participant_ids': [_myId, otherId]
+                                    })
+                                    .select()
+                                    .single();
+                                cid = n['id'] as String;
+                              }
+                              if (mounted) {
+                                await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (_) => _ChatWidget(
+                                            convId: cid,
+                                            otherName: name,
+                                            otherId: otherId)));
+                                _load();
+                              }
+                            });
+                      }))
+            ]));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : _convs.isEmpty
+              ? Center(
+                  child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                      Icon(Icons.chat_bubble_outline_rounded,
+                          size: 72, color: Colors.grey.shade300),
+                      const SizedBox(height: 16),
+                      const Text('No tienes mensajes aun',
+                          style: TextStyle(color: Colors.grey))
+                    ]))
+              : ListView.separated(
+                  itemCount: _convs.length,
+                  separatorBuilder: (_, __) =>
+                      const Divider(height: 1, indent: 72),
+                  itemBuilder: (ctx, i) {
+                    final c = _convs[i];
+                    final name = c['other_name'] as String? ?? 'Usuario';
+                    return ListTile(
+                        leading: CircleAvatar(
+                            radius: 26,
+                            backgroundColor: Colors.purple.shade100,
+                            child: Text(name[0].toUpperCase(),
+                                style: TextStyle(
+                                    color: Colors.purple.shade800,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 18))),
+                        title: Text(name,
+                            style:
+                                const TextStyle(fontWeight: FontWeight.w600)),
+                        subtitle: Text(
+                            c['last_message'] as String? ?? 'Sin mensajes',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(color: Colors.grey.shade500)),
+                        onTap: () => Navigator.push(
+                            ctx,
+                            MaterialPageRoute(
+                                builder: (_) => _ChatWidget(
+                                    convId: c['id'] as String,
+                                    otherName: name,
+                                    otherId: c['other_id'] as String? ??
+                                        ''))).then((_) => _load()));
+                  }),
+      floatingActionButton: FloatingActionButton(
+          backgroundColor: Colors.purple.shade700,
+          foregroundColor: Colors.white,
+          onPressed: _newChat,
+          child: const Icon(Icons.edit_rounded)),
     );
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.98).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
+  }
+}
+
+class _ChatWidget extends StatefulWidget {
+  final String convId, otherName, otherId;
+  const _ChatWidget(
+      {required this.convId, required this.otherName, required this.otherId});
+  @override
+  State<_ChatWidget> createState() => _ChatWidgetState();
+}
+
+class _ChatWidgetState extends State<_ChatWidget> {
+  final _supabase = Supabase.instance.client;
+  final _ctrl = TextEditingController();
+  final _scrollCtrl = ScrollController();
+  late final Stream<List<Map<String, dynamic>>> _stream;
+  String get _myId => _supabase.auth.currentUser?.id ?? '';
+  @override
+  void initState() {
+    super.initState();
+    _stream = _supabase
+        .from('messages')
+        .stream(primaryKey: ['id'])
+        .eq('conversation_id', widget.convId)
+        .order('created_at', ascending: true)
+        .map((d) => List<Map<String, dynamic>>.from(d));
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _ctrl.dispose();
+    _scrollCtrl.dispose();
     super.dispose();
   }
 
-  void _onTapDown(TapDownDetails details) {
-    setState(() => _isPressed = true);
-    _controller.forward();
-  }
-
-  void _onTapUp(TapUpDetails details) {
-    setState(() => _isPressed = false);
-    _controller.reverse();
-    widget.onTap();
-  }
-
-  void _onTapCancel() {
-    setState(() => _isPressed = false);
-    _controller.reverse();
-  }
-
-  Color get _courseColor {
-    // Obtener color según categoría
-    switch (widget.course.category.toLowerCase()) {
-      case 'matemáticas':
-      case 'math':
-        return Colors.blue;
-      case 'ciencias':
-      case 'science':
-        return Colors.green;
-      case 'historia':
-      case 'history':
-        return Colors.orange;
-      case 'literatura':
-      case 'literature':
-        return Colors.purple;
-      case 'programación':
-      case 'coding':
-        return Colors.cyan;
-      default:
-        return widget.roleColor;
+  Future<void> _send() async {
+    final t = _ctrl.text.trim();
+    if (t.isEmpty) return;
+    _ctrl.clear();
+    try {
+      await _supabase.from('messages').insert({
+        'conversation_id': widget.convId,
+        'sender_id': _myId,
+        'receiver_id': widget.otherId,
+        'contenido': t
+      });
+      _scrollToBottom();
+    } catch (_) {
+      _ctrl.text = t;
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapDown: _onTapDown,
-      onTapUp: _onTapUp,
-      onTapCancel: _onTapCancel,
-      child: AnimatedBuilder(
-        animation: _scaleAnimation,
-        builder: (context, child) {
-          return Transform.scale(
-            scale: _scaleAnimation.value,
-            child: child,
-          );
-        },
-        child: Container(
-          margin: const EdgeInsets.only(bottom: 16),
-          decoration: BoxDecoration(
-            color: Theme.of(context).cardColor,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(_isPressed ? 0.08 : 0.05),
-                blurRadius: _isPressed ? 12 : 8,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              // Color lateral
-              Container(
-                width: 6,
-                height: 100,
-                decoration: BoxDecoration(
-                  color: _courseColor,
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(16),
-                    bottomLeft: Radius.circular(16),
-                  ),
-                ),
-              ),
-
-              // Contenido
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    children: [
-                      // Icono
-                      Container(
-                        width: 56,
-                        height: 56,
-                        decoration: BoxDecoration(
-                          color: _courseColor.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: Icon(
-                          Icons.school,
-                          color: _courseColor,
-                          size: 28,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-
-                      // Texto
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              widget.course.title,
-                              style: const TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              widget.course.teacherName,
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: Colors.grey[600],
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 8),
-                            Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 2,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: _courseColor.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Text(
-                                    widget.course.category,
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: _courseColor,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Icon(
-                                  Icons.people_outline,
-                                  size: 14,
-                                  color: Colors.grey[500],
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  '${widget.course.enrollmentCount}',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey[500],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      // Flecha
-                      Icon(
-                        Icons.chevron_right,
-                        color: Colors.grey[400],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollCtrl.hasClients)
+        _scrollCtrl.animateTo(_scrollCtrl.position.maxScrollExtent,
+            duration: const Duration(milliseconds: 250), curve: Curves.easeOut);
+    });
   }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// ESTADOS DE LA LISTA DE CURSOS
-// ═══════════════════════════════════════════════════════════════════════════
-
-class _EmptyCourses extends StatelessWidget {
-  final Color roleColor;
-
-  const _EmptyCourses({required this.roleColor});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(32),
-      child: Column(
-        children: [
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              color: roleColor.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Icon(
-              Icons.school_outlined,
-              size: 40,
-              color: roleColor.withOpacity(0.5),
-            ),
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'No hay cursos disponibles',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Pronto tendrás acceso a tus cursos',
-            style: TextStyle(
-              color: Colors.grey[600],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _LoadingCourses extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: List.generate(
-          3,
-          (index) => Padding(
-            padding: const EdgeInsets.only(bottom: 16),
-            child: _CourseCardSkeleton(),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _CourseCardSkeleton extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 100,
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 6,
-            height: 100,
-            decoration: BoxDecoration(
-              color: Colors.grey[300],
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(16),
-                bottomLeft: Radius.circular(16),
-              ),
-            ),
-          ),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  SkeletonBox(width: 56, height: 56, borderRadius: 14),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        SkeletonBox(width: 150, height: 14),
-                        const SizedBox(height: 8),
-                        SkeletonBox(width: 100, height: 12),
-                        const SizedBox(height: 8),
-                        SkeletonBox(width: 80, height: 20, borderRadius: 8),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ErrorCourses extends StatelessWidget {
-  final String error;
-
-  const _ErrorCourses({required this.error});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(32),
-      child: Column(
-        children: [
-          Icon(Icons.error_outline, size: 48, color: Colors.red[300]),
-          const SizedBox(height: 16),
-          const Text(
-            'Error al cargar cursos',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            error,
-            style: TextStyle(color: Colors.grey[600], fontSize: 12),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// PANTALLA DE "PRÓXIMAMENTE"
-// ═══════════════════════════════════════════════════════════════════════════
-
-class _ComingSoonScreen extends StatelessWidget {
-  final String title;
-  final IconData icon;
-  final Color color;
-
-  const _ComingSoonScreen({
-    required this.title,
-    required this.icon,
-    required this.color,
-  });
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(title),
-        backgroundColor: color,
-        foregroundColor: Colors.white,
-        elevation: 0,
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(30),
-              ),
-              child: Icon(
-                icon,
-                size: 60,
-                color: color.withOpacity(0.5),
-              ),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Módulo en desarrollo',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey[600],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// PANTALLA DE CURSOS - Usa la API para mostrar cursos
-// ═══════════════════════════════════════════════════════════════════════════
-
-class _CoursesTab extends ConsumerWidget {
-  final String rol;
-  final Color roleColor;
-
-  const _CoursesTab({
-    required this.rol,
-    required this.roleColor,
-  });
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    // Usar el provider de cursos
-    final coursesAsync = ref.watch(coursesProvider(rol));
-
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(rol == 'teacher' ? 'Mis Cursos' : 'Cursos'),
-        backgroundColor: roleColor,
-        foregroundColor: Colors.white,
-        elevation: 0,
-      ),
-      body: coursesAsync.when(
-        data: (courses) {
-          if (courses.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.school_outlined,
-                      size: 80, color: Colors.grey[400]),
-                  const SizedBox(height: 16),
-                  Text(
-                    'No hay cursos disponibles',
-                    style: TextStyle(fontSize: 18, color: Colors.grey[600]),
-                  ),
-                ],
-              ),
-            );
-          }
-
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: courses.length,
-            itemBuilder: (context, index) {
-              final course = courses[index];
-              return _HomeCourseCard(
-                course: course,
-                color: roleColor,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => CourseDetailScreen(
-                        courseId: course.id,
-                        courseColor: roleColor,
-                      ),
-                    ),
-                  );
-                },
-              );
-            },
-          );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.error_outline, size: 60, color: Colors.red[300]),
-              const SizedBox(height: 16),
-              Text('Error: ${e.toString()}'),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// TARJETA DE CURSO
-// ═══════════════════════════════════════════════════════════════════════════
-
-class _HomeCourseCard extends StatelessWidget {
-  final CourseModel course;
-  final Color color;
-  final VoidCallback onTap;
-
-  const _HomeCourseCard({
-    required this.course,
-    required this.color,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Imagen o color de cabecera
-            Container(
-              height: 100,
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.2),
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(16)),
-              ),
-              child: course.imageUrl != null && course.imageUrl!.isNotEmpty
-                  ? ClipRRect(
-                      borderRadius:
-                          const BorderRadius.vertical(top: Radius.circular(16)),
-                      child: Image.network(
-                        course.imageUrl!,
-                        fit: BoxFit.cover,
-                        width: double.infinity,
-                        errorBuilder: (_, __, ___) => Center(
-                          child: Icon(Icons.school, size: 40, color: color),
-                        ),
-                      ),
-                    )
-                  : Center(
-                      child: Icon(Icons.school, size: 40, color: color),
-                    ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    course.title,
+          backgroundColor: Colors.purple.shade700,
+          foregroundColor: Colors.white,
+          titleSpacing: 0,
+          title: Row(children: [
+            CircleAvatar(
+                radius: 18,
+                backgroundColor: Colors.purple.shade300,
+                child: Text(widget.otherName[0].toUpperCase(),
                     style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  if (course.description.isNotEmpty)
-                    Text(
-                      course.description,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(color: Colors.grey[600]),
-                    ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Icon(Icons.person, size: 16, color: Colors.grey[500]),
-                      const SizedBox(width: 4),
-                      Text(
-                        course.teacherName,
-                        style: TextStyle(color: Colors.grey[500], fontSize: 12),
-                      ),
-                      const Spacer(),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: color.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          course.category,
-                          style: TextStyle(color: color, fontSize: 12),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14))),
+            const SizedBox(width: 10),
+            Text(widget.otherName,
+                style:
+                    const TextStyle(fontSize: 15, fontWeight: FontWeight.w600))
+          ])),
+      body: Column(children: [
+        Expanded(
+            child: StreamBuilder<List<Map<String, dynamic>>>(
+                stream: _stream,
+                builder: (ctx, snap) {
+                  if (snap.connectionState == ConnectionState.waiting)
+                    return const Center(child: CircularProgressIndicator());
+                  final data = snap.data ?? [];
+                  if (data.isEmpty)
+                    return Center(
+                        child: Text('Inicia la conversacion',
+                            style: TextStyle(color: Colors.grey.shade400)));
+                  _scrollToBottom();
+                  return ListView.builder(
+                      controller: _scrollCtrl,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
+                      itemCount: data.length,
+                      itemBuilder: (_, i) {
+                        final m = data[i];
+                        final esMio = m['sender_id'] == _myId;
+                        final texto = m['contenido'] as String? ?? '';
+                        final hora =
+                            DateTime.tryParse(m['created_at'] as String? ?? '');
+                        return Padding(
+                            padding: const EdgeInsets.only(bottom: 6),
+                            child: Row(
+                                mainAxisAlignment: esMio
+                                    ? MainAxisAlignment.end
+                                    : MainAxisAlignment.start,
+                                children: [
+                                  Container(
+                                      constraints: BoxConstraints(
+                                          maxWidth:
+                                              MediaQuery.of(ctx).size.width *
+                                                  0.68),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 14, vertical: 10),
+                                      decoration: BoxDecoration(
+                                          color: esMio
+                                              ? Colors.purple.shade600
+                                              : const Color(0xFFDCF8C6),
+                                          borderRadius: BorderRadius.only(
+                                              topLeft:
+                                                  const Radius.circular(18),
+                                              topRight:
+                                                  const Radius.circular(18),
+                                              bottomLeft: Radius.circular(
+                                                  esMio ? 18 : 4),
+                                              bottomRight: Radius.circular(
+                                                  esMio ? 4 : 18))),
+                                      child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.end,
+                                          children: [
+                                            Text(texto,
+                                                style: TextStyle(
+                                                    color: esMio
+                                                        ? Colors.white
+                                                        : const Color(0xFF1A1A1A),
+                                                    fontSize: 14,
+                                                    height: 1.4)),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                                hora != null
+                                                    ? DateFormat('HH:mm')
+                                                        .format(hora.toLocal())
+                                                    : '',
+                                                style: TextStyle(
+                                                    fontSize: 10,
+                                                    color: esMio
+                                                        ? Colors.white60
+                                                        : const Color(0xFF25A244)))
+                                          ]))
+                                ]));
+                      });
+                })),
+        Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+                color: Theme.of(context).scaffoldBackgroundColor,
+                border: Border(top: BorderSide(color: Colors.grey.shade200))),
+            child: SafeArea(
+                child: Row(children: [
+              Expanded(
+                  child: TextField(
+                      controller: _ctrl,
+                      textCapitalization: TextCapitalization.sentences,
+                      onSubmitted: (_) => _send(),
+                      decoration: InputDecoration(
+                          hintText: 'Escribe un mensaje...',
+                          filled: true,
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 10),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(24),
+                              borderSide: BorderSide.none)))),
+              const SizedBox(width: 8),
+              GestureDetector(
+                  onTap: _send,
+                  child: Container(
+                      width: 46,
+                      height: 46,
+                      decoration: BoxDecoration(
+                          color: Colors.purple.shade700,
+                          shape: BoxShape.circle),
+                      child: const Icon(Icons.send_rounded,
+                          color: Colors.white, size: 20)))
+            ]))),
+      ]),
     );
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// TARJETA DE BIENVENIDA
-// ═══════════════════════════════════════════════════════════════════════════
+// ─────────────────────────────────────────────────────────────
+// WIDGET: Badge de mensajes no leídos
+// Muestra un punto rojo con el número de mensajes no leídos
+// Se actualiza en tiempo real con Supabase Stream
+// ─────────────────────────────────────────────────────────────
+class _BadgeMensajes extends StatefulWidget {
+  final Color color;
+  const _BadgeMensajes({required this.color});
 
-class _WelcomeCard extends StatelessWidget {
-  final String firstName;
-  final String initial;
-  final String role;
-  final Color roleColor;
+  @override
+  State<_BadgeMensajes> createState() => _BadgeMensajesState();
+}
 
-  const _WelcomeCard({
-    required this.firstName,
-    required this.initial,
-    required this.role,
-    required this.roleColor,
-  });
+class _BadgeMensajesState extends State<_BadgeMensajes> {
+  final _supabase = Supabase.instance.client;
+  int _noLeidos = 0;
+  String get _myId => _supabase.auth.currentUser?.id ?? '';
 
-  String get _roleLabel {
-    switch (role) {
-      case 'admin':
-        return 'Administrador';
-      case 'teacher':
-        return 'Profesor';
-      default:
-        return 'Estudiante';
-    }
+  @override
+  void initState() {
+    super.initState();
+    _cargarNoLeidos();
+
+    // Escuchar nuevos mensajes en tiempo real
+    _supabase
+        .from('messages')
+        .stream(primaryKey: ['id'])
+        .eq('receiver_id', _myId)
+        .listen((data) {
+          final noLeidos = data.where((m) => m['is_read'] == false).length;
+          if (mounted) setState(() => _noLeidos = noLeidos);
+        });
+  }
+
+  Future<void> _cargarNoLeidos() async {
+    try {
+      final res = await _supabase
+          .from('messages')
+          .select()
+          .eq('receiver_id', _myId)
+          .eq('is_read', false);
+      if (mounted) setState(() => _noLeidos = (res as List).length);
+    } catch (_) {}
   }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            roleColor,
-            roleColor.withOpacity(0.8),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: roleColor.withOpacity(0.3),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          // Avatar
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Center(
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        const Icon(Icons.chat_rounded),
+
+        // Badge rojo — solo aparece si hay mensajes no leídos
+        if (_noLeidos > 0)
+          Positioned(
+            right: -6,
+            top: -4,
+            child: Container(
+              padding: const EdgeInsets.all(3),
+              decoration: const BoxDecoration(
+                color: Colors.red,
+                shape: BoxShape.circle,
+              ),
+              constraints: const BoxConstraints(
+                minWidth: 16,
+                minHeight: 16,
+              ),
               child: Text(
-                initial,
+                _noLeidos > 99 ? '99+' : '$_noLeidos',
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
+                  fontSize: 9,
+                  fontWeight: FontWeight.w700,
                 ),
+                textAlign: TextAlign.center,
               ),
             ),
           ),
-          const SizedBox(width: 16),
-
-          // Texto de bienvenida
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '¡Hola, $firstName! 👋',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    _roleLabel,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // Icono decorativo
-          Icon(
-            _getRoleIcon(),
-            color: Colors.white.withOpacity(0.3),
-            size: 48,
-          ),
-        ],
-      ),
+      ],
     );
   }
-
-  IconData _getRoleIcon() {
-    switch (role) {
-      case 'admin':
-        return Icons.admin_panel_settings_rounded;
-      case 'teacher':
-        return Icons.school_rounded;
-      default:
-        return Icons.auto_stories_rounded;
-    }
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// MODELO DE DATOS
-// ═══════════════════════════════════════════════════════════════════════════
-
-class NavigationItem {
-  final IconData icon;
-  final String label;
-  final int index;
-
-  NavigationItem(this.icon, this.label, this.index);
 }

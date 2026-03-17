@@ -1,68 +1,57 @@
-// ============================================================
+﻿// ============================================================
 // APP THEME — Sistema de diseño de EscuelaMAK
 // ============================================================
-// Este archivo centraliza todos los colores, tipografías,
-// tamaños y estilos de la app. Si quieres cambiar el color
-// principal, solo cambia aquí y se aplica en toda la app.
-//
-// Material Design 3 — el sistema de diseño de Google usado
-// en las apps modernas de Android.
+// Centraliza todos los colores, tipografías y estilos.
+// Si quieres cambiar el color principal, solo cambia aquí
+// y se aplica automáticamente en toda la app.
 // ============================================================
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
-  // ── COLORES PRINCIPALES ────────────────────────────────────
-  // Color semilla — Flutter genera toda la paleta desde este color
-  static const Color seedColor = Color(0xFF6750A4); // Púrpura EscuelaMAK
+  // ── COLORES POR ROL ────────────────────────────────────────
+  static const Color adminColor = Color(0xFFC62828); // Rojo
+  static const Color teacherColor = Color(0xFF1565C0); // Azul
+  static const Color studentColor = Color(0xFF2E7D32); // Verde
+  static const Color seedColor = Color(0xFF6750A4); // Púrpura base
 
-  // Colores por rol de usuario
-  static const Color adminColor = Color(0xFFB71C1C); // Rojo oscuro
-  static const Color teacherColor = Color(0xFF1565C0); // Azul oscuro
-  static const Color studentColor = Color(0xFF2E7D32); // Verde oscuro
+  // Retorna el color según el rol del usuario
+  static Color colorForRole(String role) {
+    switch (role) {
+      case 'admin':
+        return adminColor;
+      case 'teacher':
+        return teacherColor;
+      default:
+        return studentColor;
+    }
+  }
 
   // ── TEMA CLARO ─────────────────────────────────────────────
-  static ThemeData get lightTheme {
+  static ThemeData get light {
     return ThemeData(
       useMaterial3: true,
-
-      // ColorScheme genera automáticamente todos los colores
-      // complementarios basándose en el seedColor
       colorScheme: ColorScheme.fromSeed(
         seedColor: seedColor,
         brightness: Brightness.light,
       ),
+      // Tipografía Nunito — amigable y muy legible
+      textTheme: GoogleFonts.nunitoTextTheme(ThemeData.light().textTheme),
 
-      // Tipografía con Google Fonts (Nunito = amigable y legible)
-      textTheme: GoogleFonts.nunitoTextTheme(
-        ThemeData.light().textTheme,
-      ),
-
-      // AppBar sin sombra, con el color del tema
-      appBarTheme: AppBarTheme(
+      appBarTheme: const AppBarTheme(
         elevation: 0,
-        centerTitle: true,
-        titleTextStyle: GoogleFonts.nunito(
-          fontSize: 18,
-          fontWeight: FontWeight.w600,
-          color: Colors.white,
-        ),
+        centerTitle: false,
+        scrolledUnderElevation: 0,
       ),
 
-      // Tarjetas con bordes redondeados y sombra suave
-      cardTheme: CardThemeData(
-        elevation: 2,
-        shadowColor: Colors.black.withOpacity(0.08),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-      ),
+      // Tarjetas con bordes redondeados
 
-      // Campos de texto con fondo suave y bordes redondeados
+
+      // Campos de texto con fondo suave
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: const Color(0xFFF5F5F5),
+        fillColor: Colors.grey.shade100,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
           vertical: 14,
@@ -81,11 +70,11 @@ class AppTheme {
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Colors.red, width: 1),
+          borderSide: const BorderSide(color: Colors.red),
         ),
       ),
 
-      // Botones elevados con esquinas redondeadas
+      // Botones elevados
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           minimumSize: const Size(double.infinity, 52),
@@ -95,59 +84,42 @@ class AppTheme {
           elevation: 0,
           textStyle: GoogleFonts.nunito(
             fontSize: 16,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w700,
           ),
         ),
       ),
 
-      // Bottom Navigation Bar limpio
+      // Bottom nav limpio
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-        elevation: 8,
+        elevation: 0,
+        type: BottomNavigationBarType.fixed,
         selectedLabelStyle: TextStyle(
           fontWeight: FontWeight.w600,
           fontSize: 12,
         ),
         unselectedLabelStyle: TextStyle(fontSize: 11),
       ),
-
-      // Chips redondeados
-      chipTheme: ChipThemeData(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
-      ),
     );
   }
 
   // ── TEMA OSCURO ─────────────────────────────────────────────
-  static ThemeData get darkTheme {
+  static ThemeData get dark {
     return ThemeData(
       useMaterial3: true,
       colorScheme: ColorScheme.fromSeed(
         seedColor: seedColor,
         brightness: Brightness.dark,
       ),
-      textTheme: GoogleFonts.nunitoTextTheme(
-        ThemeData.dark().textTheme,
-      ),
-      appBarTheme: AppBarTheme(
+      textTheme: GoogleFonts.nunitoTextTheme(ThemeData.dark().textTheme),
+      appBarTheme: const AppBarTheme(
         elevation: 0,
-        centerTitle: true,
-        titleTextStyle: GoogleFonts.nunito(
-          fontSize: 18,
-          fontWeight: FontWeight.w600,
-          color: Colors.white,
-        ),
+        centerTitle: false,
+        scrolledUnderElevation: 0,
       ),
-      cardTheme: CardThemeData(
-        elevation: 2,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-      ),
+
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: const Color(0xFF2C2C2C),
+        fillColor: Colors.grey.shade900,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
           vertical: 14,
@@ -176,67 +148,14 @@ class AppTheme {
       ),
     );
   }
-
-  // ── COLORES DE ROL ─────────────────────────────────────────
-  // Retorna el color según el rol del usuario
-  static Color colorForRol(String rol) {
-    switch (rol) {
-      case 'admin':
-        return adminColor;
-      case 'teacher':
-        return teacherColor;
-      default:
-        return studentColor;
-    }
-  }
-
-  // ── WIDGETS REUTILIZABLES ──────────────────────────────────
-
-  // Badge de estado (open/closed, pendiente/entregado, etc.)
-  static Widget badge(String texto, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withOpacity(0.4)),
-      ),
-      child: Text(
-        texto,
-        style: TextStyle(
-          color: color,
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
-  }
-
-  // Chip de categoría
-  static Widget categoryChip(String texto, {Color? color}) {
-    final c = color ?? seedColor;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      decoration: BoxDecoration(
-        color: c.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        texto,
-        style: TextStyle(
-          color: c,
-          fontSize: 12,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-    );
-  }
 }
 
-// ── WIDGETS DE ANIMACIÓN ─────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+// WIDGETS REUTILIZABLES DE ANIMACIÓN
+// ─────────────────────────────────────────────────────────────
 
-// Widget que hace fade in + slide up al aparecer
-// Úsalo para darle vida a cualquier widget
+// Animación de entrada: fade + slide hacia arriba
+// Úsalo así: FadeSlideIn(child: TuWidget())
 class FadeSlideIn extends StatefulWidget {
   final Widget child;
   final Duration delay;
@@ -246,7 +165,7 @@ class FadeSlideIn extends StatefulWidget {
     super.key,
     required this.child,
     this.delay = Duration.zero,
-    this.duration = const Duration(milliseconds: 400),
+    this.duration = const Duration(milliseconds: 350),
   });
 
   @override
@@ -255,72 +174,59 @@ class FadeSlideIn extends StatefulWidget {
 
 class _FadeSlideInState extends State<FadeSlideIn>
     with SingleTickerProviderStateMixin {
-  // AnimationController controla el tiempo de la animación
-  late AnimationController _controller;
-
-  // Tween define el rango de la animación (de 0 a 1)
-  late Animation<double> _opacity; // transparencia
-  late Animation<Offset> _slide; // posición
+  late final AnimationController _ctrl;
+  late final Animation<double> _opacity;
+  late final Animation<Offset> _slide;
 
   @override
   void initState() {
     super.initState();
+    _ctrl = AnimationController(vsync: this, duration: widget.duration);
 
-    _controller = AnimationController(
-      vsync: this,
-      duration: widget.duration,
-    );
-
-    // La opacidad va de 0 (invisible) a 1 (visible)
+    // Opacidad: de invisible a visible
     _opacity = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
+      CurvedAnimation(parent: _ctrl, curve: Curves.easeOut),
     );
 
-    // El slide va de abajo (0.3, 0) a su posición normal (0, 0)
+    // Posición: de abajo hacia su lugar
     _slide = Tween<Offset>(
-      begin: const Offset(0, 0.3),
+      begin: const Offset(0, 0.15),
       end: Offset.zero,
     ).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
+      CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic),
     );
 
-    // Iniciar la animación con un delay opcional
     Future.delayed(widget.delay, () {
-      if (mounted) _controller.forward();
+      if (mounted) _ctrl.forward();
     });
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _ctrl.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    // FadeTransition aplica la opacidad
-    // SlideTransition aplica el movimiento
     return FadeTransition(
       opacity: _opacity,
-      child: SlideTransition(
-        position: _slide,
-        child: widget.child,
-      ),
+      child: SlideTransition(position: _slide, child: widget.child),
     );
   }
 }
 
-// Widget skeleton (efecto de carga como Facebook/LinkedIn)
+// Efecto skeleton (carga tipo Facebook/LinkedIn)
 class SkeletonBox extends StatefulWidget {
   final double width;
   final double height;
-  final double borderRadius;
+  final double radius;
 
   const SkeletonBox({
     super.key,
     required this.width,
     required this.height,
-    this.borderRadius = 8,
+    this.radius = 8,
   });
 
   @override
@@ -329,95 +235,41 @@ class SkeletonBox extends StatefulWidget {
 
 class _SkeletonBoxState extends State<SkeletonBox>
     with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _animation;
+  late final AnimationController _ctrl;
+  late final Animation<double> _anim;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
+    _ctrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1200),
-    )..repeat(reverse: true); // repeat = se repite infinitamente
+      duration: const Duration(milliseconds: 1000),
+    )..repeat(reverse: true);
 
-    _animation = Tween<double>(begin: 0.4, end: 1.0).animate(_controller);
+    _anim = Tween<double>(begin: 0.4, end: 0.9).animate(_ctrl);
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _ctrl.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return FadeTransition(
-      opacity: _animation,
+      opacity: _anim,
       child: Container(
         width: widget.width,
         height: widget.height,
         decoration: BoxDecoration(
-          // Color gris claro en modo claro, gris oscuro en modo oscuro
-          color: isDark ? const Color(0xFF3A3A3A) : const Color(0xFFE8E8E8),
-          borderRadius: BorderRadius.circular(widget.borderRadius),
+          color: dark ? const Color(0xFF3A3A3A) : const Color(0xFFE8E8E8),
+          borderRadius: BorderRadius.circular(widget.radius),
         ),
       ),
     );
   }
 }
 
-// Skeleton completo para una tarjeta de clase
-class ClassCardSkeleton extends StatelessWidget {
-  const ClassCardSkeleton({super.key});
 
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Skeleton de la imagen
-          ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-            child: SkeletonBox(
-              width: double.infinity,
-              height: 160,
-              borderRadius: 0,
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SkeletonBox(width: 200, height: 18),
-                const SizedBox(height: 8),
-                SkeletonBox(width: 140, height: 14),
-                const SizedBox(height: 12),
-                Row(children: [
-                  SkeletonBox(width: 60, height: 24, borderRadius: 12),
-                  const SizedBox(width: 8),
-                  SkeletonBox(width: 60, height: 24, borderRadius: 12),
-                ]),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}

@@ -47,6 +47,12 @@
       <span>Permisos</span>
       <span class="nav-badge">{{ getEnabledCount() }}</span>
     </button>
+
+    <button class="nav-item" [class.active]="activeSection==='enrollments'" (click)="setSection('enrollments')">
+      <i class="fas fa-graduation-cap"></i>
+      <span>Cursos Asignados</span>
+      <span class="nav-badge">{{ students.length }}</span>
+    </button>
   </div>
 
   <!-- Alertas -->
@@ -341,6 +347,10 @@
           <div class="school-info-card">
             <span class="school-info-label">🎨 Tema activo</span>
             <span class="school-info-value">{{ schoolConfig.active_theme || 'Default' }}</span>
+          </div>
+          <div class="school-info-card">
+            <span class="school-info-label">🔤 Tipografía</span>
+            <span class="school-info-value">{{ getFontLabel(selectedFontId) }}</span>
           </div>
         </div>
 
@@ -750,6 +760,136 @@
         </div>
       </div>
     </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       SECCIÓN: CURSOS ASIGNADOS
+  ════════════════════════════════════════════════════════════════ -->
+  <section *ngIf="activeSection==='enrollments'" class="content-section enrollment-section">
+
+    <div class="section-header-row">
+      <div>
+        <h2 class="section-title"><i class="fas fa-graduation-cap"></i> Cursos Asignados</h2>
+        <p class="section-desc">Selecciona un alumno para ver y gestionar sus cursos asignados.</p>
+      </div>
+    </div>
+
+    <div class="search-bar-wrap">
+      <div class="search-bar">
+        <i class="fas fa-search"></i>
+        <input type="text" placeholder="Buscar alumno…"
+               [(ngModel)]="searchStudent" (ngModelChange)="applyStudentFilter()" />
+      </div>
+      <span class="result-count">{{ filteredStudents.length }} alumno{{ filteredStudents.length !== 1 ? 's' : '' }}</span>
+    </div>
+
+    <div class="enrollment-layout">
+
+      <!-- LISTA DE ALUMNOS -->
+      <div class="students-list">
+        <div *ngIf="filteredStudents.length === 0" class="empty-state">
+          <div class="empty-icon">🎓</div>
+          <p>No hay alumnos registrados.</p>
+        </div>
+        <div *ngFor="let student of filteredStudents"
+             class="student-row"
+             [class.student-row-active]="selectedStudent?.id === student.id"
+             (click)="openEnrollmentModal(student)">
+          <div class="stu-avatar-sm">{{ student.name.charAt(0).toUpperCase() }}</div>
+          <div class="stu-row-info">
+            <strong>{{ student.name }}</strong>
+            <span>{{ student.email }}</span>
+          </div>
+          <i class="fas fa-chevron-right stu-arrow"></i>
+        </div>
+      </div>
+
+      <!-- PANEL DE CURSOS DEL ALUMNO SELECCIONADO -->
+      <div class="enrollment-panel" *ngIf="selectedStudent; else noStudentSelected">
+
+        <div class="panel-student-header">
+          <div class="enroll-avatar">{{ selectedStudent.name.charAt(0).toUpperCase() }}</div>
+          <div>
+            <h3>{{ selectedStudent.name }}</h3>
+            <span>{{ selectedStudent.email }}</span>
+          </div>
+          <button type="button" class="btn-close-panel" (click)="closeEnrollmentModal()">✕</button>
+        </div>
+
+        <!-- Cursos asignados -->
+        <div class="panel-section">
+          <h4 class="enroll-section-title">
+            <i class="fas fa-list-ul"></i> Cursos asignados
+            <span class="enroll-count-badge">{{ studentEnrollments.length }}</span>
+          </h4>
+
+          <div *ngIf="loadingEnrollments" class="enroll-loading">
+            <i class="fas fa-spinner fa-spin"></i> Cargando…
+          </div>
+
+          <div *ngIf="!loadingEnrollments && studentEnrollments.length === 0" class="enroll-empty">
+            <i class="fas fa-inbox"></i>
+            <p>Sin cursos asignados aún.</p>
+          </div>
+
+          <div *ngFor="let e of studentEnrollments" class="enroll-row">
+            <div class="enroll-row-icon"><i class="fas fa-book-open"></i></div>
+            <div class="enroll-row-info">
+              <strong>{{ e.courseTitle }}</strong>
+              <span>{{ e.className }}</span>
+            </div>
+            <span class="enroll-status-badge" [class.active]="e.status==='active'">
+              {{ e.status === 'active' ? 'Activo' : e.status }}
+            </span>
+            <button type="button" class="btn-remove-enroll" (click)="removeEnrollment(e)">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Asignar nuevo curso -->
+        <div class="panel-section assign-form-wrap">
+          <h4 class="enroll-section-title">
+            <i class="fas fa-plus-circle"></i> Asignar nuevo curso
+          </h4>
+          <div class="assign-form">
+            <div class="assign-field">
+              <label>Curso</label>
+              <select [(ngModel)]="enrollCourseId" (ngModelChange)="onEnrollCourseChange()">
+                <option value="">— Selecciona un curso —</option>
+                <option *ngFor="let c of courses" [value]="c.id">{{ c.title }}</option>
+              </select>
+            </div>
+            <div class="assign-field">
+              <label>Clase</label>
+              <select [(ngModel)]="enrollClassId" [disabled]="!enrollCourseId">
+                <option value="">— Selecciona una clase —</option>
+                <option *ngFor="let cl of enrollAvailableClasses" [value]="cl.id">
+                  {{ cl.name || cl.title }}
+                </option>
+              </select>
+            </div>
+            <button type="button" class="btn-assign-submit"
+                    [disabled]="!enrollCourseId || !enrollClassId || enrolling"
+                    (click)="assignCourseToStudent()">
+              <i [class]="enrolling ? 'fas fa-spinner fa-spin' : 'fas fa-check'"></i>
+              {{ enrolling ? 'Asignando…' : 'Asignar' }}
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <ng-template #noStudentSelected>
+        <div class="panel-placeholder">
+          <i class="fas fa-hand-pointer"></i>
+          <p>Selecciona un alumno de la lista para ver sus cursos</p>
+        </div>
+      </ng-template>
+
+    </div>
+
+  </section>
+
   </div>
 </div>
 
@@ -941,6 +1081,20 @@
                placeholder="https://... (URL de imagen)">
       </div>
 
+      <!-- Tipografía -->
+      <div class="colores-titulo">🔤 Tipografía de la Plataforma</div>
+      <div class="font-picker-grid">
+        <div *ngFor="let font of availableFonts"
+             class="font-card"
+             [class.font-card-active]="schoolForm.font_family === font.id"
+             [style.font-family]="font.family"
+             (click)="selectFont(font.id)">
+          <span class="font-sample">{{ font.sample }}</span>
+          <span class="font-name">{{ font.name }}</span>
+          <span *ngIf="schoolForm.font_family === font.id" class="font-check">✓</span>
+        </div>
+      </div>
+
       <!-- Colores -->
       <div class="colores-titulo">🎨 Colores de la Plataforma</div>
       <div class="form-row">
@@ -1064,6 +1218,92 @@
         {{ loading ? '⏳ Guardando...' : (editingMetric ? '💾 Actualizar' : '+ Crear Métrica') }}
       </button>
     </div>
+  </div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     MODAL: CURSOS ASIGNADOS DEL ALUMNO
+════════════════════════════════════════════════════════════════ -->
+<div *ngIf="showEnrollmentModal" class="modal-overlay" (click)="closeEnrollmentModal()">
+  <div class="modal-box modal-enrollment" (click)="$event.stopPropagation()">
+
+    <!-- Header -->
+    <div class="modal-header enrollment-header">
+      <div class="enroll-header-left">
+        <div class="enroll-avatar">{{ selectedStudent?.name?.charAt(0)?.toUpperCase() }}</div>
+        <div>
+          <h3>{{ selectedStudent?.name }}</h3>
+          <span class="enroll-email">{{ selectedStudent?.email }}</span>
+        </div>
+      </div>
+      <button class="btn-close-modal" (click)="closeEnrollmentModal()">✕</button>
+    </div>
+
+    <!-- Cursos actuales -->
+    <div class="enroll-body">
+      <h4 class="enroll-section-title">
+        <i class="fas fa-list-ul"></i> Cursos asignados
+        <span class="enroll-count-badge">{{ studentEnrollments.length }}</span>
+      </h4>
+
+      <div *ngIf="loadingEnrollments" class="enroll-loading">
+        <i class="fas fa-spinner fa-spin"></i> Cargando…
+      </div>
+
+      <div *ngIf="!loadingEnrollments && studentEnrollments.length === 0" class="enroll-empty">
+        <i class="fas fa-inbox"></i>
+        <p>Este alumno no tiene cursos asignados aún.</p>
+      </div>
+
+      <div *ngIf="!loadingEnrollments && studentEnrollments.length > 0" class="enroll-list">
+        <div *ngFor="let e of studentEnrollments" class="enroll-row">
+          <div class="enroll-row-icon">
+            <i class="fas fa-book-open"></i>
+          </div>
+          <div class="enroll-row-info">
+            <strong>{{ e.courseTitle }}</strong>
+            <span>Clase: {{ e.className }}</span>
+          </div>
+          <span class="enroll-status-badge" [class.active]="e.status==='active'">
+            {{ e.status === 'active' ? 'Activo' : e.status }}
+          </span>
+          <button class="btn-remove-enroll" (click)="removeEnrollment(e)" title="Quitar asignación">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Formulario de asignación rápida -->
+      <div class="assign-form-wrap">
+        <h4 class="enroll-section-title">
+          <i class="fas fa-plus-circle"></i> Asignar nuevo curso
+        </h4>
+        <div class="assign-form">
+          <div class="assign-field">
+            <label>Curso</label>
+            <select [(ngModel)]="enrollCourseId" (ngModelChange)="onEnrollCourseChange()">
+              <option value="">— Selecciona un curso —</option>
+              <option *ngFor="let c of courses" [value]="c.id">{{ c.title }}</option>
+            </select>
+          </div>
+          <div class="assign-field">
+            <label>Clase</label>
+            <select [(ngModel)]="enrollClassId" [disabled]="!enrollCourseId">
+              <option value="">— Selecciona una clase —</option>
+              <option *ngFor="let cl of enrollAvailableClasses" [value]="cl.id">
+                {{ cl.name || cl.title }}
+              </option>
+            </select>
+          </div>
+          <button class="btn-assign-submit"
+                  [disabled]="!enrollCourseId || !enrollClassId || enrolling"
+                  (click)="assignCourseToStudent()">
+            <i [class]="enrolling ? 'fas fa-spinner fa-spin' : 'fas fa-check'"></i>
+            {{ enrolling ? 'Asignando…' : 'Asignar' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
   </div>
 </div>
 
