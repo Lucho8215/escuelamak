@@ -451,3 +451,25 @@ td {
     grid-template-columns: 1fr;
   }
 }
+
+/* ─── Recursos vistos por estudiante ─────────────────────── */
+.resource-checks {
+  display: flex;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.2rem;
+}
+.res-chip {
+  background: #f1f5f9;
+  color: #94a3b8;
+  border-radius: 6px;
+  padding: 0.15rem 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  border: 1px solid #e2e8f0;
+}
+.res-chip.visto {
+  background: #d1fae5;
+  color: #059669;
+  border-color: #6ee7b7;
+}

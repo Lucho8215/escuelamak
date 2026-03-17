@@ -163,6 +163,50 @@
 /* Clase seleccionada: fondo lila suave */
 .class-seleccionada { background: #f3eeff; border-color: #764ba2; }
 
+/* ── Clase COMPLETADA ─────────────────────────────────────────────── */
+.class-card.class-completada {
+  border: 2px solid #10b981 !important;
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 60%, #a7f3d0 100%) !important;
+  box-shadow: 0 4px 18px rgba(16, 185, 129, 0.28), 0 0 0 3px rgba(16, 185, 129, 0.14);
+  transform: translateY(-1px);
+}
+.class-card.class-completada:hover {
+  border-color: #059669 !important;
+  box-shadow: 0 6px 22px rgba(16, 185, 129, 0.38), 0 0 0 4px rgba(16, 185, 129, 0.2);
+  transform: translateY(-2px);
+}
+.class-card.class-completada h4 {
+  color: #065f46;
+  font-weight: 700;
+}
+
+.class-estado-row {
+  display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
+}
+
+.badge-completada {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.2rem 0.6rem;
+  border-radius: 20px;
+  letter-spacing: 0.02em;
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.4);
+  animation: pop-in 0.3s ease;
+}
+
+@keyframes pop-in {
+  0%   { transform: scale(0.7); opacity: 0; }
+  80%  { transform: scale(1.1); }
+  100% { transform: scale(1);   opacity: 1; }
+}
+
+.class-numero.completado {
+  background: linear-gradient(135deg, #10b981, #059669);
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.5);
+}
+
 .class-header {
   display: flex; align-items: center;
   gap: 0.75rem; flex-wrap: wrap;
@@ -506,4 +550,231 @@
 .btn-leer-sm:hover {
   transform: scale(1.1);
   box-shadow: 0 4px 8px -2px rgba(99, 102, 241, 0.4);
+}
+/* ─── PROGRESO DE LECCIONES ─────────────────────────────── */
+.curso-progreso-global {
+  background: linear-gradient(135deg, #f0f4ff 0%, #e8f5e9 100%);
+  border: 1px solid #c5cae9;
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  margin: 1rem 0;
+}
+.progreso-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  color: #555;
+  margin-bottom: 0.4rem;
+}
+.progreso-label strong { color: #3949ab; font-size: 1rem; }
+.progreso-bar-outer {
+  background: #dde2ff;
+  border-radius: 8px;
+  height: 10px;
+  overflow: hidden;
+}
+.progreso-bar-inner {
+  height: 100%;
+  background: linear-gradient(90deg, #667eea, #43e97b);
+  border-radius: 8px;
+  transition: width 0.5s ease;
+}
+.progreso-completadas {
+  font-size: 0.75rem;
+  color: #888;
+  display: block;
+  margin-top: 0.3rem;
+}
+
+/* Mini barra por lección */
+.leccion-progreso-mini {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.3rem;
+}
+.mini-bar-outer {
+  flex: 1;
+  background: #e8eaf6;
+  border-radius: 6px;
+  height: 5px;
+  overflow: hidden;
+}
+.mini-bar-inner {
+  height: 100%;
+  background: #667eea;
+  border-radius: 6px;
+  transition: width 0.4s ease;
+}
+.mini-bar-inner.completo { background: #43e97b; }
+.mini-pct { font-size: 0.7rem; color: #888; min-width: 28px; text-align: right; }
+
+/* Lección completada */
+.leccion-card.leccion-completada {
+  border: 2px solid #10b981;
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.25), 0 0 0 3px rgba(16, 185, 129, 0.12);
+  transform: translateY(-1px);
+}
+.leccion-card.leccion-completada:hover {
+  border-color: #059669;
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.35), 0 0 0 4px rgba(16, 185, 129, 0.18);
+  transform: translateY(-2px);
+}
+.leccion-card.leccion-completada .leccion-numero {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.45);
+}
+.leccion-card.leccion-completada h5 {
+  color: #065f46;
+  font-weight: 700;
+}
+.leccion-card.leccion-completada .leccion-expand {
+  color: #10b981;
+}
+.leccion-numero.completado {
+  background: #43e97b !important;
+  color: #fff;
+  font-weight: bold;
+}
+
+/* Chips con estado visto */
+.chip.chip-visto {
+  background: #c8f7c5 !important;
+  color: #2e7d32 !important;
+  border: 1px solid #a5d6a7;
+}
+
+/* Badge "visto" en tabs */
+.tab-check {
+  display: inline-block;
+  background: #43e97b;
+  color: #fff;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  font-size: 0.65rem;
+  line-height: 16px;
+  text-align: center;
+  margin-left: 4px;
+  font-weight: bold;
+}
+
+/* Banner "recurso visto" dentro de cada pestaña */
+.recurso-visto-badge {
+  background: #e8f5e9;
+  border: 1px solid #a5d6a7;
+  color: #2e7d32;
+  border-radius: 8px;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  margin-bottom: 0.8rem;
+  display: inline-block;
+}
+
+/* ─── CHECKLIST DE RECURSOS ────────────────────────────────── */
+.lesson-checklist {
+  background: #f8faff;
+  border: 1.5px solid #c7d2fe;
+  border-radius: 12px;
+  padding: 1rem 1.2rem;
+  margin-bottom: 1rem;
+}
+.checklist-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: #3730a3;
+  margin-bottom: 0.7rem;
+}
+.checklist-pct {
+  background: #e0e7ff;
+  color: #4338ca;
+  border-radius: 20px;
+  padding: 0.15rem 0.6rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  transition: background 0.3s;
+}
+.checklist-pct.pct-completo {
+  background: #d1fae5;
+  color: #065f46;
+}
+.checklist-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin-bottom: 0.9rem;
+}
+.check-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.45rem 0.7rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.88rem;
+  color: #64748b;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s;
+}
+.check-item:hover { background: #f1f5ff; border-color: #a5b4fc; }
+.check-item.checked {
+  background: #f0fdf4;
+  border-color: #86efac;
+  color: #166534;
+  font-weight: 600;
+}
+.check-box { font-size: 1.1rem; width: 1.4rem; text-align: center; }
+
+.checklist-footer { margin-top: 0.2rem; }
+
+.leccion-completar-box {
+  margin: 1rem 0 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.estado-completado {
+  background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+  color: #065f46;
+  font-weight: 700;
+  font-size: 1rem;
+  border-radius: 10px;
+  padding: 0.7rem 1rem;
+  text-align: center;
+  border: 1.5px solid #6ee7b7;
+}
+
+.btn-completar-leccion {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: linear-gradient(135deg, #667eea 0%, #43e97b 100%);
+  color: #fff;
+  font-weight: 700;
+  font-size: 1rem;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.2s;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.35);
+}
+.btn-completar-leccion:hover:not(:disabled) {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
+.btn-completar-leccion:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.checklist-hint {
+  font-size: 0.78rem;
+  color: #94a3b8;
+  text-align: center;
+  margin: 0.3rem 0 0;
+  font-style: italic;
 }

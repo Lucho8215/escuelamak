@@ -375,7 +375,7 @@ export class ParametersComponent implements OnInit {
     this.applyTheme(this.selectedTheme);
     this.cardCategories = [...new Set(this.permissionCards.map(card => card.category))];
 
-    // Cargar roles personalizados desde localStorage
+    // Cargar roles personalizados desde Supabase
     this.loadCustomRoles();
 
     this.loadPermissions();
@@ -857,28 +857,71 @@ export class ParametersComponent implements OnInit {
   }
 
   /**
-   * Carga los roles desde localStorage o inicializa los roles por defecto.
+   * Carga los roles desde Supabase (tabla custom_roles + role_module_permissions).
+   * Si la tabla no existe todavía, usa los roles por defecto en memoria.
    */
-  loadCustomRoles(): void {
-    const saved = localStorage.getItem('app_custom_roles');
-    if (saved) {
-      try {
-        this.customRoles = JSON.parse(saved);
-      } catch {
+  async loadCustomRoles(): Promise<void> {
+    try {
+      const { data: rolesData, error: rolesError } = await this.supabase
+        .from('custom_roles')
+        .select('*')
+        .order('is_default', { ascending: false });
+
+      if (rolesError) {
+        console.log('Tabla custom_roles no existe aún, usando roles en memoria:', rolesError.message);
         this.initDefaultRoles();
-        this.saveCustomRoles();
+        return;
       }
-    } else {
+
+      const { data: permsData, error: permsError } = await this.supabase
+        .from('role_module_permissions')
+        .select('*');
+
+      if (permsError) {
+        console.log('Error cargando permisos de roles:', permsError.message);
+      }
+
+      const permsByRole: Record<string, RolePermission[]> = {};
+      for (const p of (permsData ?? [])) {
+        if (!permsByRole[p.role_code]) permsByRole[p.role_code] = [];
+        permsByRole[p.role_code].push({
+          module_key: p.module_key,
+          can_view: p.can_view,
+          can_create: p.can_create,
+          can_edit: p.can_edit
+        });
+      }
+
+      this.customRoles = (rolesData ?? []).map((r: any) => ({
+        id: r.id,
+        name: r.name,
+        code: r.code,
+        description: r.description ?? '',
+        color: r.color ?? '#667eea',
+        icon: r.icon ?? 'fas fa-user',
+        is_default: r.is_default ?? false,
+        permissions: permsByRole[r.code] ?? this.granularPermissions.map(p => ({
+          module_key: p.module_key,
+          can_view: false,
+          can_create: false,
+          can_edit: false
+        }))
+      }));
+
+      if (this.customRoles.length === 0) {
+        this.initDefaultRoles();
+      }
+    } catch (e) {
+      console.log('Error inesperado cargando roles:', e);
       this.initDefaultRoles();
-      this.saveCustomRoles();
     }
   }
 
   /**
-   * Guarda los roles personalizados en localStorage.
+   * @deprecated Roles se guardan directamente en Supabase, este método ya no se usa.
    */
   saveCustomRoles(): void {
-    localStorage.setItem('app_custom_roles', JSON.stringify(this.customRoles));
+    // No-op: roles are persisted in Supabase via saveRole() and toggle methods
   }
 
   /**
@@ -931,9 +974,28 @@ export class ParametersComponent implements OnInit {
   }
 
   /**
+   * Persiste un permiso de rol en Supabase (upsert).
+   */
+  private async upsertRolePermission(roleCode: string, moduleKey: string, perm: RolePermission): Promise<void> {
+    const { error } = await this.supabase
+      .from('role_module_permissions')
+      .upsert({
+        role_code: roleCode,
+        module_key: moduleKey,
+        can_view: perm.can_view,
+        can_create: perm.can_create,
+        can_edit: perm.can_edit,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'role_code,module_key' });
+
+    if (error) {
+      console.error('Error guardando permiso:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Alterna el permiso de vista para un rol y módulo específicos.
-   * @param role Rol a modificar.
-   * @param moduleKey Clave del módulo.
    */
   toggleViewPermission(role: CustomRole, moduleKey: string): void {
     let perm = role.permissions.find(p => p.module_key === moduleKey);
@@ -942,14 +1004,15 @@ export class ParametersComponent implements OnInit {
       role.permissions.push(perm);
     }
     perm.can_view = !perm.can_view;
-    this.saveCustomRoles();
-    this.showSuccess(`Permiso de vista actualizado para ${role.name}`);
+    // Si se quita la vista, también quitar crear y editar
+    if (!perm.can_view) { perm.can_create = false; perm.can_edit = false; }
+    this.upsertRolePermission(role.code, moduleKey, perm)
+      .then(() => this.showSuccess(`Permiso de vista actualizado para ${role.name}`))
+      .catch(e => this.showError('Error guardando permiso: ' + this.getErrorMessage(e)));
   }
 
   /**
    * Alterna el permiso de creación para un rol y módulo específicos.
-   * @param role Rol a modificar.
-   * @param moduleKey Clave del módulo.
    */
   toggleCreatePermission(role: CustomRole, moduleKey: string): void {
     let perm = role.permissions.find(p => p.module_key === moduleKey);
@@ -957,17 +1020,16 @@ export class ParametersComponent implements OnInit {
       perm = { module_key: moduleKey, can_view: false, can_create: false, can_edit: false };
       role.permissions.push(perm);
     }
-    // Si activa crear, también debe tener vista
-    if (!perm.can_create) perm.can_view = true;
     perm.can_create = !perm.can_create;
-    this.saveCustomRoles();
-    this.showSuccess(`Permiso de creación actualizado para ${role.name}`);
+    // Si activa crear, también debe tener vista
+    if (perm.can_create) perm.can_view = true;
+    this.upsertRolePermission(role.code, moduleKey, perm)
+      .then(() => this.showSuccess(`Permiso de creación actualizado para ${role.name}`))
+      .catch(e => this.showError('Error guardando permiso: ' + this.getErrorMessage(e)));
   }
 
   /**
    * Alterna el permiso de edición para un rol y módulo específicos.
-   * @param role Rol a modificar.
-   * @param moduleKey Clave del módulo.
    */
   toggleEditPermission(role: CustomRole, moduleKey: string): void {
     let perm = role.permissions.find(p => p.module_key === moduleKey);
@@ -975,11 +1037,12 @@ export class ParametersComponent implements OnInit {
       perm = { module_key: moduleKey, can_view: false, can_create: false, can_edit: false };
       role.permissions.push(perm);
     }
-    // Si activa editar, también debe tener vista
-    if (!perm.can_edit) perm.can_view = true;
     perm.can_edit = !perm.can_edit;
-    this.saveCustomRoles();
-    this.showSuccess(`Permiso de edición actualizado para ${role.name}`);
+    // Si activa editar, también debe tener vista
+    if (perm.can_edit) perm.can_view = true;
+    this.upsertRolePermission(role.code, moduleKey, perm)
+      .then(() => this.showSuccess(`Permiso de edición actualizado para ${role.name}`))
+      .catch(e => this.showError('Error guardando permiso: ' + this.getErrorMessage(e)));
   }
 
   /**
@@ -1017,7 +1080,7 @@ export class ParametersComponent implements OnInit {
   }
 
   /**
-   * Guarda un rol (crear nuevo o actualizar existente).
+   * Guarda un rol (crear nuevo o actualizar existente) en Supabase.
    */
   async saveRole(): Promise<void> {
     if (!this.roleForm.name.trim() || !this.roleForm.code.trim()) {
@@ -1025,51 +1088,73 @@ export class ParametersComponent implements OnInit {
       return;
     }
 
-    // Validar código único
-    const existingRole = this.customRoles.find(r => r.code === this.roleForm.code.toLowerCase().replace(/\s+/g, '_'));
+    const normalizedCode = this.roleForm.code.toLowerCase().replace(/\s+/g, '_');
+
+    // Validar código único contra los roles en memoria
+    const existingRole = this.customRoles.find(r => r.code === normalizedCode);
     if (existingRole && (!this.editingRole || existingRole.id !== this.editingRole.id)) {
       this.showError('Ya existe un rol con ese código');
       return;
     }
 
+    this.loading = true;
     try {
       if (this.editingRole) {
-        // Actualizar rol existente
-        this.editingRole.name = this.roleForm.name;
-        this.editingRole.description = this.roleForm.description;
-        this.editingRole.color = this.roleForm.color;
-        this.editingRole.icon = this.roleForm.icon;
+        // Actualizar en Supabase
+        const { error } = await this.supabase
+          .from('custom_roles')
+          .update({
+            name: this.roleForm.name,
+            description: this.roleForm.description,
+            color: this.roleForm.color,
+            icon: this.roleForm.icon,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', this.editingRole.id);
+
+        if (error) throw error;
         this.showSuccess(`✅ Rol "${this.roleForm.name}" actualizado`);
       } else {
-        // Crear nuevo rol
-        const newRole: CustomRole = {
-          id: 'role_' + Date.now(),
-          name: this.roleForm.name,
-          code: this.roleForm.code.toLowerCase().replace(/\s+/g, '_'),
-          description: this.roleForm.description,
-          color: this.roleForm.color,
-          icon: this.roleForm.icon,
-          is_default: false,
-          permissions: this.granularPermissions.map(p => ({
-            module_key: p.module_key,
-            can_view: false,
-            can_create: false,
-            can_edit: false
-          }))
-        };
-        this.customRoles.push(newRole);
-        this.showSuccess(`✅ Rol "${this.roleForm.name}" creado`);
+        // Insertar nuevo rol en Supabase
+        const { data, error } = await this.supabase
+          .from('custom_roles')
+          .insert([{
+            name: this.roleForm.name,
+            code: normalizedCode,
+            description: this.roleForm.description,
+            color: this.roleForm.color,
+            icon: this.roleForm.icon,
+            is_default: false
+          }])
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        // Crear filas de permisos (todo en false) para el nuevo rol
+        const permRows = this.granularPermissions.map(p => ({
+          role_code: normalizedCode,
+          module_key: p.module_key,
+          can_view: false,
+          can_create: false,
+          can_edit: false
+        }));
+        await this.supabase.from('role_module_permissions').insert(permRows);
+
+        this.showSuccess(`✅ Rol "${this.roleForm.name}" creado. Ahora configura sus permisos en la pestaña Módulos.`);
       }
 
-      this.saveCustomRoles();
       this.closeRoleModal();
+      await this.loadCustomRoles();
     } catch (e: unknown) {
       this.showError('Error guardando rol: ' + this.getErrorMessage(e));
+    } finally {
+      this.loading = false;
     }
   }
 
   /**
-   * Elimina un rol personalizado (no roles por defecto).
+   * Elimina un rol personalizado (no roles por defecto) de Supabase.
    * @param roleId ID del rol a eliminar.
    */
   async deleteRole(roleId: string): Promise<void> {
@@ -1085,9 +1170,25 @@ export class ParametersComponent implements OnInit {
       return;
     }
 
-    this.customRoles = this.customRoles.filter(r => r.id !== roleId);
-    this.saveCustomRoles();
-    this.showSuccess(`✅ Rol "${role.name}" eliminado`);
+    this.loading = true;
+    try {
+      const { error } = await this.supabase
+        .from('custom_roles')
+        .delete()
+        .eq('id', roleId);
+
+      if (error) throw error;
+
+      if (this.selectedRole?.id === roleId) {
+        this.selectedRole = null;
+      }
+      this.showSuccess(`✅ Rol "${role.name}" eliminado`);
+      await this.loadCustomRoles();
+    } catch (e: unknown) {
+      this.showError('Error eliminando rol: ' + this.getErrorMessage(e));
+    } finally {
+      this.loading = false;
+    }
   }
 
   /**
@@ -1150,16 +1251,15 @@ export class ParametersComponent implements OnInit {
   }
 
   /**
-   * Reinicia todos los roles a sus valores por defecto.
+   * Reinicia todos los roles a sus valores por defecto recargando desde Supabase.
    */
-  resetRoles(): void {
-    if (!confirm('¿Restablecer todos los roles a valores predeterminados? Esto eliminará los roles creados.')) {
+  async resetRoles(): Promise<void> {
+    if (!confirm('¿Restablecer la vista? Se recargará la información de roles desde la base de datos.')) {
       return;
     }
-    this.initDefaultRoles();
-    this.saveCustomRoles();
     this.selectedRole = null;
-    this.showSuccess('✅ Roles restablecidos a valores predeterminados');
+    await this.loadCustomRoles();
+    this.showSuccess('✅ Roles recargados desde la base de datos');
   }
 
   async loadUsers(): Promise<void> {

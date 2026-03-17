@@ -126,7 +126,7 @@
 
         <select class="filter-select" [(ngModel)]="filterRole" (ngModelChange)="applyUserFilters()">
           <option value="">Filtrar por rol</option>
-          <option *ngFor="let r of roles" [value]="r">{{ r | titlecase }}</option>
+          <option *ngFor="let r of customRoles" [value]="r.code">{{ r.name }}</option>
         </select>
 
         <span class="results-count">{{ filteredUsers.length }} usuarios</span>
@@ -781,10 +781,11 @@
         <label class="form-label"><i class="fas fa-id-badge"></i> Rol del usuario</label>
 
         <div class="role-selector">
-          <label *ngFor="let r of roles" class="role-option" [class.selected]="userForm.role===r">
-            <input type="radio" name="role" [value]="r" [(ngModel)]="userForm.role" hidden />
-            <i [class]="getRoleIcon(r)"></i>
-            <span>{{ r | titlecase }}</span>
+          <label *ngFor="let r of customRoles" class="role-option" [class.selected]="userForm.role===r.code"
+                 [style.--role-color]="r.color">
+            <input type="radio" name="role" [value]="r.code" [(ngModel)]="userForm.role" hidden />
+            <i [class]="r.icon" [style.color]="r.color"></i>
+            <span>{{ r.name }}</span>
           </label>
         </div>
       </div>
