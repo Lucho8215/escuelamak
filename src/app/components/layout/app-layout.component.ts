@@ -37,6 +37,7 @@ export class AppLayoutComponent implements OnInit {
    * Contador de mensajes no leídos para la campana de notificaciones.
    */
   unreadCount = 0;
+  private currentAuthId = '';  // Fijado una vez en syncAuthUserId, nunca desde getUser()
 
   /**
    * Intervalo de polling para actualizar el contador de mensajes no leídos.
@@ -188,6 +189,8 @@ export class AppLayoutComponent implements OnInit {
     const supabase = this.supabaseService.getClient();
     const { data: { user: authUser } } = await supabase.auth.getUser();
     if (authUser?.id) {
+      // Guardar una sola vez — nunca volver a llamar getUser() desde otros métodos
+      this.currentAuthId = authUser.id;
       await supabase.from('app_users')
         .update({ auth_user_id: authUser.id })
         .eq('id', this.currentUser.id);
@@ -195,14 +198,10 @@ export class AppLayoutComponent implements OnInit {
   }
 
   async loadUnreadCount(): Promise<void> {
-    if (!this.currentUser) return;
+    if (!this.currentUser || !this.currentAuthId) return;
 
     const supabase = this.supabaseService.getClient();
-
-    // Usar auth.users.id (igual que la app móvil)
-    const { data: { user: authUser } } = await supabase.auth.getUser();
-    const authId = authUser?.id;
-    if (!authId) return;
+    const authId = this.currentAuthId;  // Usar el valor fijado al iniciar, nunca getUser()
 
     // Contar mensajes no leídos recibidos (receiver_id = mi auth ID)
     const { count: c1 } = await supabase

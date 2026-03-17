@@ -727,11 +727,6 @@ export class CoursesComponent implements OnInit, OnDestroy {
 
   // ─── CHAT ────────────────────────────────────────────────────────────────
 
-  private async getMyAuthId(): Promise<string> {
-    const { data: { user } } = await this.supabase.auth.getUser();
-    return user?.id ?? '';
-  }
-
   private async getOrCreateConversation(myAuthId: string, otherAuthId: string): Promise<string | null> {
     try {
       const { data: existing } = await this.supabase
@@ -755,7 +750,7 @@ export class CoursesComponent implements OnInit, OnDestroy {
     this.chatClassId = classId;
     this.showChat = true;
 
-    const myAuthId = await this.getMyAuthId();
+    const myAuthId = this.currentAuthId;
     if (!myAuthId) { await this.loadChatMessages(); return; }
 
     // 1. Buscar conversación existente donde participa el estudiante
@@ -823,7 +818,7 @@ export class CoursesComponent implements OnInit, OnDestroy {
       }));
 
       // Marcar como leídos los mensajes recibidos
-      const myAuthId = await this.getMyAuthId();
+      const myAuthId = this.currentAuthId;
       const unread = this.chatMessages
         .filter((m: any) => m.receiver_id === myAuthId && !m.is_read)
         .map((m: any) => m.id);
@@ -839,7 +834,7 @@ export class CoursesComponent implements OnInit, OnDestroy {
     if (!this.chatInput.trim() || this.sendingMsg) return;
     this.sendingMsg = true;
     try {
-      const myAuthId = await this.getMyAuthId();
+      const myAuthId = this.currentAuthId;
 
       // Asegurar que existe la conversación
       if (!this.conversationId) {

@@ -265,12 +265,6 @@ export class ReviewComponent implements OnInit, OnDestroy {
     return this.conversations.reduce((sum, c) => sum + c.unread, 0);
   }
 
-  // Obtiene el auth.users.id del usuario actual (el que usa la app móvil)
-  private async getMyAuthId(): Promise<string> {
-    const { data: { user } } = await this.supabase.auth.getUser();
-    return user?.id ?? '';
-  }
-
   // Busca o crea una conversación entre dos auth IDs (igual que la app móvil)
   private async getOrCreateConversation(myAuthId: string, otherAuthId: string): Promise<string | null> {
     try {
@@ -293,7 +287,7 @@ export class ReviewComponent implements OnInit, OnDestroy {
   async loadConversations(): Promise<void> {
     this.loadingConversations = true;
     try {
-      const myAuthId = await this.getMyAuthId();
+      const myAuthId = this.currentAuthId;
       if (!myAuthId) return;
 
       // 1. Obtener todas las conversaciones donde participa el admin/teacher
@@ -383,7 +377,7 @@ export class ReviewComponent implements OnInit, OnDestroy {
     if (!this.newMsgInput.trim() || !this.selectedStudentId || this.sendingNew) return;
     this.sendingNew = true;
     try {
-      const myAuthId = await this.getMyAuthId();
+      const myAuthId = this.currentAuthId;
 
       // Obtener auth_user_id del estudiante seleccionado
       const { data: student } = await this.supabase
@@ -422,7 +416,7 @@ export class ReviewComponent implements OnInit, OnDestroy {
     if (!this.replyInput.trim() || !this.activeConversation || this.sendingReply) return;
     this.sendingReply = true;
     try {
-      const myAuthId = await this.getMyAuthId();
+      const myAuthId = this.currentAuthId;
       const { error } = await this.supabase.from('messages').insert([{
         conversation_id: this.activeConversation.id,
         sender_id: myAuthId,
