@@ -3,8 +3,8 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { QuizService } from '../../services/quiz.service';
-import { LessonService } from '../../services/lesson.service';
 import { AuthService } from '../../services/auth.service';
+import { SupabaseService } from '../../services/supabase.service';
 import { Quiz } from '../../models/quiz.model';
 import { UserRole } from '../../models/user.model';
 
@@ -58,11 +58,28 @@ export class ReviewComponent implements OnInit {
   // ID del usuario actual
   currentUserId: string = '';
 
+  // ─── MENSAJES ────────────────────────────────────────
+  conversations: any[] = [];
+  loadingConversations = false;
+  activeConversation: any | null = null;
+  activeMessages: any[] = [];
+  loadingMessages = false;
+  replyInput = '';
+  sendingReply = false;
+  // Para nuevo mensaje a estudiante
+  allStudents: any[] = [];
+  selectedStudentId = '';
+  newMsgInput = '';
+  sendingNew = false;
+  showNewMsg = false;
+
   constructor(
     private quizService: QuizService,
-    private lessonService: LessonService,
-    private authService: AuthService
+    private authService: AuthService,
+    private supabaseService: SupabaseService
   ) {}
+
+  private get supabase() { return this.supabaseService.getClient(); }
 
   async ngOnInit(): Promise<void> {
     const user = this.authService.getCurrentUser();
@@ -74,6 +91,15 @@ export class ReviewComponent implements OnInit {
 
     // Cargamos los quizzes al inicio
     await this.loadQuizzes();
+
+    await this.loadConversations();
+
+    // Verificar si hay una señal para abrir el modal de mensajes
+    const pendingModal = localStorage.getItem('open_modal');
+    if (pendingModal === 'mensajes') {
+      localStorage.removeItem('open_modal');
+      this.abrirModalMensajes();
+    }
   }
 
   // ─── CARGAR QUIZZES ──────────────────────────────────
@@ -213,5 +239,154 @@ export class ReviewComponent implements OnInit {
   // Quizzes activos/inactivos para el resumen
   getQuizzesActivos(): number {
     return this.quizzes.filter(q => q.isEnabled).length;
+  }
+
+  // ─── MENSAJES ────────────────────────────────────────
+  abrirModalMensajes(): void {
+    this.modalActivo = 'mensajes';
+    this.loadConversations();
+  }
+
+  getTotalUnread(): number {
+    return this.conversations.reduce((sum, c) => sum + c.unread, 0);
+  }
+
+  async loadConversations(): Promise<void> {
+    this.loadingConversations = true;
+    try {
+      // 1. Cargar todos los mensajes sin join
+      const { data: msgs, error } = await this.supabase
+        .from('messages')
+        .select('id, sender_id, receiver_id, contenido, is_read, created_at')
+        .order('created_at', { ascending: false });
+      if (error) { console.error('Error mensajes:', error); return; }
+      if (!msgs || msgs.length === 0) return;
+
+      // 2. Obtener IDs únicos de usuarios involucrados
+      const userIds = [...new Set([
+        ...msgs.map((m: any) => m.sender_id),
+        ...msgs.map((m: any) => m.receiver_id).filter(Boolean)
+      ])];
+
+      // 3. Cargar info de usuarios
+      const { data: users } = await this.supabase
+        .from('app_users')
+        .select('id, name, role')
+        .in('id', userIds);
+      const userMap = new Map((users || []).map((u: any) => [u.id, u]));
+
+      // 4. Agrupar por estudiante
+      const convMap = new Map<string, any>();
+      for (const msg of msgs) {
+        const sender = userMap.get(msg.sender_id);
+        const receiver = msg.receiver_id ? userMap.get(msg.receiver_id) : null;
+        // El estudiante es quien tiene role = 'student'
+        let student = sender?.role === 'student' ? sender : (receiver?.role === 'student' ? receiver : null);
+        // Si no tenemos info de roles, asumimos que el sender no-admin es el estudiante
+        if (!student) {
+          if (sender && sender.role !== 'admin' && sender.role !== 'teacher' && sender.role !== 'tutor') {
+            student = sender;
+          } else if (receiver && receiver.role !== 'admin' && receiver.role !== 'teacher' && receiver.role !== 'tutor') {
+            student = receiver;
+          } else {
+            student = sender; // fallback
+          }
+        }
+        if (!student) continue;
+
+        const key = student.id;
+        if (!convMap.has(key)) {
+          convMap.set(key, { student, lastMessage: msg, unread: 0 });
+        }
+        const conv = convMap.get(key)!;
+        if (new Date(msg.created_at) > new Date(conv.lastMessage.created_at)) {
+          conv.lastMessage = msg;
+        }
+        if (sender?.role === 'student' && !msg.is_read) conv.unread++;
+      }
+      this.conversations = Array.from(convMap.values())
+        .sort((a, b) => new Date(b.lastMessage.created_at).getTime() - new Date(a.lastMessage.created_at).getTime());
+
+      // 5. Cargar lista de todos los estudiantes para enviar nuevo mensaje
+      const { data: students } = await this.supabase
+        .from('app_users').select('id, name').eq('role', 'student').order('name');
+      this.allStudents = students || [];
+    } finally {
+      this.loadingConversations = false;
+    }
+  }
+
+  async openConversation(conv: any): Promise<void> {
+    this.activeConversation = conv;
+    this.showNewMsg = false;
+    this.loadingMessages = true;
+    try {
+      const { data } = await this.supabase
+        .from('messages')
+        .select('id, sender_id, receiver_id, contenido, is_read, created_at')
+        .or(`sender_id.eq.${conv.student.id},receiver_id.eq.${conv.student.id}`)
+        .order('created_at', { ascending: true });
+      this.activeMessages = data || [];
+      const unreadIds = this.activeMessages
+        .filter((m: any) => m.sender_id === conv.student.id && !m.is_read)
+        .map((m: any) => m.id);
+      if (unreadIds.length > 0) {
+        await this.supabase.from('messages').update({ is_read: true }).in('id', unreadIds);
+        conv.unread = 0;
+      }
+    } finally {
+      this.loadingMessages = false;
+    }
+  }
+
+  async sendNewMessage(): Promise<void> {
+    if (!this.newMsgInput.trim() || !this.selectedStudentId || this.sendingNew) return;
+    this.sendingNew = true;
+    try {
+      const { error } = await this.supabase.from('messages').insert([{
+        sender_id: this.currentUserId,
+        receiver_id: this.selectedStudentId,
+        contenido: this.newMsgInput.trim(),
+        is_read: false
+      }]);
+      if (error) {
+        console.error('Error enviando mensaje nuevo:', error);
+        alert('Error al enviar: ' + error.message);
+      } else {
+        this.newMsgInput = '';
+        this.showNewMsg = false;
+        await this.loadConversations();
+      }
+    } finally {
+      this.sendingNew = false;
+    }
+  }
+
+  closeConversation(): void {
+    this.activeConversation = null;
+    this.activeMessages = [];
+    this.replyInput = '';
+  }
+
+  async sendReply(): Promise<void> {
+    if (!this.replyInput.trim() || !this.activeConversation || this.sendingReply) return;
+    this.sendingReply = true;
+    try {
+      const { error } = await this.supabase.from('messages').insert([{
+        sender_id: this.currentUserId,
+        receiver_id: this.activeConversation.student.id,
+        contenido: this.replyInput.trim(),
+        is_read: false
+      }]);
+      if (error) {
+        console.error('Error enviando respuesta:', error);
+        alert('Error al enviar: ' + error.message);
+      } else {
+        this.replyInput = '';
+        await this.openConversation(this.activeConversation);
+      }
+    } finally {
+      this.sendingReply = false;
+    }
   }
 }

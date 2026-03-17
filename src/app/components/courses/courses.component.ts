@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { CourseService } from '../../services/course.service';
@@ -13,7 +14,7 @@ type ResourceType = 'video' | 'pdf' | 'imagen' | 'contenido';
 @Component({
   selector: 'app-courses',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, FormsModule],
   templateUrl: './courses.component.html',
   styleUrls: ['./courses.component.css']
 })
@@ -52,6 +53,15 @@ export class CoursesComponent implements OnInit {
   ttsSupported = typeof window !== 'undefined' && 'speechSynthesis' in window;
   leyendo = false;
   private synth: SpeechSynthesis | null = typeof window !== 'undefined' ? window.speechSynthesis : null;
+
+  // --- CHAT ---
+  showChat = false;
+  chatMessages: any[] = [];
+  chatInput = '';
+  sendingMsg = false;
+  loadingMsgs = false;
+  chatCourseId: string | null = null;
+  chatClassId: string | null = null;
 
   constructor(
     private courseService: CourseService,
@@ -693,5 +703,102 @@ export class CoursesComponent implements OnInit {
     utterance.onerror = () => { this.leyendo = false; };
     this.leyendo = true;
     this.synth.speak(utterance);
+  }
+
+  // ─── CHAT ────────────────────────────────────────────────────────────────
+
+  openChat(courseId: string, classId: string | null = null): void {
+    this.chatCourseId = courseId;
+    this.chatClassId = classId;
+    this.showChat = true;
+    this.loadChatMessages();
+  }
+
+  closeChat(): void {
+    this.showChat = false;
+    this.chatMessages = [];
+    this.chatInput = '';
+  }
+
+  async loadChatMessages(): Promise<void> {
+    this.loadingMsgs = true;
+    try {
+      // 1. Cargar mensajes sin join (no hay FK definida)
+      let query = this.supabase
+        .from('messages')
+        .select('id, sender_id, receiver_id, contenido, is_read, created_at')
+        .order('created_at', { ascending: true });
+
+      if (this.isStudent) {
+        query = query.or(`sender_id.eq.${this.currentUserId},receiver_id.eq.${this.currentUserId}`);
+      }
+
+      const { data: msgs } = await query;
+      if (!msgs || msgs.length === 0) {
+        this.chatMessages = [];
+        return;
+      }
+
+      // 2. Obtener info de usuarios involucrados
+      const userIds = [...new Set([
+        ...msgs.map((m: any) => m.sender_id),
+        ...msgs.map((m: any) => m.receiver_id).filter(Boolean)
+      ])];
+      const { data: users } = await this.supabase
+        .from('app_users')
+        .select('id, name, role')
+        .in('id', userIds);
+      const userMap = new Map((users || []).map((u: any) => [u.id, u]));
+
+      // 3. Enriquecer mensajes con datos del sender
+      this.chatMessages = msgs.map((m: any) => ({
+        ...m,
+        sender: userMap.get(m.sender_id) ?? { name: 'Usuario', role: '' }
+      }));
+
+      // 4. Marcar como leídos los mensajes recibidos
+      const unread = this.chatMessages
+        .filter((m: any) => m.receiver_id === this.currentUserId && !m.is_read)
+        .map((m: any) => m.id);
+      if (unread.length > 0) {
+        await this.supabase.from('messages').update({ is_read: true }).in('id', unread);
+      }
+    } finally {
+      this.loadingMsgs = false;
+    }
+  }
+
+  async sendMessage(): Promise<void> {
+    if (!this.chatInput.trim() || this.sendingMsg) return;
+    this.sendingMsg = true;
+    try {
+      let receiverId: string | null = null;
+
+      if (this.isStudent) {
+        // Estudiante → enviar al primer admin/teacher disponible
+        const { data: staffList } = await this.supabase
+          .from('app_users')
+          .select('id')
+          .in('role', ['admin', 'teacher'])
+          .limit(1);
+        receiverId = (staffList && staffList.length > 0) ? staffList[0].id : null;
+      }
+      // Admin/teacher → receiver_id null (broadcast visible para todos los staff)
+
+      const { error } = await this.supabase.from('messages').insert([{
+        sender_id: this.currentUserId,
+        receiver_id: receiverId,
+        contenido: this.chatInput.trim()
+      }]);
+      if (error) {
+        console.error('Error enviando mensaje:', error);
+        alert('Error al enviar: ' + error.message);
+      } else {
+        this.chatInput = '';
+        await this.loadChatMessages();
+      }
+    } finally {
+      this.sendingMsg = false;
+    }
   }
 }

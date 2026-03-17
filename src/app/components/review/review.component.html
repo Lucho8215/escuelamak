@@ -83,6 +83,16 @@
       <div class="accion-flecha">→</div>
     </div>
 
+    <!-- Tarjeta: Mensajes de Estudiantes -->
+    <div class="accion-card mensajes-card" (click)="abrirModalMensajes()" *ngIf="isAdminOrTeacher">
+      <div class="accion-icono">💬</div>
+      <div class="accion-info">
+        <h3>Mensajes de Estudiantes</h3>
+        <p>{{ conversations.length }} conversaciones · {{ getTotalUnread() }} sin leer</p>
+      </div>
+      <div class="accion-flecha">→</div>
+    </div>
+
   </div>
 
   <!-- ═══════════════════════════════════════════════════
@@ -375,6 +385,123 @@
       </div>
 
       <button class="btn-cerrar" (click)="cerrarModal()">Cerrar</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       MODAL: MENSAJES DE ESTUDIANTES
+  ═══════════════════════════════════════════════════════ -->
+  <div class="modal-overlay" *ngIf="modalActivo === 'mensajes'" (click)="cerrarModal()">
+    <div class="modal-box modal-mensajes" (click)="$event.stopPropagation()">
+
+      <div class="modal-header">
+        <div>
+          <h2>💬 Mensajes de Estudiantes</h2>
+          <p>{{ conversations.length }} conversaciones</p>
+        </div>
+        <button class="btn-close" (click)="cerrarModal()">✕</button>
+      </div>
+
+      <!-- Layout de mensajería: lista + detalle -->
+      <div class="mensajes-layout">
+
+        <!-- Lista de conversaciones -->
+        <div class="conv-list">
+          <!-- Botón nuevo mensaje -->
+          <div class="conv-new-btn-wrap">
+            <button class="conv-new-btn" (click)="showNewMsg = !showNewMsg">
+              <i class="fas fa-pen"></i> Nuevo mensaje
+            </button>
+          </div>
+
+          <div *ngIf="loadingConversations" class="conv-loading">⏳ Cargando...</div>
+          <div *ngIf="!loadingConversations && conversations.length === 0" class="conv-empty">
+            <div style="font-size:2rem">📭</div>
+            <p>No hay mensajes aún</p>
+          </div>
+          <div *ngFor="let conv of conversations"
+               class="conv-item"
+               [class.conv-active]="activeConversation?.student?.id === conv.student?.id"
+               [class.conv-unread]="conv.unread > 0"
+               (click)="openConversation(conv)">
+            <div class="conv-avatar">{{ conv.student?.name?.charAt(0)?.toUpperCase() || '?' }}</div>
+            <div class="conv-info">
+              <div class="conv-name">{{ conv.student?.name || 'Estudiante' }}</div>
+              <div class="conv-preview">{{ conv.lastMessage?.contenido }}</div>
+            </div>
+            <span class="conv-badge" *ngIf="conv.unread > 0">{{ conv.unread }}</span>
+          </div>
+        </div>
+
+        <!-- Panel de mensajes -->
+        <div class="msg-panel">
+
+          <!-- Nuevo mensaje a estudiante -->
+          <div *ngIf="showNewMsg" class="new-msg-panel">
+            <div class="new-msg-header">
+              <strong>✉️ Nuevo Mensaje</strong>
+              <button class="btn-back-conv" (click)="showNewMsg = false">✕</button>
+            </div>
+            <select class="msg-student-select" [(ngModel)]="selectedStudentId">
+              <option value="">Selecciona un estudiante...</option>
+              <option *ngFor="let s of allStudents" [value]="s.id">{{ s.name }}</option>
+            </select>
+            <div class="msg-input-area">
+              <input class="msg-input"
+                     [(ngModel)]="newMsgInput"
+                     placeholder="Escribe tu mensaje..."
+                     (keyup.enter)="sendNewMessage()"
+                     [disabled]="sendingNew">
+              <button class="msg-send-btn"
+                      (click)="sendNewMessage()"
+                      [disabled]="sendingNew || !newMsgInput.trim() || !selectedStudentId">
+                <i class="fas fa-paper-plane"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Sin conversación seleccionada -->
+          <div *ngIf="!activeConversation && !showNewMsg" class="msg-placeholder">
+            <div style="font-size:3rem">💬</div>
+            <p>Selecciona una conversación<br><small>o escribe un nuevo mensaje</small></p>
+          </div>
+
+          <!-- Conversación activa -->
+          <ng-container *ngIf="activeConversation && !showNewMsg">
+            <div class="msg-panel-header">
+              <button class="btn-back-conv" (click)="closeConversation()">← Volver</button>
+              <strong>{{ activeConversation.student?.name }}</strong>
+            </div>
+
+            <div class="msg-list">
+              <div *ngIf="loadingMessages" class="conv-loading">⏳</div>
+              <div *ngFor="let msg of activeMessages"
+                   class="msg-bubble"
+                   [class.msg-mine]="msg.sender_id === currentUserId"
+                   [class.msg-theirs]="msg.sender_id !== currentUserId">
+                <div class="msg-meta">
+                  <span>{{ msg.sender_id === currentUserId ? 'Tú' : (activeConversation.student?.name || 'Estudiante') }}</span>
+                  <span>{{ msg.created_at | date:'d MMM HH:mm' }}</span>
+                </div>
+                <div class="msg-text">{{ msg.contenido }}</div>
+              </div>
+            </div>
+
+            <div class="msg-input-area">
+              <input class="msg-input"
+                     [(ngModel)]="replyInput"
+                     placeholder="Escribe tu respuesta..."
+                     (keyup.enter)="sendReply()"
+                     [disabled]="sendingReply">
+              <button class="msg-send-btn"
+                      (click)="sendReply()"
+                      [disabled]="sendingReply || !replyInput.trim()">
+                <i class="fas fa-paper-plane"></i>
+              </button>
+            </div>
+          </ng-container>
+        </div>
+      </div>
     </div>
   </div>
 

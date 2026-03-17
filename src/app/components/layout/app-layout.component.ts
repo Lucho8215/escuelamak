@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule, Router, RouterOutlet } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { PlatformPermissionsService } from '../../services/platform-permissions.service';
+import { SupabaseService } from '../../services/supabase.service';
 import { User, UserRole } from '../../models/user.model';
 import { Subscription, BehaviorSubject } from 'rxjs';
 
@@ -31,6 +32,16 @@ export class AppLayoutComponent implements OnInit {
    * Lo obtenemos desde AuthService.
    */
   currentUser: User | null = null;
+
+  /**
+   * Contador de mensajes no leídos para la campana de notificaciones.
+   */
+  unreadCount = 0;
+
+  /**
+   * Intervalo de polling para actualizar el contador de mensajes no leídos.
+   */
+  private pollInterval: any;
 
   /**
    * Subscription para los permisos de plataforma
@@ -124,7 +135,8 @@ export class AppLayoutComponent implements OnInit {
   constructor(
     private authService: AuthService,
     private router: Router,
-    private permissionsService: PlatformPermissionsService
+    private permissionsService: PlatformPermissionsService,
+    private supabaseService: SupabaseService
   ) {}
 
   /**
@@ -132,6 +144,7 @@ export class AppLayoutComponent implements OnInit {
    * 1. cargamos el usuario actual
    * 2. si no existe, lo mandamos a login
    * 3. suscribimos a cambios en permisos para actualizar el menú
+   * 4. cargamos el contador de mensajes no leídos y lo actualizamos cada 30s
    */
   ngOnInit(): void {
     this.currentUser = this.authService.getCurrentUser();
@@ -146,15 +159,65 @@ export class AppLayoutComponent implements OnInit {
       this.menuRefreshCount = this.menuRefresh$.value + 1;
       this.menuRefresh$.next(this.menuRefreshCount);
     });
+
+    // Cargar contador de mensajes no leídos y configurar polling cada 30s
+    this.loadUnreadCount();
+    this.pollInterval = setInterval(() => this.loadUnreadCount(), 30000);
   }
 
   /**
-   * Limpiar suscripciones al destruir el componente
+   * Limpiar suscripciones e intervalos al destruir el componente
    */
   ngOnDestroy(): void {
     if (this.permissionsSubscription) {
       this.permissionsSubscription.unsubscribe();
     }
+    clearInterval(this.pollInterval);
+  }
+
+  /**
+   * Consulta la base de datos para obtener el conteo de mensajes no leídos.
+   * - Admin/teacher/tutor: mensajes enviados a todos (recipient_id IS NULL) que no sean del propio usuario
+   * - Estudiantes: mensajes dirigidos a ellos que no han sido leídos
+   */
+  async loadUnreadCount(): Promise<void> {
+    if (!this.currentUser) return;
+
+    const supabase = this.supabaseService.getClient();
+    const role = this.currentUser.role;
+    const userId = this.currentUser.id;
+
+    let query = supabase
+      .from('messages')
+      .select('id', { count: 'exact', head: true });
+
+    query = query
+      .eq('receiver_id', userId)
+      .eq('is_read', false);
+
+    const { count, error } = await query;
+    if (!error && count !== null) {
+      this.unreadCount = count;
+    }
+  }
+
+  /**
+   * Navega a la sección de mensajes según el rol del usuario.
+   * - Admin/teacher/tutor: /review con fragmento mensajes
+   * - Estudiantes: /courses con fragmento mensajes
+   */
+  goToMessages(): void {
+    if (!this.currentUser) return;
+
+    const isStaff = this.currentUser.role === UserRole.ADMIN ||
+                    this.currentUser.role === UserRole.TEACHER ||
+                    this.currentUser.role === UserRole.TUTOR;
+
+    // Señal para que el componente destino abra el modal de mensajes
+    localStorage.setItem('open_modal', 'mensajes');
+
+    const route = isStaff ? '/review' : '/courses';
+    this.router.navigate([route]);
   }
 
   /**
@@ -164,21 +227,21 @@ export class AppLayoutComponent implements OnInit {
   get visibleNavItems(): NavItem[] {
     // Depender del observable para actualizar cuando cambien los permisos
     this.menuRefresh$.value;
-    
+
     if (!this.currentUser) {
       return [];
     }
 
     const role = this.currentUser.role as 'admin' | 'teacher' | 'tutor' | 'student';
     const userRole = this.currentUser.role;
-    
+
     return this.navItems.filter(item => {
       // Primero verificar si el rol del usuario está en la lista de roles permitidos
       const hasRoleAccess = item.roles.includes(userRole);
-      
+
       // Luego verificar si el módulo está habilitado para ese rol
       const isModuleEnabled = this.permissionsService.isModuleEnabled(item.moduleKey, role);
-      
+
       // El usuario debe tener ambas condiciones
       return hasRoleAccess && isModuleEnabled;
     });

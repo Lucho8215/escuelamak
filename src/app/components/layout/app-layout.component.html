@@ -25,6 +25,13 @@
 
     <!-- Menú de navegación -->
     <nav class="sidebar-nav">
+      <!-- Mensajes (campana) — siempre visible, primer ítem -->
+      <div class="notif-bell nav-link" [class.has-notif]="unreadCount > 0" (click)="goToMessages()" title="Mensajes sin leer">
+        <i class="fas fa-bell"></i>
+        <span class="notif-badge" *ngIf="unreadCount > 0">{{ unreadCount > 99 ? '99+' : unreadCount }}</span>
+        <span class="notif-label">Mensajes</span>
+      </div>
+
       <a
         *ngFor="let item of visibleNavItems"
         [routerLink]="item.route"

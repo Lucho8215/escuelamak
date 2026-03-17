@@ -51,6 +51,12 @@
         </div>
         <button class="btn-close" (click)="closeModal()">✕</button>
       </div>
+      <!-- Botón chat -->
+      <div *ngIf="selectedCourse" class="chat-trigger-row">
+        <button class="btn-chat-open" (click)="openChat(selectedCourse.id)">
+          💬 {{ isStudent ? 'Chatear con mi Tutor' : 'Ver mensajes del curso' }}
+        </button>
+      </div>
       <div *ngIf="loadingClasses" class="loading-small">⏳ Cargando clases...</div>
       <div *ngIf="!loadingClasses && classes.length === 0" class="sin-clases">
         <p>📭 {{ isStudent ? 'No tienes clases asignadas en este curso aún.' : 'Este curso no tiene clases todavía.' }}</p>
@@ -351,6 +357,52 @@
       </div>
       <!-- Fin detalle interactivo -->
       <button class="btn-cerrar" (click)="closeModal()">Cerrar</button>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════
+       PANEL DE CHAT
+  ════════════════════════════════════ -->
+  <div class="chat-overlay" *ngIf="showChat" (click)="closeChat()"></div>
+  <div class="chat-panel" [class.chat-open]="showChat">
+    <!-- Header -->
+    <div class="chat-header">
+      <div class="chat-header-info">
+        <i class="fas fa-comments"></i>
+        <span>Chat con Tutor</span>
+      </div>
+      <button class="chat-close-btn" (click)="closeChat()">✕</button>
+    </div>
+    <!-- Mensajes -->
+    <div class="chat-messages" #chatContainer>
+      <div *ngIf="loadingMsgs" class="chat-loading">⏳ Cargando mensajes...</div>
+      <div *ngIf="!loadingMsgs && chatMessages.length === 0" class="chat-empty">
+        <div style="font-size:2.5rem">💬</div>
+        <p>Inicia la conversación con tu tutor</p>
+      </div>
+      <div *ngFor="let msg of chatMessages"
+           class="chat-bubble"
+           [class.chat-mine]="msg.sender_id === currentUserId"
+           [class.chat-theirs]="msg.sender_id !== currentUserId">
+        <div class="chat-bubble-meta">
+          <span class="chat-sender">{{ msg.sender_id === currentUserId ? 'Tú' : (msg.sender?.name || 'Tutor') }}</span>
+          <span class="chat-time">{{ msg.created_at | date:'HH:mm' }}</span>
+        </div>
+        <div class="chat-bubble-text">{{ msg.contenido }}</div>
+      </div>
+    </div>
+    <!-- Input -->
+    <div class="chat-input-area">
+      <input class="chat-input"
+             [(ngModel)]="chatInput"
+             placeholder="Escribe tu pregunta..."
+             (keyup.enter)="sendMessage()"
+             [disabled]="sendingMsg">
+      <button class="chat-send-btn"
+              (click)="sendMessage()"
+              [disabled]="sendingMsg || !chatInput.trim()">
+        <i class="fas fa-paper-plane"></i>
+      </button>
     </div>
   </div>
 </div>

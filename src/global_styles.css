@@ -3,6 +3,17 @@
   --primary-blue: #87CEFA;
   --primary-green: #98FB98;
   --box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+  /* === Tema dinámico === */
+  --font-family: var(--font-family);
+  --color-primary: #667eea;
+  --color-secondary: #764ba2;
+  --color-accent: #f093fb;
+  --color-bg: #f0f2ff;
+}
+
+/* Fuente global que respeta el tema */
+body {
+  font-family: var(--font-family);
 }
 
 /* Contenedor principal */
@@ -26,7 +37,7 @@
   padding: 0.5rem 1rem;
   border-radius: 20px;
   text-decoration: none;
-  font-family: 'Comic Sans MS', cursive;
+  font-family: var(--font-family);
   margin-bottom: 1rem;
   transition: all 0.3s ease;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
@@ -97,7 +108,7 @@
   font-size: 2rem;
   margin-bottom: 1rem;
   text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
-  font-family: 'Comic Sans MS', cursive;
+  font-family: var(--font-family);
 }
 
 .kid-card p {
@@ -105,7 +116,7 @@
   font-size: 1.2rem;
   margin-bottom: 2rem;
   text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
-  font-family: 'Comic Sans MS', cursive;
+  font-family: var(--font-family);
 }
 
 /* Botones */
@@ -119,7 +130,7 @@
   border: none;
   cursor: pointer;
   transition: all 0.3s ease;
-  font-family: 'Comic Sans MS', cursive;
+  font-family: var(--font-family);
   box-shadow: 0 4px 15px rgba(0,0,0,0.1);
 }
 
@@ -156,7 +167,7 @@
   color: white;
   font-size: 1.2rem;
   margin-bottom: 0.5rem;
-  font-family: 'Comic Sans MS', cursive;
+  font-family: var(--font-family);
 }
 
 .kid-input {
@@ -165,7 +176,7 @@
   border: 3px solid white;
   border-radius: 15px;
   font-size: 1.1rem;
-  font-family: 'Comic Sans MS', cursive;
+  font-family: var(--font-family);
   background-color: rgba(255, 255, 255, 0.9);
   transition: all 0.3s ease;
 }

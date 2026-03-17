@@ -115,6 +115,7 @@ interface SchoolForm {
   secondary_color: string;
   accent_color: string;
   background_color: string;
+  font_family: string;
 }
 
 interface MetricForm {
@@ -238,6 +239,19 @@ export class ParametersComponent implements OnInit {
     { id: 'galaxy', name: 'Galaxia Espacial', primary: '#2c3e50', secondary: '#4ca1af', accent: '#c0392b', bg: '#f0f4f8', preview: ['#2c3e50', '#4ca1af', '#c0392b', '#8e44ad'] },
     { id: 'candy', name: 'Dulcería Feliz', primary: '#ff758c', secondary: '#ff7eb3', accent: '#ffd6e0', bg: '#fff0f5', preview: ['#ff758c', '#ff7eb3', '#a78bfa', '#fbbf24'] }
   ];
+
+  // Tipografías disponibles
+  availableFonts = [
+    { id: 'comic',      name: 'Divertida',    family: "'Comic Sans MS', cursive",       sample: 'Aa',  google: null },
+    { id: 'nunito',     name: 'Redondeada',   family: "'Nunito', sans-serif",            sample: 'Aa',  google: 'Nunito:400,600,700' },
+    { id: 'poppins',    name: 'Moderna',      family: "'Poppins', sans-serif",           sample: 'Aa',  google: 'Poppins:400,500,600,700' },
+    { id: 'fredoka',    name: 'Juguetona',    family: "'Fredoka One', cursive",          sample: 'Aa',  google: 'Fredoka+One' },
+    { id: 'quicksand',  name: 'Liviana',      family: "'Quicksand', sans-serif",         sample: 'Aa',  google: 'Quicksand:400,500,600,700' },
+    { id: 'montserrat', name: 'Profesional',  family: "'Montserrat', sans-serif",        sample: 'Aa',  google: 'Montserrat:400,500,600,700' },
+    { id: 'opensans',   name: 'Clásica',      family: "'Open Sans', sans-serif",         sample: 'Aa',  google: 'Open+Sans:400,600,700' },
+    { id: 'pacifico',   name: 'Caligráfica',  family: "'Pacifico', cursive",             sample: 'Aa',  google: 'Pacifico' },
+  ];
+  selectedFontId = 'comic';
 
   // Permisos de tarjetas (locales)
   permissionCards: PermissionCard[] = [
@@ -363,16 +377,41 @@ export class ParametersComponent implements OnInit {
     '#8b5cf6', '#ec4899', '#10b981', '#6366f1'
   ];
 
+  // ═══════════════════════════════════════════════════════════════
+  // CURSOS ASIGNADOS
+  // ═══════════════════════════════════════════════════════════════
+  students: AppUser[] = [];
+  filteredStudents: AppUser[] = [];
+  searchStudent = '';
+
+  // Modal de cursos asignados del estudiante
+  showEnrollmentModal = false;
+  selectedStudent: AppUser | null = null;
+  studentEnrollments: any[] = [];   // { id, course_id, class_id, courseTitle, className, status }
+  loadingEnrollments = false;
+
+  // Form de asignación rápida
+  enrollCourseId = '';
+  enrollClassId = '';
+  enrollAvailableClasses: any[] = [];
+  enrolling = false;
+
   constructor(private supabaseService: SupabaseService) {}
 
   ngOnInit(): void {
     const saved = localStorage.getItem('app_theme');
-
-    if (saved) {
-      this.selectedTheme = saved;
-    }
-
+    if (saved) this.selectedTheme = saved;
     this.applyTheme(this.selectedTheme);
+
+    const savedFont = localStorage.getItem('app_font');
+    if (savedFont) {
+      const fontObj = this.availableFonts.find(f => f.id === savedFont);
+      if (fontObj) {
+        this.selectedFontId = fontObj.id;
+        this.loadGoogleFont(fontObj);
+        document.documentElement.style.setProperty('--font-family', fontObj.family);
+      }
+    }
     this.cardCategories = [...new Set(this.permissionCards.map(card => card.category))];
 
     // Cargar roles personalizados desde Supabase
@@ -380,6 +419,7 @@ export class ParametersComponent implements OnInit {
 
     this.loadPermissions();
     this.loadUsers();
+    this.loadStudents();
     this.loadCourses();
     this.loadClasses();
     this.loadPlatformPermissions();
@@ -453,11 +493,11 @@ export class ParametersComponent implements OnInit {
 
   applySchoolColors(): void {
     if (!this.schoolConfig) return;
-    
+
     document.documentElement.style.setProperty('--color-primary', this.schoolConfig.primary_color);
     document.documentElement.style.setProperty('--color-secondary', this.schoolConfig.secondary_color);
-    document.documentElement.style.setProperty('--color-accent', this.schoolConfig.accent_color);
-    document.documentElement.style.setProperty('--color-bg', this.schoolConfig.background_color);
+    document.documentElement.style.setProperty('--color-accent', this.schoolConfig.accent_color || '#f093fb');
+    document.documentElement.style.setProperty('--color-bg', this.schoolConfig.background_color || '#f0f2ff');
   }
 
   // ─── ABRIR MODAL ESCUELA ─────────────────────────────────
@@ -473,7 +513,8 @@ export class ParametersComponent implements OnInit {
         primary_color: this.schoolConfig.primary_color,
         secondary_color: this.schoolConfig.secondary_color,
         accent_color: this.schoolConfig.accent_color,
-        background_color: this.schoolConfig.background_color
+        background_color: this.schoolConfig.background_color,
+        font_family: localStorage.getItem('app_font') || 'comic'
       };
     } else {
       this.schoolForm = this.emptySchoolForm();
@@ -748,7 +789,8 @@ export class ParametersComponent implements OnInit {
       primary_color: '#667eea',
       secondary_color: '#764ba2',
       accent_color: '#f093fb',
-      background_color: '#f0f2ff'
+      background_color: '#f0f2ff',
+      font_family: 'comic'
     };
   }
 
@@ -1659,6 +1701,31 @@ export class ParametersComponent implements OnInit {
     document.documentElement.style.setProperty('--color-bg', theme.bg);
   }
 
+  loadGoogleFont(font: { google: string | null; family: string }): void {
+    if (!font.google) return;
+    const id = `gfont-${font.google.replace(/[^a-z0-9]/gi, '')}`;
+    if (document.getElementById(id)) return;
+    const link = document.createElement('link');
+    link.id = id;
+    link.rel = 'stylesheet';
+    link.href = `https://fonts.googleapis.com/css2?family=${font.google}&display=swap`;
+    document.head.appendChild(link);
+  }
+
+  selectFont(fontId: string): void {
+    const font = this.availableFonts.find(f => f.id === fontId);
+    if (!font) return;
+    this.selectedFontId = fontId;
+    this.schoolForm.font_family = fontId;
+    this.loadGoogleFont(font);
+    document.documentElement.style.setProperty('--font-family', font.family);
+    localStorage.setItem('app_font', fontId);
+  }
+
+  getFontLabel(fontId: string): string {
+    return this.availableFonts.find(f => f.id === fontId)?.name || fontId;
+  }
+
   getTheme(id: string): ThemeOption | undefined {
     return this.themes.find(theme => theme.id === id);
   }
@@ -1712,6 +1779,111 @@ export class ParametersComponent implements OnInit {
     } catch {
       this.showError('No se pudieron cargar los permisos guardados');
     }
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // CURSOS ASIGNADOS — métodos
+  // ═══════════════════════════════════════════════════════════════
+
+  async loadStudents(): Promise<void> {
+    const { data } = await this.supabase
+      .from('app_users')
+      .select('id,name,email,role,created_at')
+      .eq('role', 'student')
+      .order('name');
+    this.students = (data ?? []) as AppUser[];
+    this.applyStudentFilter();
+  }
+
+  applyStudentFilter(): void {
+    const q = this.searchStudent.toLowerCase().trim();
+    this.filteredStudents = q
+      ? this.students.filter(s => s.name.toLowerCase().includes(q) || s.email.toLowerCase().includes(q))
+      : [...this.students];
+  }
+
+  // Abre el modal sincrónicamente y carga datos en segundo plano
+  openEnrollmentModal(student: AppUser): void {
+    this.selectedStudent = student;
+    this.studentEnrollments = [];
+    this.enrollCourseId = '';
+    this.enrollClassId = '';
+    this.enrollAvailableClasses = [];
+    this.loadingEnrollments = true;
+    this.showEnrollmentModal = true;   // Sincrónico → Angular detecta el cambio
+    this.fetchStudentEnrollments(student);
+  }
+
+  private async fetchStudentEnrollments(student: AppUser): Promise<void> {
+    try {
+      const { data } = await this.supabase
+        .from('class_enrollments')
+        .select('id, course_id, class_id, status')
+        .eq('student_id', student.id);
+
+      const rows = data ?? [];
+      this.studentEnrollments = rows.map((r: any) => ({
+        ...r,
+        courseTitle: this.courses.find(c => c.id === r.course_id)?.title ?? r.course_id,
+        className:   this.classes.find(c => c.id === r.class_id)?.name
+                  ?? this.classes.find(c => c.id === r.class_id)?.title
+                  ?? r.class_id,
+      }));
+    } finally {
+      this.loadingEnrollments = false;
+    }
+  }
+
+  closeEnrollmentModal(): void {
+    this.selectedStudent = null;
+    this.studentEnrollments = [];
+    this.enrollCourseId = '';
+    this.enrollClassId = '';
+    this.enrollAvailableClasses = [];
+  }
+
+  onEnrollCourseChange(): void {
+    this.enrollClassId = '';
+    this.enrollAvailableClasses = this.classes.filter(c => c.course_id === this.enrollCourseId);
+  }
+
+  async assignCourseToStudent(): Promise<void> {
+    if (!this.selectedStudent || !this.enrollCourseId || !this.enrollClassId) return;
+    this.enrolling = true;
+    try {
+      const { error } = await this.supabase
+        .from('class_enrollments')
+        .upsert({
+          student_id: this.selectedStudent.id,
+          course_id:  this.enrollCourseId,
+          class_id:   this.enrollClassId,
+          status:     'active'
+        }, { onConflict: 'student_id,class_id' });
+
+      if (error) throw error;
+      this.showSuccess('✅ Curso asignado correctamente');
+      if (this.selectedStudent) this.openEnrollmentModal(this.selectedStudent);
+    } catch (e) {
+      this.showError('Error asignando curso: ' + this.getErrorMessage(e));
+    } finally {
+      this.enrolling = false;
+    }
+  }
+
+  async removeEnrollment(enrollment: any): Promise<void> {
+    if (!confirm('¿Quitar este curso asignado al alumno?')) return;
+    try {
+      await this.supabase.from('class_enrollments').delete().eq('id', enrollment.id);
+      this.showSuccess('✅ Asignación eliminada');
+      if (this.selectedStudent) if (this.selectedStudent) this.openEnrollmentModal(this.selectedStudent);
+    } catch (e) {
+      this.showError('Error eliminando: ' + this.getErrorMessage(e));
+    }
+  }
+
+  getEnrollmentCount(studentId: string): number {
+    // Cuenta aproximada desde class_enrollments si ya están cargados (para badge)
+    return 0; // Se carga al abrir el modal
   }
 
   resetPermissions(): void {
