@@ -40,8 +40,10 @@ export class AuthService {
       return throwError(() => new Error('Por favor, ingresa tu email y contraseña.'));
     }
 
+    const supabase = this.supabaseService.getClient();
+
     return from(
-      this.supabaseService.getClient().auth.signInWithPassword({ email, password })
+      supabase.auth.signInWithPassword({ email, password })
     ).pipe(
       switchMap(({ data, error }) => {
         if (error) {
@@ -51,6 +53,15 @@ export class AuthService {
         if (!data.user) {
           throw new Error('Usuario no encontrado');
         }
+
+        const authUserId = data.user.id;
+
+        // Sincronizar auth_user_id en app_users para que la app móvil
+        // pueda encontrar al usuario en conversations/participant_ids
+        supabase.from('app_users')
+          .update({ auth_user_id: authUserId })
+          .eq('email', email)
+          .then(() => {});
 
         return from(this.userService.getUserByEmail(email));
       }),

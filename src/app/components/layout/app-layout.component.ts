@@ -160,6 +160,9 @@ export class AppLayoutComponent implements OnInit {
       this.menuRefresh$.next(this.menuRefreshCount);
     });
 
+    // Sincronizar auth_user_id por si tiene sesión guardada (sin re-login)
+    this.syncAuthUserId();
+
     // Cargar contador de mensajes no leídos y configurar polling cada 30s
     this.loadUnreadCount();
     this.pollInterval = setInterval(() => this.loadUnreadCount(), 30000);
@@ -180,6 +183,17 @@ export class AppLayoutComponent implements OnInit {
    * - Admin/teacher/tutor: mensajes enviados a todos (recipient_id IS NULL) que no sean del propio usuario
    * - Estudiantes: mensajes dirigidos a ellos que no han sido leídos
    */
+  private async syncAuthUserId(): Promise<void> {
+    if (!this.currentUser) return;
+    const supabase = this.supabaseService.getClient();
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    if (authUser?.id) {
+      await supabase.from('app_users')
+        .update({ auth_user_id: authUser.id })
+        .eq('id', this.currentUser.id);
+    }
+  }
+
   async loadUnreadCount(): Promise<void> {
     if (!this.currentUser) return;
 
