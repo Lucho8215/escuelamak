@@ -57,6 +57,7 @@ export interface StudentLesson {
 /** Datos necesarios para crear una nueva lección */
 export type CreateLessonInput = {
   courseId: string;
+  classId?: string;
   title: string;
   summary?: string;
   objective?: string;

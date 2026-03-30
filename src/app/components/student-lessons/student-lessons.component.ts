@@ -5,7 +5,6 @@ import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { LessonService } from '../../services/lesson.service';
 import { SupabaseService } from '../../services/supabase.service';
 import { StudentLesson } from '../../models/lesson.model';
-
 @Component({
   selector: 'app-student-lessons',
   standalone: true,
@@ -14,81 +13,63 @@ import { StudentLesson } from '../../models/lesson.model';
   styleUrls: ['./student-lessons.component.css']
 })
 export class StudentLessonsComponent implements OnInit {
-
-  // Lista de lecciones del alumno
   lessons: StudentLesson[] = [];
-
-  // Lección que el alumno abrió para estudiar
   selectedLesson: StudentLesson | null = null;
-
-  // Estados de carga
   loading = false;
   actionLoading = false;
-
-  // Mensajes
   errorMessage = '';
   successMessage = '';
-
+  // --- Text-to-Speech ---
+  ttsSupported = typeof window !== 'undefined' && 'speechSynthesis' in window;
+  leyendo = false;
+  private synth: SpeechSynthesis | null = typeof window !== 'undefined' ? window.speechSynthesis : null;
   constructor(
     private lessonService: LessonService,
     private supabaseService: SupabaseService,
     private sanitizer: DomSanitizer
   ) {}
-
   async ngOnInit(): Promise<void> {
     await this.loadMyLessons();
   }
-
-  // Carga todas las lecciones asignadas al alumno
   async loadMyLessons(): Promise<void> {
     try {
       this.loading = true;
       this.errorMessage = '';
-
       const { data: { user } } = await this.supabaseService.getClient().auth.getUser();
-
       if (!user) {
-        this.errorMessage = 'No hay sesión activa';
+        this.errorMessage = 'No hay sesion activa';
         return;
       }
-
       const appUserId = await this.lessonService.getAppUserIdByAuthUserId(user.id);
-
       if (!appUserId) {
-        this.errorMessage = 'No se encontró el alumno';
+        this.errorMessage = 'No se encontro el alumno';
         return;
       }
-
       this.lessons = await this.lessonService.getStudentLessonsByStudent(appUserId);
-
     } catch (error) {
       this.errorMessage = error instanceof Error ? error.message : 'Error al cargar lecciones';
     } finally {
       this.loading = false;
     }
   }
-
-  // Abre una lección para estudiarla
   openLesson(lesson: StudentLesson): void {
     this.selectedLesson = lesson;
-    // Si nunca la inició, la marcamos como en progreso
     if (lesson.status === 'assigned') {
       this.startLesson(lesson);
     }
   }
-
-  // Cierra el modal de la lección
   closeLesson(): void {
     this.selectedLesson = null;
     this.successMessage = '';
+    // Detener lectura si esta activa
+    if (this.leyendo && this.synth) {
+      this.synth.cancel();
+      this.leyendo = false;
+    }
   }
-
-  // Convierte URL de YouTube a formato embebible
   getVideoEmbedUrl(url: string): SafeResourceUrl {
     if (!url) return '';
     let videoId = '';
-
-    // Soporta youtube.com/watch?v=ID y youtu.be/ID
     if (url.includes('watch?v=')) {
       videoId = url.split('watch?v=')[1].split('&')[0];
     } else if (url.includes('youtu.be/')) {
@@ -96,27 +77,21 @@ export class StudentLessonsComponent implements OnInit {
     } else if (url.includes('embed/')) {
       videoId = url.split('embed/')[1].split('?')[0];
     }
-
     if (videoId) {
       return this.sanitizer.bypassSecurityTrustResourceUrl(
         `https://www.youtube.com/embed/${videoId}`
       );
     }
-
     return this.sanitizer.bypassSecurityTrustResourceUrl(url);
   }
-
-  // Detecta si el recurso/link es un video (YouTube, Vimeo, o archivo de video directo)
   isVideoResource(url: string | undefined): boolean {
     if (!url) return false;
     const u = url.toLowerCase();
-    return u.includes('youtube.com') || 
-           u.includes('youtu.be') || 
-           u.includes('vimeo.com') || 
+    return u.includes('youtube.com') ||
+           u.includes('youtu.be') ||
+           u.includes('vimeo.com') ||
            u.match(/\.(mp4|webm|ogg)(\?|$)/i) !== null;
   }
-
-  // Marca la lección como iniciada
   async startLesson(lesson: StudentLesson): Promise<void> {
     try {
       this.actionLoading = true;
@@ -125,18 +100,15 @@ export class StudentLessonsComponent implements OnInit {
         lesson.progressPercent > 0 ? lesson.progressPercent : 10
       );
       await this.loadMyLessons();
-      // Actualizamos también la lección seleccionada
       if (this.selectedLesson?.id === lesson.id) {
         this.selectedLesson = this.lessons.find(l => l.id === lesson.id) || null;
       }
     } catch (error) {
-      this.errorMessage = 'No se pudo iniciar la lección';
+      this.errorMessage = 'No se pudo iniciar la leccion';
     } finally {
       this.actionLoading = false;
     }
   }
-
-  // Avanza el progreso en 20%
   async continueLesson(lesson: StudentLesson): Promise<void> {
     try {
       this.actionLoading = true;
@@ -146,15 +118,13 @@ export class StudentLessonsComponent implements OnInit {
       if (this.selectedLesson?.id === lesson.id) {
         this.selectedLesson = this.lessons.find(l => l.id === lesson.id) || null;
       }
-      this.successMessage = `¡Progreso actualizado a ${next}%!`;
+      this.successMessage = `Progreso actualizado a ${next}%!`;
     } catch (error) {
       this.errorMessage = 'No se pudo actualizar el progreso';
     } finally {
       this.actionLoading = false;
     }
   }
-
-  // Marca la lección como completada al 100%
   async completeLesson(lesson: StudentLesson): Promise<void> {
     try {
       this.actionLoading = true;
@@ -163,15 +133,13 @@ export class StudentLessonsComponent implements OnInit {
       if (this.selectedLesson?.id === lesson.id) {
         this.selectedLesson = this.lessons.find(l => l.id === lesson.id) || null;
       }
-      this.successMessage = '¡Lección completada! 🎉';
+      this.successMessage = 'Leccion completada!';
     } catch (error) {
-      this.errorMessage = 'No se pudo completar la lección';
+      this.errorMessage = 'No se pudo completar la leccion';
     } finally {
       this.actionLoading = false;
     }
   }
-
-  // Etiqueta legible del estado
   getStatusLabel(status: string): string {
     const labels: any = {
       'assigned': 'Por iniciar',
@@ -181,32 +149,50 @@ export class StudentLessonsComponent implements OnInit {
     };
     return labels[status] || status;
   }
-
-  // Color de la barra de progreso
   getProgressColor(value: number): string {
     if (value >= 100) return '#16a34a';
     if (value >= 50) return '#2563eb';
     if (value > 0) return '#f59e0b';
     return '#94a3b8';
   }
-
-  // Progreso general del alumno
   getOverallProgress(): number {
     if (this.lessons.length === 0) return 0;
     const total = this.lessons.reduce((sum, l) => sum + l.progressPercent, 0);
     return Math.round(total / this.lessons.length);
   }
-
-  // Contadores para el resumen
   getCompletedCount(): number {
     return this.lessons.filter(l => l.status === 'completed').length;
   }
-
   getInProgressCount(): number {
     return this.lessons.filter(l => l.status === 'in_progress').length;
   }
-
   getPendingCount(): number {
     return this.lessons.filter(l => l.status === 'assigned').length;
+  }
+  // --- LEER EN VOZ ALTA ---
+  leerLeccion(lesson: StudentLesson | null): void {
+    if (!lesson || !this.ttsSupported || !this.synth) return;
+    if (this.leyendo) {
+      this.synth.cancel();
+      this.leyendo = false;
+      return;
+    }
+    const partes: string[] = [];
+    if (lesson.lessonTitle) partes.push(lesson.lessonTitle);
+    if (lesson.summary) partes.push(lesson.summary);
+    if (lesson.objective) partes.push(lesson.objective);
+    if (lesson.content) partes.push(lesson.content);
+    if (partes.length === 0) {
+      partes.push('Esta leccion no tiene contenido de texto para leer.');
+    }
+    const texto = partes.join('. ');
+    const utterance = new SpeechSynthesisUtterance(texto);
+    utterance.lang = 'es-ES';
+    utterance.rate = 0.9;
+    utterance.pitch = 1;
+    utterance.onend = () => { this.leyendo = false; };
+    utterance.onerror = () => { this.leyendo = false; };
+    this.leyendo = true;
+    this.synth.speak(utterance);
   }
 }

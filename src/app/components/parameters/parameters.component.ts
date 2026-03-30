@@ -115,6 +115,7 @@ interface SchoolForm {
   secondary_color: string;
   accent_color: string;
   background_color: string;
+  font_family: string;
 }
 
 interface MetricForm {
@@ -130,6 +131,69 @@ interface DeleteConfirm {
   type: string;
   id: string;
   name: string;
+}
+
+/**
+ * ═══════════════════════════════════════════════════════════════
+ * NUEVAS INTERFACES PARA SISTEMA DE PERMISOS GRANULARES
+ * ═══════════════════════════════════════════════════════════════
+ */
+
+/**
+ * Representa un permiso granular con tres niveles de acceso:
+ * - view: Puede ver/consultar el módulo
+ * - create: Puede crear nuevos elementos
+ * - edit: Puede modificar y eliminar elementos
+ */
+interface GranularPermission {
+  id: string;
+  module_key: string;      // Identificador único del módulo
+  module_name: string;      // Nombre visual del módulo
+  module_icon: string;      // Icono de FontAwesome
+  module_color: string;     // Color hex para el módulo
+  category: string;         // Categoría del módulo
+  description: string;      // Descripción breve
+  view_enabled: boolean;    // Permiso para ver
+  create_enabled: boolean;  // Permiso para crear
+  edit_enabled: boolean;    // Permiso para editar
+}
+
+/**
+ * Representa un rol personalizado en el sistema.
+ * Los roles pueden ser creados, editados y eliminados por el administrador.
+ */
+interface CustomRole {
+  id: string;
+  name: string;             // Nombre del rol (ej: "Profesor de Matemáticas")
+  code: string;              // Código único (ej: "math_teacher")
+  description: string;       // Descripción del rol
+  color: string;            // Color representativo del rol
+  icon: string;             // Icono del rol
+  is_default: boolean;      // Si es un rol del sistema (no eliminable)
+  permissions: RolePermission[];  // Lista de permisos del rol
+  created_at?: string;
+}
+
+/**
+ * Representa un permiso específico asignado a un rol.
+ * Define qué acciones puede realizar un rol en un módulo específico.
+ */
+interface RolePermission {
+  module_key: string;       // Referencia al módulo
+  can_view: boolean;        // Puede ver el módulo
+  can_create: boolean;      // Puede crear elementos
+  can_edit: boolean;        // Puede editar elementos
+}
+
+/**
+ * Formulario para crear o editar un rol.
+ */
+interface RoleForm {
+  name: string;
+  code: string;
+  description: string;
+  color: string;
+  icon: string;
 }
 
 @Component({
@@ -176,6 +240,19 @@ export class ParametersComponent implements OnInit {
     { id: 'candy', name: 'Dulcería Feliz', primary: '#ff758c', secondary: '#ff7eb3', accent: '#ffd6e0', bg: '#fff0f5', preview: ['#ff758c', '#ff7eb3', '#a78bfa', '#fbbf24'] }
   ];
 
+  // Tipografías disponibles
+  availableFonts = [
+    { id: 'comic',      name: 'Divertida',    family: "'Comic Sans MS', cursive",       sample: 'Aa',  google: null },
+    { id: 'nunito',     name: 'Redondeada',   family: "'Nunito', sans-serif",            sample: 'Aa',  google: 'Nunito:400,600,700' },
+    { id: 'poppins',    name: 'Moderna',      family: "'Poppins', sans-serif",           sample: 'Aa',  google: 'Poppins:400,500,600,700' },
+    { id: 'fredoka',    name: 'Juguetona',    family: "'Fredoka One', cursive",          sample: 'Aa',  google: 'Fredoka+One' },
+    { id: 'quicksand',  name: 'Liviana',      family: "'Quicksand', sans-serif",         sample: 'Aa',  google: 'Quicksand:400,500,600,700' },
+    { id: 'montserrat', name: 'Profesional',  family: "'Montserrat', sans-serif",        sample: 'Aa',  google: 'Montserrat:400,500,600,700' },
+    { id: 'opensans',   name: 'Clásica',      family: "'Open Sans', sans-serif",         sample: 'Aa',  google: 'Open+Sans:400,600,700' },
+    { id: 'pacifico',   name: 'Caligráfica',  family: "'Pacifico', cursive",             sample: 'Aa',  google: 'Pacifico' },
+  ];
+  selectedFontId = 'comic';
+
   // Permisos de tarjetas (locales)
   permissionCards: PermissionCard[] = [
     { id: 'card_courses', title: 'Ver Cursos', description: 'Acceso a la lista de cursos disponibles', icon: 'fas fa-book-open', color: '#667eea', roles: ['admin', 'teacher', 'tutor', 'student'], enabled: true, category: 'Contenido' },
@@ -213,20 +290,136 @@ export class ParametersComponent implements OnInit {
   roles = ['admin', 'teacher', 'tutor', 'student'];
   deleteConfirm: DeleteConfirm | null = null;
 
+  // ═══════════════════════════════════════════════════════════════
+  // NUEVAS PROPIEDADES PARA SISTEMA DE PERMISOS GRANULARES
+  // ═══════════════════════════════════════════════════════════════
+
+  /**
+   * Lista de módulos/funcionalidades del sistema con permisos granulares.
+   * Cada módulo tiene tres niveles: ver, crear, editar.
+   */
+  granularPermissions: GranularPermission[] = [
+    // Módulos de Contenido
+    { id: 'mod_courses', module_key: 'courses', module_name: 'Cursos', module_icon: 'fas fa-book-open', module_color: '#667eea', category: 'Contenido', description: 'Gestión de cursos y lecciones', view_enabled: true, create_enabled: true, edit_enabled: true },
+    { id: 'mod_lessons', module_key: 'lessons', module_name: 'Lecciones', module_icon: 'fas fa-graduation-cap', module_color: '#56ab2f', category: 'Contenido', description: 'Lecciones y materiales de estudio', view_enabled: true, create_enabled: true, edit_enabled: true },
+    { id: 'mod_classes', module_key: 'classes', module_name: 'Clases', module_icon: 'fas fa-chalkboard-teacher', module_color: '#f7971e', category: 'Contenido', description: 'Gestión de clases y grupos', view_enabled: true, create_enabled: true, edit_enabled: true },
+    { id: 'mod_quizzes', module_key: 'quizzes', module_name: 'Quizzes', module_icon: 'fas fa-brain', module_color: '#11998e', category: 'Evaluación', description: 'Evaluaciones y exámenes', view_enabled: true, create_enabled: true, edit_enabled: true },
+    { id: 'mod_take_quiz', module_key: 'take_quiz', module_name: 'Realizar Quiz', module_icon: 'fas fa-pencil-alt', module_color: '#ff758c', category: 'Evaluación', description: 'Resolver evaluaciones', view_enabled: true, create_enabled: false, edit_enabled: false },
+    { id: 'mod_practice', module_key: 'practice', module_name: 'Práctica', module_icon: 'fas fa-star', module_color: '#ffd200', category: 'Contenido', description: 'Área de práctica y ejercicios', view_enabled: true, create_enabled: false, edit_enabled: false },
+    // Módulos de Gestión
+    { id: 'mod_users', module_key: 'users', module_name: 'Usuarios', module_icon: 'fas fa-users', module_color: '#764ba2', category: 'Administración', description: 'Gestión de usuarios del sistema', view_enabled: true, create_enabled: true, edit_enabled: true },
+    { id: 'mod_roles', module_key: 'roles', module_name: 'Roles', module_icon: 'fas fa-user-shield', module_color: '#8b5cf6', category: 'Administración', description: 'Crear y editar roles', view_enabled: true, create_enabled: true, edit_enabled: true },
+    { id: 'mod_settings', module_key: 'settings', module_name: 'Parámetros', module_icon: 'fas fa-sliders-h', module_color: '#2c3e50', category: 'Administración', description: 'Configuración general', view_enabled: true, create_enabled: true, edit_enabled: true },
+    { id: 'mod_reports', module_key: 'reports', module_name: 'Informes', module_icon: 'fas fa-chart-bar', module_color: '#4ca1af', category: 'Informes', description: 'Reportes y estadísticas', view_enabled: true, create_enabled: false, edit_enabled: false },
+    { id: 'mod_school', module_key: 'school', module_name: 'Escuela', module_icon: 'fas fa-school', module_color: '#06b6d4', category: 'Administración', description: 'Configuración de la escuela', view_enabled: true, create_enabled: true, edit_enabled: true },
+    { id: 'mod_metrics', module_key: 'metrics', module_name: 'Métricas', module_icon: 'fas fa-chart-line', module_color: '#f59e0b', category: 'Informes', description: 'Métricas de la plataforma', view_enabled: true, create_enabled: true, edit_enabled: true }
+  ];
+
+  /**
+   * Lista de roles personalizados.
+   * Incluye roles por defecto del sistema y roles creados por el usuario.
+   */
+  customRoles: CustomRole[] = [];
+
+  /**
+   * Rol actualmente seleccionado para editar sus permisos.
+   */
+  selectedRole: CustomRole | null = null;
+
+  /**
+   * Variables para modales de roles.
+   */
+  showRoleModal = false;
+  editingRole: CustomRole | null = null;
+  roleForm: RoleForm = this.emptyRoleForm();
+
+  /**
+   * Pestaña activa en la sección de permisos.
+   * Valores: 'modules' (módulos), 'roles' (gestión de roles).
+   */
+  permissionsTab: 'modules' | 'roles' = 'modules';
+
+  /**
+   * Categorías disponibles para módulos.
+   */
+  moduleCategories: string[] = ['Contenido', 'Evaluación', 'Administración', 'Informes'];
+
+  /**
+   * Filtro de categoría en la vista de módulos.
+   */
+  filterModuleCategory = 'all';
+
+  /**
+   * Búsqueda de módulos.
+   */
+  searchModule = '';
+
+  /**
+   * Mapa de iconos disponibles para roles.
+   */
+  roleIcons = [
+    { code: 'fas fa-user-graduate', name: 'Estudiante' },
+    { code: 'fas fa-chalkboard-teacher', name: 'Profesor' },
+    { code: 'fas fa-user-friends', name: 'Tutor' },
+    { code: 'fas fa-crown', name: 'Administrador' },
+    { code: 'fas fa-book-reader', name: 'Instructor' },
+    { code: 'fas fa-hands-helping', name: 'Asistente' },
+    { code: 'fas fa-clipboard-check', name: 'Evaluador' },
+    { code: 'fas fa-chart-pie', name: 'Analista' }
+  ];
+
+  /**
+   * Colores disponibles para roles.
+   */
+  roleColors = [
+    '#667eea', '#f7971e', '#11998e', '#ff758c',
+    '#764ba2', '#4ca1af', '#f59e0b', '#06b6d4',
+    '#8b5cf6', '#ec4899', '#10b981', '#6366f1'
+  ];
+
+  // ═══════════════════════════════════════════════════════════════
+  // CURSOS ASIGNADOS
+  // ═══════════════════════════════════════════════════════════════
+  students: AppUser[] = [];
+  filteredStudents: AppUser[] = [];
+  searchStudent = '';
+
+  // Modal de cursos asignados del estudiante
+  showEnrollmentModal = false;
+  selectedStudent: AppUser | null = null;
+  studentEnrollments: any[] = [];   // { id, course_id, class_id, courseTitle, className, status }
+  loadingEnrollments = false;
+
+  // Form de asignación rápida
+  enrollCourseId = '';
+  enrollClassId = '';
+  enrollAvailableClasses: any[] = [];
+  enrolling = false;
+
   constructor(private supabaseService: SupabaseService) {}
 
   ngOnInit(): void {
     const saved = localStorage.getItem('app_theme');
-
-    if (saved) {
-      this.selectedTheme = saved;
-    }
-
+    if (saved) this.selectedTheme = saved;
     this.applyTheme(this.selectedTheme);
+
+    const savedFont = localStorage.getItem('app_font');
+    if (savedFont) {
+      const fontObj = this.availableFonts.find(f => f.id === savedFont);
+      if (fontObj) {
+        this.selectedFontId = fontObj.id;
+        this.loadGoogleFont(fontObj);
+        document.documentElement.style.setProperty('--font-family', fontObj.family);
+      }
+    }
     this.cardCategories = [...new Set(this.permissionCards.map(card => card.category))];
+
+    // Cargar roles personalizados desde Supabase
+    this.loadCustomRoles();
 
     this.loadPermissions();
     this.loadUsers();
+    this.loadStudents();
     this.loadCourses();
     this.loadClasses();
     this.loadPlatformPermissions();
@@ -300,11 +493,11 @@ export class ParametersComponent implements OnInit {
 
   applySchoolColors(): void {
     if (!this.schoolConfig) return;
-    
+
     document.documentElement.style.setProperty('--color-primary', this.schoolConfig.primary_color);
     document.documentElement.style.setProperty('--color-secondary', this.schoolConfig.secondary_color);
-    document.documentElement.style.setProperty('--color-accent', this.schoolConfig.accent_color);
-    document.documentElement.style.setProperty('--color-bg', this.schoolConfig.background_color);
+    document.documentElement.style.setProperty('--color-accent', this.schoolConfig.accent_color || '#f093fb');
+    document.documentElement.style.setProperty('--color-bg', this.schoolConfig.background_color || '#f0f2ff');
   }
 
   // ─── ABRIR MODAL ESCUELA ─────────────────────────────────
@@ -320,7 +513,8 @@ export class ParametersComponent implements OnInit {
         primary_color: this.schoolConfig.primary_color,
         secondary_color: this.schoolConfig.secondary_color,
         accent_color: this.schoolConfig.accent_color,
-        background_color: this.schoolConfig.background_color
+        background_color: this.schoolConfig.background_color,
+        font_family: localStorage.getItem('app_font') || 'comic'
       };
     } else {
       this.schoolForm = this.emptySchoolForm();
@@ -595,7 +789,8 @@ export class ParametersComponent implements OnInit {
       primary_color: '#667eea',
       secondary_color: '#764ba2',
       accent_color: '#f093fb',
-      background_color: '#f0f2ff'
+      background_color: '#f0f2ff',
+      font_family: 'comic'
     };
   }
 
@@ -608,6 +803,505 @@ export class ParametersComponent implements OnInit {
       is_visible: true,
       display_order: 0
     };
+  }
+
+  /**
+   * Crea un formulario vacío para un nuevo rol.
+   * @returns Objeto RoleForm con valores por defecto.
+   */
+  emptyRoleForm(): RoleForm {
+    return {
+      name: '',
+      code: '',
+      description: '',
+      color: '#667eea',
+      icon: 'fas fa-user'
+    };
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // FUNCIONES PARA GESTIÓN DE ROLES Y PERMISOS GRANULARES
+  // ═══════════════════════════════════════════════════════════════
+
+  /**
+   * Inicializa los roles por defecto del sistema.
+   * Estos roles no pueden ser eliminados.
+   */
+  private initDefaultRoles(): void {
+    this.customRoles = [
+      {
+        id: 'role_admin',
+        name: 'Administrador',
+        code: 'admin',
+        description: 'Acceso completo a todos los módulos del sistema',
+        color: '#667eea',
+        icon: 'fas fa-crown',
+        is_default: true,
+        permissions: this.granularPermissions.map(p => ({
+          module_key: p.module_key,
+          can_view: true,
+          can_create: true,
+          can_edit: true
+        }))
+      },
+      {
+        id: 'role_teacher',
+        name: 'Profesor',
+        code: 'teacher',
+        description: 'Puede gestionar cursos, clases y evaluaciones',
+        color: '#f7971e',
+        icon: 'fas fa-chalkboard-teacher',
+        is_default: true,
+        permissions: this.granularPermissions
+          .filter(p => ['courses', 'lessons', 'classes', 'quizzes', 'take_quiz', 'practice'].includes(p.module_key))
+          .map(p => ({
+            module_key: p.module_key,
+            can_view: true,
+            can_create: p.module_key !== 'take_quiz' && p.module_key !== 'practice',
+            can_edit: p.module_key !== 'take_quiz' && p.module_key !== 'practice'
+          }))
+      },
+      {
+        id: 'role_tutor',
+        name: 'Tutor',
+        code: 'tutor',
+        description: 'Puede ver informes y progreso de estudiantes',
+        color: '#11998e',
+        icon: 'fas fa-user-friends',
+        is_default: true,
+        permissions: this.granularPermissions
+          .filter(p => ['courses', 'lessons', 'classes', 'take_quiz', 'practice', 'reports'].includes(p.module_key))
+          .map(p => ({
+            module_key: p.module_key,
+            can_view: true,
+            can_create: false,
+            can_edit: false
+          }))
+      },
+      {
+        id: 'role_student',
+        name: 'Estudiante',
+        code: 'student',
+        description: 'Puede ver contenido y realizar evaluaciones',
+        color: '#56ab2f',
+        icon: 'fas fa-user-graduate',
+        is_default: true,
+        permissions: this.granularPermissions
+          .filter(p => ['courses', 'lessons', 'take_quiz', 'practice'].includes(p.module_key))
+          .map(p => ({
+            module_key: p.module_key,
+            can_view: true,
+            can_create: false,
+            can_edit: false
+          }))
+      }
+    ];
+  }
+
+  /**
+   * Carga los roles desde Supabase (tabla custom_roles + role_module_permissions).
+   * Si la tabla no existe todavía, usa los roles por defecto en memoria.
+   */
+  async loadCustomRoles(): Promise<void> {
+    try {
+      const { data: rolesData, error: rolesError } = await this.supabase
+        .from('custom_roles')
+        .select('*')
+        .order('is_default', { ascending: false });
+
+      if (rolesError) {
+        console.log('Tabla custom_roles no existe aún, usando roles en memoria:', rolesError.message);
+        this.initDefaultRoles();
+        return;
+      }
+
+      const { data: permsData, error: permsError } = await this.supabase
+        .from('role_module_permissions')
+        .select('*');
+
+      if (permsError) {
+        console.log('Error cargando permisos de roles:', permsError.message);
+      }
+
+      const permsByRole: Record<string, RolePermission[]> = {};
+      for (const p of (permsData ?? [])) {
+        if (!permsByRole[p.role_code]) permsByRole[p.role_code] = [];
+        permsByRole[p.role_code].push({
+          module_key: p.module_key,
+          can_view: p.can_view,
+          can_create: p.can_create,
+          can_edit: p.can_edit
+        });
+      }
+
+      this.customRoles = (rolesData ?? []).map((r: any) => ({
+        id: r.id,
+        name: r.name,
+        code: r.code,
+        description: r.description ?? '',
+        color: r.color ?? '#667eea',
+        icon: r.icon ?? 'fas fa-user',
+        is_default: r.is_default ?? false,
+        permissions: permsByRole[r.code] ?? this.granularPermissions.map(p => ({
+          module_key: p.module_key,
+          can_view: false,
+          can_create: false,
+          can_edit: false
+        }))
+      }));
+
+      if (this.customRoles.length === 0) {
+        this.initDefaultRoles();
+      }
+    } catch (e) {
+      console.log('Error inesperado cargando roles:', e);
+      this.initDefaultRoles();
+    }
+  }
+
+  /**
+   * @deprecated Roles se guardan directamente en Supabase, este método ya no se usa.
+   */
+  saveCustomRoles(): void {
+    // No-op: roles are persisted in Supabase via saveRole() and toggle methods
+  }
+
+  /**
+   * Obtiene los permisos de un rol específico.
+   * @param roleCode Código del rol.
+   * @returns Objeto con permisos o null si no existe.
+   */
+  getRolePermissions(roleCode: string): RolePermission[] | null {
+    const role = this.customRoles.find(r => r.code === roleCode);
+    return role ? role.permissions : null;
+  }
+
+  /**
+   * Verifica si un rol tiene permiso de vista para un módulo.
+   * @param roleCode Código del rol.
+   * @param moduleKey Clave del módulo.
+   * @returns true si tiene permiso de vista.
+   */
+  canRoleView(roleCode: string, moduleKey: string): boolean {
+    const perms = this.getRolePermissions(roleCode);
+    if (!perms) return false;
+    const modPerm = perms.find(p => p.module_key === moduleKey);
+    return modPerm ? modPerm.can_view : false;
+  }
+
+  /**
+   * Verifica si un rol tiene permiso de creación para un módulo.
+   * @param roleCode Código del rol.
+   * @param moduleKey Clave del módulo.
+   * @returns true si tiene permiso de creación.
+   */
+  canRoleCreate(roleCode: string, moduleKey: string): boolean {
+    const perms = this.getRolePermissions(roleCode);
+    if (!perms) return false;
+    const modPerm = perms.find(p => p.module_key === moduleKey);
+    return modPerm ? modPerm.can_create : false;
+  }
+
+  /**
+   * Verifica si un rol tiene permiso de edición para un módulo.
+   * @param roleCode Código del rol.
+   * @param moduleKey Clave del módulo.
+   * @returns true si tiene permiso de edición.
+   */
+  canRoleEdit(roleCode: string, moduleKey: string): boolean {
+    const perms = this.getRolePermissions(roleCode);
+    if (!perms) return false;
+    const modPerm = perms.find(p => p.module_key === moduleKey);
+    return modPerm ? modPerm.can_edit : false;
+  }
+
+  /**
+   * Persiste un permiso de rol en Supabase (upsert).
+   */
+  private async upsertRolePermission(roleCode: string, moduleKey: string, perm: RolePermission): Promise<void> {
+    const { error } = await this.supabase
+      .from('role_module_permissions')
+      .upsert({
+        role_code: roleCode,
+        module_key: moduleKey,
+        can_view: perm.can_view,
+        can_create: perm.can_create,
+        can_edit: perm.can_edit,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'role_code,module_key' });
+
+    if (error) {
+      console.error('Error guardando permiso:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Alterna el permiso de vista para un rol y módulo específicos.
+   */
+  toggleViewPermission(role: CustomRole, moduleKey: string): void {
+    let perm = role.permissions.find(p => p.module_key === moduleKey);
+    if (!perm) {
+      perm = { module_key: moduleKey, can_view: false, can_create: false, can_edit: false };
+      role.permissions.push(perm);
+    }
+    perm.can_view = !perm.can_view;
+    // Si se quita la vista, también quitar crear y editar
+    if (!perm.can_view) { perm.can_create = false; perm.can_edit = false; }
+    this.upsertRolePermission(role.code, moduleKey, perm)
+      .then(() => this.showSuccess(`Permiso de vista actualizado para ${role.name}`))
+      .catch(e => this.showError('Error guardando permiso: ' + this.getErrorMessage(e)));
+  }
+
+  /**
+   * Alterna el permiso de creación para un rol y módulo específicos.
+   */
+  toggleCreatePermission(role: CustomRole, moduleKey: string): void {
+    let perm = role.permissions.find(p => p.module_key === moduleKey);
+    if (!perm) {
+      perm = { module_key: moduleKey, can_view: false, can_create: false, can_edit: false };
+      role.permissions.push(perm);
+    }
+    perm.can_create = !perm.can_create;
+    // Si activa crear, también debe tener vista
+    if (perm.can_create) perm.can_view = true;
+    this.upsertRolePermission(role.code, moduleKey, perm)
+      .then(() => this.showSuccess(`Permiso de creación actualizado para ${role.name}`))
+      .catch(e => this.showError('Error guardando permiso: ' + this.getErrorMessage(e)));
+  }
+
+  /**
+   * Alterna el permiso de edición para un rol y módulo específicos.
+   */
+  toggleEditPermission(role: CustomRole, moduleKey: string): void {
+    let perm = role.permissions.find(p => p.module_key === moduleKey);
+    if (!perm) {
+      perm = { module_key: moduleKey, can_view: false, can_create: false, can_edit: false };
+      role.permissions.push(perm);
+    }
+    perm.can_edit = !perm.can_edit;
+    // Si activa editar, también debe tener vista
+    if (perm.can_edit) perm.can_view = true;
+    this.upsertRolePermission(role.code, moduleKey, perm)
+      .then(() => this.showSuccess(`Permiso de edición actualizado para ${role.name}`))
+      .catch(e => this.showError('Error guardando permiso: ' + this.getErrorMessage(e)));
+  }
+
+  /**
+   * Abre el modal para crear un nuevo rol.
+   */
+  openCreateRole(): void {
+    this.editingRole = null;
+    this.roleForm = this.emptyRoleForm();
+    this.showRoleModal = true;
+  }
+
+  /**
+   * Abre el modal para editar un rol existente.
+   * @param role Rol a editar.
+   */
+  openEditRole(role: CustomRole): void {
+    this.editingRole = role;
+    this.roleForm = {
+      name: role.name,
+      code: role.code,
+      description: role.description,
+      color: role.color,
+      icon: role.icon
+    };
+    this.showRoleModal = true;
+  }
+
+  /**
+   * Cierra el modal de roles.
+   */
+  closeRoleModal(): void {
+    this.showRoleModal = false;
+    this.editingRole = null;
+    this.roleForm = this.emptyRoleForm();
+  }
+
+  /**
+   * Guarda un rol (crear nuevo o actualizar existente) en Supabase.
+   */
+  async saveRole(): Promise<void> {
+    if (!this.roleForm.name.trim() || !this.roleForm.code.trim()) {
+      this.showError('El nombre y código del rol son requeridos');
+      return;
+    }
+
+    const normalizedCode = this.roleForm.code.toLowerCase().replace(/\s+/g, '_');
+
+    // Validar código único contra los roles en memoria
+    const existingRole = this.customRoles.find(r => r.code === normalizedCode);
+    if (existingRole && (!this.editingRole || existingRole.id !== this.editingRole.id)) {
+      this.showError('Ya existe un rol con ese código');
+      return;
+    }
+
+    this.loading = true;
+    try {
+      if (this.editingRole) {
+        // Actualizar en Supabase
+        const { error } = await this.supabase
+          .from('custom_roles')
+          .update({
+            name: this.roleForm.name,
+            description: this.roleForm.description,
+            color: this.roleForm.color,
+            icon: this.roleForm.icon,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', this.editingRole.id);
+
+        if (error) throw error;
+        this.showSuccess(`✅ Rol "${this.roleForm.name}" actualizado`);
+      } else {
+        // Insertar nuevo rol en Supabase
+        const { data, error } = await this.supabase
+          .from('custom_roles')
+          .insert([{
+            name: this.roleForm.name,
+            code: normalizedCode,
+            description: this.roleForm.description,
+            color: this.roleForm.color,
+            icon: this.roleForm.icon,
+            is_default: false
+          }])
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        // Crear filas de permisos (todo en false) para el nuevo rol
+        const permRows = this.granularPermissions.map(p => ({
+          role_code: normalizedCode,
+          module_key: p.module_key,
+          can_view: false,
+          can_create: false,
+          can_edit: false
+        }));
+        await this.supabase.from('role_module_permissions').insert(permRows);
+
+        this.showSuccess(`✅ Rol "${this.roleForm.name}" creado. Ahora configura sus permisos en la pestaña Módulos.`);
+      }
+
+      this.closeRoleModal();
+      await this.loadCustomRoles();
+    } catch (e: unknown) {
+      this.showError('Error guardando rol: ' + this.getErrorMessage(e));
+    } finally {
+      this.loading = false;
+    }
+  }
+
+  /**
+   * Elimina un rol personalizado (no roles por defecto) de Supabase.
+   * @param roleId ID del rol a eliminar.
+   */
+  async deleteRole(roleId: string): Promise<void> {
+    const role = this.customRoles.find(r => r.id === roleId);
+    if (!role) return;
+
+    if (role.is_default) {
+      this.showError('No puedes eliminar un rol del sistema');
+      return;
+    }
+
+    if (!confirm(`¿Estás seguro de eliminar el rol "${role.name}"?`)) {
+      return;
+    }
+
+    this.loading = true;
+    try {
+      const { error } = await this.supabase
+        .from('custom_roles')
+        .delete()
+        .eq('id', roleId);
+
+      if (error) throw error;
+
+      if (this.selectedRole?.id === roleId) {
+        this.selectedRole = null;
+      }
+      this.showSuccess(`✅ Rol "${role.name}" eliminado`);
+      await this.loadCustomRoles();
+    } catch (e: unknown) {
+      this.showError('Error eliminando rol: ' + this.getErrorMessage(e));
+    } finally {
+      this.loading = false;
+    }
+  }
+
+  /**
+   * Selecciona un rol para ver y editar sus permisos.
+   * @param role Rol a seleccionar.
+   */
+  selectRole(role: CustomRole): void {
+    this.selectedRole = role;
+  }
+
+  /**
+   * Obtiene la lista de módulos filtrados para mostrar.
+   * @returns Lista de permisos granulares filtrados.
+   */
+  get filteredModules(): GranularPermission[] {
+    return this.granularPermissions.filter(m => {
+      const matchesCategory = this.filterModuleCategory === 'all' || m.category === this.filterModuleCategory;
+      const matchesSearch = !this.searchModule ||
+        m.module_name.toLowerCase().includes(this.searchModule.toLowerCase()) ||
+        m.description.toLowerCase().includes(this.searchModule.toLowerCase());
+      return matchesCategory && matchesSearch;
+    });
+  }
+
+  /**
+   * Obtiene el nombre de un módulo a partir de su clave.
+   * @param moduleKey Clave del módulo.
+   * @returns Nombre del módulo o la clave si no se encuentra.
+   */
+  // Helper methods for template - Angular doesn't allow arrow functions in bindings
+  countViewPermissions(role: CustomRole): number {
+    return role.permissions?.filter(p => p.can_view)?.length || 0;
+  }
+
+  countCreatePermissions(role: CustomRole): number {
+    return role.permissions?.filter(p => p.can_create)?.length || 0;
+  }
+
+  countEditPermissions(role: CustomRole): number {
+    return role.permissions?.filter(p => p.can_edit)?.length || 0;
+  }
+
+  getRolePermissionsCount(role: CustomRole): number {
+    return role.permissions?.filter(p => p.can_view)?.length || 0;
+  }
+
+  getModuleName(moduleKey: string): string {
+    const module = this.granularPermissions.find(m => m.module_key === moduleKey);
+    return module ? module.module_name : moduleKey;
+  }
+
+  /**
+   * Obtiene el color para un rol.
+   * @param roleCode Código del rol.
+   * @returns Color del rol.
+   */
+  getRoleColor(roleCode: string): string {
+    const role = this.customRoles.find(r => r.code === roleCode);
+    return role ? role.color : '#667eea';
+  }
+
+  /**
+   * Reinicia todos los roles a sus valores por defecto recargando desde Supabase.
+   */
+  async resetRoles(): Promise<void> {
+    if (!confirm('¿Restablecer la vista? Se recargará la información de roles desde la base de datos.')) {
+      return;
+    }
+    this.selectedRole = null;
+    await this.loadCustomRoles();
+    this.showSuccess('✅ Roles recargados desde la base de datos');
   }
 
   async loadUsers(): Promise<void> {
@@ -795,16 +1489,26 @@ export class ParametersComponent implements OnInit {
     return map[normalizedRole] || 'badge-default';
   }
 
+  /**
+   * Obtiene el icono para un rol (usa el nuevo sistema de roles personalizados).
+   * @param role Código o nombre del rol.
+   * @returns Clase CSS del icono.
+   */
   getRoleIcon(role: string): string {
-    const normalizedRole = this.normalizeRole(role);
+    // Primero buscar en customRoles (nuevo sistema)
+    const customRole = this.customRoles.find(r => r.code === role);
+    if (customRole) {
+      return customRole.icon;
+    }
 
+    // Fallback al sistema antiguo
+    const normalizedRole = this.normalizeRole(role);
     const map: Record<string, string> = {
       admin: 'fas fa-crown',
       teacher: 'fas fa-chalkboard-teacher',
       tutor: 'fas fa-user-tie',
       student: 'fas fa-user-graduate'
     };
-
     return map[normalizedRole] || 'fas fa-user';
   }
 
@@ -937,24 +1641,50 @@ export class ParametersComponent implements OnInit {
     }
   }
 
-  getCourseTitle(courseId?: string | null): string {
-    if (!courseId) {
-      return '—';
-    }
+  
 
-    return this.courses.find(course => course.id === courseId)?.title || '—';
+  // ─── HELPERS ─────────────────────────────────────────────────────────────
+
+  // Convierte el error a texto legible
+  private getErrorMessage(error: unknown): string {
+    if (error instanceof Error) return error.message;
+    if (typeof error === 'object' && error !== null && 'message' in error) {
+      return String((error as { message: unknown }).message);
+    }
+    return 'Error desconocido';
   }
+
+  // Normaliza el rol a minúsculas en inglés
+  normalizeRole(role: string): string {
+    if (!role) return 'student';
+    const normalized = role.toLowerCase();
+    if (normalized === 'estudiante') return 'student';
+    return normalized;
+  }
+
+  // Cuenta usuarios por rol
+  getTotalUsers(): number { return this.users.length; }
+  getTotalClasses(): number { return this.classes.length; }
+  getEnabledCount(): number { return this.permissionCards.filter(c => c.enabled).length; }
+
+
+
+  // Etiqueta de estado de clase
   getClassStatusLabel(status: string): string {
     const map: Record<string, string> = {
-      open: 'Abierta',
-      closed: 'Cerrada',
-      active: 'Activa',
-      inactive: 'Inactiva'
+      open: 'Abierta', closed: 'Cerrada',
+      active: 'Activa', inactive: 'Inactiva'
     };
-
     return map[status] || status;
   }
 
+  // Título del curso por ID
+  getCourseTitle(courseId?: string | null): string {
+    if (!courseId) return '—';
+    return this.courses.find(c => c.id === courseId)?.title || '—';
+  }
+
+  // Seleccionar y aplicar tema
   selectTheme(id: string): void {
     this.selectedTheme = id;
     localStorage.setItem('app_theme', id);
@@ -964,29 +1694,47 @@ export class ParametersComponent implements OnInit {
 
   applyTheme(id: string): void {
     const theme = this.themes.find(item => item.id === id);
-
-    if (!theme) {
-      return;
-    }
-
+    if (!theme) return;
     document.documentElement.style.setProperty('--color-primary', theme.primary);
     document.documentElement.style.setProperty('--color-secondary', theme.secondary);
     document.documentElement.style.setProperty('--color-accent', theme.accent);
     document.documentElement.style.setProperty('--color-bg', theme.bg);
   }
 
+  loadGoogleFont(font: { google: string | null; family: string }): void {
+    if (!font.google) return;
+    const id = `gfont-${font.google.replace(/[^a-z0-9]/gi, '')}`;
+    if (document.getElementById(id)) return;
+    const link = document.createElement('link');
+    link.id = id;
+    link.rel = 'stylesheet';
+    link.href = `https://fonts.googleapis.com/css2?family=${font.google}&display=swap`;
+    document.head.appendChild(link);
+  }
+
+  selectFont(fontId: string): void {
+    const font = this.availableFonts.find(f => f.id === fontId);
+    if (!font) return;
+    this.selectedFontId = fontId;
+    this.schoolForm.font_family = fontId;
+    this.loadGoogleFont(font);
+    document.documentElement.style.setProperty('--font-family', font.family);
+    localStorage.setItem('app_font', fontId);
+  }
+
+  getFontLabel(fontId: string): string {
+    return this.availableFonts.find(f => f.id === fontId)?.name || fontId;
+  }
+
   getTheme(id: string): ThemeOption | undefined {
     return this.themes.find(theme => theme.id === id);
   }
 
+  // Permisos de tarjetas
   get filteredCards(): PermissionCard[] {
     return this.permissionCards.filter(card => {
-      const matchesCategory =
-        this.filterCardCategory === 'all' || card.category === this.filterCardCategory;
-
-      const matchesRole =
-        this.filterCardRole === 'all' || card.roles.includes(this.filterCardRole);
-
+      const matchesCategory = this.filterCardCategory === 'all' || card.category === this.filterCardCategory;
+      const matchesRole = this.filterCardRole === 'all' || card.roles.includes(this.filterCardRole);
       return matchesCategory && matchesRole;
     });
   }
@@ -1000,13 +1748,11 @@ export class ParametersComponent implements OnInit {
   toggleRoleOnCard(card: PermissionCard, role: string): void {
     const normalizedRole = this.normalizeRole(role);
     const index = card.roles.indexOf(normalizedRole);
-
     if (index >= 0) {
       card.roles.splice(index, 1);
     } else {
       card.roles.push(normalizedRole);
     }
-
     this.savePermissions();
   }
 
@@ -1020,17 +1766,11 @@ export class ParametersComponent implements OnInit {
 
   loadPermissions(): void {
     const saved = localStorage.getItem('app_permissions');
-
-    if (!saved) {
-      return;
-    }
-
+    if (!saved) return;
     try {
       const savedCards = JSON.parse(saved) as PermissionCard[];
-
       savedCards.forEach(savedCard => {
         const currentCard = this.permissionCards.find(card => card.id === savedCard.id);
-
         if (currentCard) {
           currentCard.enabled = savedCard.enabled;
           currentCard.roles = savedCard.roles.map(role => this.normalizeRole(role));
@@ -1041,27 +1781,109 @@ export class ParametersComponent implements OnInit {
     }
   }
 
-  // ═══════════════════════════════════════════════════════
-  // MÉTODOS AUXILIARES FALTANTES
-  // ═══════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════
+  // CURSOS ASIGNADOS — métodos
+  // ═══════════════════════════════════════════════════════════════
 
-  normalizeRole(role: string): string {
-    if (!role) return 'student';
-    const normalized = role.toLowerCase();
-    if (normalized === 'estudiante') return 'student';
-    return normalized;
+  async loadStudents(): Promise<void> {
+    const { data } = await this.supabase
+      .from('app_users')
+      .select('id,name,email,role,created_at')
+      .eq('role', 'student')
+      .order('name');
+    this.students = (data ?? []) as AppUser[];
+    this.applyStudentFilter();
   }
 
-  getTotalUsers(): number {
-    return this.users.length;
+  applyStudentFilter(): void {
+    const q = this.searchStudent.toLowerCase().trim();
+    this.filteredStudents = q
+      ? this.students.filter(s => s.name.toLowerCase().includes(q) || s.email.toLowerCase().includes(q))
+      : [...this.students];
   }
 
-  getTotalClasses(): number {
-    return this.classes.length;
+  // Abre el modal sincrónicamente y carga datos en segundo plano
+  openEnrollmentModal(student: AppUser): void {
+    this.selectedStudent = student;
+    this.studentEnrollments = [];
+    this.enrollCourseId = '';
+    this.enrollClassId = '';
+    this.enrollAvailableClasses = [];
+    this.loadingEnrollments = true;
+    this.showEnrollmentModal = true;   // Sincrónico → Angular detecta el cambio
+    this.fetchStudentEnrollments(student);
   }
 
-  getEnabledCount(): number {
-    return this.permissionCards.filter(c => c.enabled).length;
+  private async fetchStudentEnrollments(student: AppUser): Promise<void> {
+    try {
+      const { data } = await this.supabase
+        .from('class_enrollments')
+        .select('id, course_id, class_id, status')
+        .eq('student_id', student.id);
+
+      const rows = data ?? [];
+      this.studentEnrollments = rows.map((r: any) => ({
+        ...r,
+        courseTitle: this.courses.find(c => c.id === r.course_id)?.title ?? r.course_id,
+        className:   this.classes.find(c => c.id === r.class_id)?.name
+                  ?? this.classes.find(c => c.id === r.class_id)?.title
+                  ?? r.class_id,
+      }));
+    } finally {
+      this.loadingEnrollments = false;
+    }
+  }
+
+  closeEnrollmentModal(): void {
+    this.selectedStudent = null;
+    this.studentEnrollments = [];
+    this.enrollCourseId = '';
+    this.enrollClassId = '';
+    this.enrollAvailableClasses = [];
+  }
+
+  onEnrollCourseChange(): void {
+    this.enrollClassId = '';
+    this.enrollAvailableClasses = this.classes.filter(c => c.course_id === this.enrollCourseId);
+  }
+
+  async assignCourseToStudent(): Promise<void> {
+    if (!this.selectedStudent || !this.enrollCourseId || !this.enrollClassId) return;
+    this.enrolling = true;
+    try {
+      const { error } = await this.supabase
+        .from('class_enrollments')
+        .upsert({
+          student_id: this.selectedStudent.id,
+          course_id:  this.enrollCourseId,
+          class_id:   this.enrollClassId,
+          status:     'active'
+        }, { onConflict: 'student_id,class_id' });
+
+      if (error) throw error;
+      this.showSuccess('✅ Curso asignado correctamente');
+      if (this.selectedStudent) this.openEnrollmentModal(this.selectedStudent);
+    } catch (e) {
+      this.showError('Error asignando curso: ' + this.getErrorMessage(e));
+    } finally {
+      this.enrolling = false;
+    }
+  }
+
+  async removeEnrollment(enrollment: any): Promise<void> {
+    if (!confirm('¿Quitar este curso asignado al alumno?')) return;
+    try {
+      await this.supabase.from('class_enrollments').delete().eq('id', enrollment.id);
+      this.showSuccess('✅ Asignación eliminada');
+      if (this.selectedStudent) if (this.selectedStudent) this.openEnrollmentModal(this.selectedStudent);
+    } catch (e) {
+      this.showError('Error eliminando: ' + this.getErrorMessage(e));
+    }
+  }
+
+  getEnrollmentCount(studentId: string): number {
+    // Cuenta aproximada desde class_enrollments si ya están cargados (para badge)
+    return 0; // Se carga al abrir el modal
   }
 
   resetPermissions(): void {
@@ -1079,13 +1901,5 @@ export class ParametersComponent implements OnInit {
       ];
       this.showSuccess('✅ Permisos restablecidos');
     }
-  }
-
-  private getErrorMessage(error: unknown): string {
-    if (error instanceof Error) return error.message;
-    if (typeof error === 'object' && error !== null && 'message' in error) {
-      return String((error as { message: unknown }).message);
-    }
-    return 'Error desconocido';
   }
 }

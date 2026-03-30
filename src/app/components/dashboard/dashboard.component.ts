@@ -2,7 +2,10 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
+import { PlatformPermissionsService } from '../../services/platform-permissions.service';
 import { User, UserRole } from '../../models/user.model';
+import { ModuleRole } from '../../models/platform-permission.model';
+import { Subscription } from 'rxjs';
 
 /**
  * Configuración visual y descriptiva por rol.
@@ -31,6 +34,16 @@ export class DashboardComponent implements OnInit {
    * Usuario autenticado actual.
    */
   currentUser: User | null = null;
+
+  /**
+   * Subscription para los permisos de plataforma
+   */
+  private permissionsSubscription: Subscription | null = null;
+
+  /**
+   * Contador para forzar actualización
+   */
+  private refreshCount = 0;
 
   /**
    * Configuración central por rol.
@@ -65,19 +78,36 @@ export class DashboardComponent implements OnInit {
 
   constructor(
     private authService: AuthService,
-    private router: Router
+    private router: Router,
+    private permissionsService: PlatformPermissionsService
   ) {}
 
   /**
    * Al iniciar el componente:
    * 1. obtenemos el usuario actual
    * 2. si no existe, volvemos al login
+   * 3. suscribimos a cambios en permisos
    */
   ngOnInit(): void {
     this.currentUser = this.authService.getCurrentUser();
 
     if (!this.currentUser) {
       this.router.navigate(['/login']);
+      return;
+    }
+
+    // Suscribirse a cambios en los permisos para actualizar las tarjetas
+    this.permissionsSubscription = this.permissionsService.permissions$.subscribe(() => {
+      this.refreshCount++;
+    });
+  }
+
+  /**
+   * Limpiar suscripciones al destruir el componente
+   */
+  ngOnDestroy(): void {
+    if (this.permissionsSubscription) {
+      this.permissionsSubscription.unsubscribe();
     }
   }
 
@@ -136,47 +166,55 @@ export class DashboardComponent implements OnInit {
    * Solo el admin puede gestionar usuarios.
    */
   canManageUsers(): boolean {
-    return this.currentUser?.role === UserRole.ADMIN;
+    this.refreshCount; // Depender del refresh para actualizar
+    if (!this.currentUser) return false;
+    return this.currentUser.role === UserRole.ADMIN && 
+           this.permissionsService.isModuleEnabled('menu_user_management', this.currentUser.role as ModuleRole);
   }
 
   /**
    * Ver cursos.
    */
   canViewCourses(): boolean {
-    return this.authService.hasPermission('view_courses');
+    this.refreshCount; // Depender del refresh para actualizar
+    if (!this.currentUser) return false;
+    return this.permissionsService.isModuleEnabled('menu_courses', this.currentUser.role as ModuleRole);
   }
 
   /**
    * Revisar ejercicios.
    */
   canReviewExercises(): boolean {
-    return this.authService.hasPermission('review_exercises');
+    this.refreshCount; // Depender del refresh para actualizar
+    if (!this.currentUser) return false;
+    return this.permissionsService.isModuleEnabled('menu_review', this.currentUser.role as ModuleRole);
   }
 
   /**
    * Gestionar quizzes.
    */
   canManageQuizzes(): boolean {
-    return (
-      this.authService.hasPermission('create_quizzes') ||
-      this.authService.hasPermission('edit_quizzes')
-    );
+    this.refreshCount; // Depender del refresh para actualizar
+    if (!this.currentUser) return false;
+    return this.permissionsService.isModuleEnabled('menu_quiz_management', this.currentUser.role as ModuleRole);
   }
 
   /**
    * Gestionar cursos.
    */
   canManageCourses(): boolean {
-    return (
-      this.authService.hasPermission('create_courses') ||
-      this.authService.hasPermission('edit_courses')
-    );
+    this.refreshCount; // Depender del refresh para actualizar
+    if (!this.currentUser) return false;
+    return this.permissionsService.isModuleEnabled('menu_course_management', this.currentUser.role as ModuleRole);
   }
 
   /**
    * Entrar a parámetros.
    */
   canManageParameters(): boolean {
-    return this.authService.hasPermission('manage_permissions');
+    this.refreshCount; // Depender del refresh para actualizar
+    if (!this.currentUser) return false;
+    return this.currentUser.role === UserRole.ADMIN && 
+           this.permissionsService.isModuleEnabled('menu_parameters', this.currentUser.role as ModuleRole);
   }
 }

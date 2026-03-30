@@ -22,6 +22,7 @@ import { StudentLessonsComponent } from './components/student-lessons/student-le
 import { StudentDashboardComponent } from './components/student-dashboard/student-dashboard.component';
 import { GradientGeneratorComponent } from './components/gradient-generator/gradient-generator.component';
 import { PasswordResetComponent } from './components/password-reset/password-reset.component';
+import { ModulePermissionsComponent } from './components/module-permissions/module-permissions.component';
 
 
 export const routes: Routes = [
@@ -143,6 +144,11 @@ export const routes: Routes = [
         path: 'gradient-generator',
         component: GradientGeneratorComponent,
         canActivate: [roleGuard([UserRole.ADMIN, UserRole.TEACHER])]
+      },
+      {
+        path: 'module-permissions',
+        component: ModulePermissionsComponent,
+        canActivate: [roleGuard([UserRole.ADMIN])]
       }
     ]
   },

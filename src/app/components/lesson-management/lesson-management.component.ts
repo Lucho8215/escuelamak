@@ -4,8 +4,11 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { LessonService } from '../../services/lesson.service';
 import { CourseService } from '../../services/course.service';
+import { SupabaseService } from '../../services/supabase.service';
 import { Lesson, StudentLesson } from '../../models/lesson.model';
 import { Class } from '../../models/course.model';
+
+type ResourceType = 'video' | 'pdf' | 'imagen' | 'contenido';
 
 type LessonForm = {
   title: string;
@@ -43,13 +46,21 @@ export class LessonManagementComponent implements OnInit {
 
   scoreDrafts: Record<string, number> = {};
 
+  // Vistas de recursos: "studentId_lessonId" → { video: bool, pdf: bool, ... }
+  resourceViews: Record<string, Record<string, boolean>> = {};
+
   lessonForm: LessonForm = this.getEmptyForm();
 
   constructor(
     private route: ActivatedRoute,
     private lessonService: LessonService,
-    private courseService: CourseService
+    private courseService: CourseService,
+    private supabaseService: SupabaseService
   ) {}
+
+  private get supabase() {
+    return this.supabaseService.getClient();
+  }
 
   async ngOnInit(): Promise<void> {
     this.courseId = this.route.snapshot.paramMap.get('courseId') || '';
@@ -116,6 +127,7 @@ export class LessonManagementComponent implements OnInit {
 
       const payload = {
         courseId: this.courseId,
+        classId: this.selectedClassId || undefined,
         title: this.lessonForm.title.trim(),
         summary: this.lessonForm.summary.trim(),
         objective: this.lessonForm.objective.trim(),
@@ -223,11 +235,53 @@ export class LessonManagementComponent implements OnInit {
       for (const row of this.classProgress) {
         this.scoreDrafts[row.id] = Number(row.score ?? 0);
       }
+
+      // Cargar vistas de recursos para todos los estudiantes de esta clase
+      await this.loadResourceViews();
     } catch (error) {
       this.setError('Error al cargar progreso', error);
     } finally {
       this.loading = false;
     }
+  }
+
+  async loadResourceViews(): Promise<void> {
+    if (this.classProgress.length === 0) return;
+    const lessonIds = [...new Set(this.classProgress.map(r => r.lessonId))];
+    const studentIds = [...new Set(this.classProgress.map(r => r.studentId))];
+    try {
+      const { data } = await this.supabase
+        .from('lesson_resource_views')
+        .select('student_id, lesson_id, resource_type')
+        .in('lesson_id', lessonIds)
+        .in('student_id', studentIds);
+
+      const views: Record<string, Record<string, boolean>> = {};
+      (data ?? []).forEach((r: any) => {
+        const key = `${r.student_id}_${r.lesson_id}`;
+        if (!views[key]) views[key] = {};
+        views[key][r.resource_type] = true;
+      });
+      this.resourceViews = views;
+    } catch { /* silencioso */ }
+  }
+
+  hasViewedResource(studentId: string, lessonId: string, type: ResourceType): boolean {
+    return this.resourceViews[`${studentId}_${lessonId}`]?.[type] === true;
+  }
+
+  getResourceProgress(studentId: string, lessonId: string, lesson: Lesson): number {
+    const views = this.resourceViews[`${studentId}_${lessonId}`] ?? {};
+    let total = 1;
+    let seen = views['contenido'] ? 1 : 0;
+    if (lesson.videoUrl || lesson.resourceLink) { total++; if (views['video']) seen++; }
+    if (lesson.resourceFileUrl) { total++; if (views['pdf']) seen++; }
+    if (lesson.coverImageUrl) { total++; if (views['imagen']) seen++; }
+    return Math.round((seen / total) * 100);
+  }
+
+  getLessonForRow(row: StudentLesson): Lesson | undefined {
+    return this.lessons.find(l => l.id === row.lessonId);
   }
 
   async toggleActive(row: StudentLesson): Promise<void> {

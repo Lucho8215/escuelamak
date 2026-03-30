@@ -46,8 +46,9 @@ export class LessonService {
   }
 
   async createLesson(lesson: CreateLessonInput): Promise<Lesson> {
-    const insertRow = {
+    const insertRow: Record<string, unknown> = {
       course_id: lesson.courseId,
+      ...(lesson.classId ? { class_id: lesson.classId } : {}),
       title: lesson.title,
       summary: lesson.summary ?? '',
       objective: lesson.objective ?? '',
