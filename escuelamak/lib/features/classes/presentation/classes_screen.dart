@@ -11,6 +11,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:escuelamak/core/theme/app_theme.dart';
+import 'package:escuelamak/features/classes/presentation/video_player_screen.dart';
+import 'package:escuelamak/features/classes/presentation/pdf_viewer_screen.dart';
 
 // ─────────────────────────────────────────────────────────────
 // MODELO: ClassModel
@@ -627,12 +629,20 @@ class ClassDetailScreen extends StatelessWidget {
                         bg: Colors.red.shade50,
                         titulo: 'Ver video',
                         sub: 'Toca para reproducir',
-                        onTap: () => _showSnack(
-                            context, 'Reproductor de video - Próximamente'),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => VideoPlayerScreen(
+                                videoUrl: clase.resourceLink!,
+                                title: clase.titulo,
+                              ),
+                            ),
+                          );
+                        },
                       ),
                     ),
                   ),
-                  const SizedBox(height: 20),
                 ],
 
                 // PDF
@@ -647,17 +657,25 @@ class ClassDetailScreen extends StatelessWidget {
                         color: Colors.deepOrange,
                         bg: Colors.orange.shade50,
                         titulo: 'Archivo PDF',
-                        sub: 'Toca para descargar',
-                        onTap: () => _showSnack(
-                            context, 'Descarga de PDF - Próximamente'),
+                        sub: 'Toca para ver el documento',
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => PdfViewerScreen(
+                                pdfUrl: clase.resourceFileUrl!,
+                                title: clase.titulo,
+                              ),
+                            ),
+                          );
+                        },
                       ),
                     ),
                   ),
-                  const SizedBox(height: 20),
                 ],
 
                 // Botón matricularse
-                if (clase.isOpen && clase.hasCupos)
+                if (clase.isOpen && clase.hasCupos) ...[
                   FadeSlideIn(
                     delay: const Duration(milliseconds: 240),
                     child: ElevatedButton.icon(
@@ -671,6 +689,7 @@ class ClassDetailScreen extends StatelessWidget {
                           _showSnack(context, 'Matrícula - Próximamente'),
                     ),
                   ),
+                ],
 
                 const SizedBox(height: 40),
               ],

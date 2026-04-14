@@ -737,7 +737,7 @@
             <div class="role-permissions-bar">
               <span class="bar-label">Accesos:</span>
               <div class="bar-permissions">
-                <span *ngFor="let perm of role.permissions?.slice(0, 8)" 
+                <span *ngFor="let perm of (role.permissions ? role.permissions.length : 0) > 0 ? role.permissions.slice(0,8) : []" 
                       class="perm-badge"
                       [class.can-view]="perm.can_view"
                       [class.can-create]="perm.can_create"
