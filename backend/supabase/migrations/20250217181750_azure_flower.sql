@@ -1,0 +1,9 @@
+CREATE OR REPLACE FUNCTION verify_connection()
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  RETURN true;
+END;
+$$;

@@ -1,0 +1,14 @@
+{
+  "tasks": {
+    "start": "deno run --watch --allow-net --allow-env --allow-read server.ts"
+  },
+  "imports": {
+    "supabase": "jsr:@supabase/supabase-js@2",
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2"
+  },
+  "compilerOptions": {
+    "allowJs": true
+  },
+  "nodeModulesDir": true,
+  "lock": false
+}
