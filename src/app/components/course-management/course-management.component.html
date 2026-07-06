@@ -407,6 +407,11 @@
 
     <div class="modal-body">
 
+      <!-- Error visible dentro del modal -->
+      <div *ngIf="errorMessage" class="alert-error" style="margin-bottom:1rem;">
+        ⚠️ {{ errorMessage }}
+      </div>
+
       <!-- Estudiantes disponibles -->
       <section class="inner-panel">
         <h3 class="inner-title">👤 Estudiantes Disponibles</h3>
